@@ -6,34 +6,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Binance Enhanced MACD Crossover Scanner</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--panel:#121a2d;--line:#293752;--text:#e8eefb;--muted:#9aabc6;--green:#22c58b;--red:#ff647c;--blue:#6da9ff}
+:root{color-scheme:light;--bg:#f4f7fb;--panel:#fff;--line:#dce4ee;--text:#17243a;--muted:#68778d;--green:#0b9b70;--red:#d9435f;--blue:#2563eb}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,sans-serif}
-header{padding:20px;background:#10182a;border-bottom:1px solid var(--line)}
+header{padding:20px;background:#fff;border-bottom:1px solid var(--line)}
 h1{font-size:22px;margin:0 0 4px}
 header p,.hint{color:var(--muted)}
 main{padding:16px;max-width:1700px;margin:auto}
-.panel,.result-panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:14px}
+.panel,.result-panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:14px;box-shadow:0 2px 8px rgba(25,45,75,.045)}
 .panel h2,.result-panel h2{font-size:16px;margin:0 0 12px}
 .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 label.field{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px}
-input,select{width:100%;background:#0c1425;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px;font:inherit}
+input,select{width:100%;background:#fff;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px;font:inherit}
 input[type=checkbox]{width:auto;accent-color:var(--blue)}
 .checkgrid{display:flex;flex-wrap:wrap;gap:8px 13px}
 .check{display:inline-flex;align-items:center;gap:6px;font-size:13px}
 .rsi-list{display:grid;gap:6px;max-width:430px}
-.rsi-row{display:grid;grid-template-columns:48px 24px 1fr 1fr;align-items:center;gap:8px;background:#0d1628;border:1px solid #22314a;border-radius:7px;padding:5px 8px}
+.rsi-row{display:grid;grid-template-columns:48px 24px 1fr 1fr;align-items:center;gap:8px;background:#f8fafd;border:1px solid var(--line);border-radius:7px;padding:5px 8px}
 .rsi-row input[type=number]{padding:6px;min-width:0}
 .rsi-row .tf{font-weight:650}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 button{border:0;border-radius:8px;padding:10px 15px;font-weight:650;cursor:pointer;background:var(--blue);color:#071326}
-button.secondary{background:#263650;color:var(--text)}
-button.stop{background:#613044;color:white}
+button.secondary{background:#e8eef6;color:#24344d}
+button.stop{background:#b8324b;color:white}
 button:disabled{opacity:.45;cursor:not-allowed}
 .status{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:12px;margin-top:10px}
-.progress{height:6px;background:#202d44;border-radius:9px;overflow:hidden;margin-top:9px}
+.progress{height:6px;background:#e3eaf3;border-radius:9px;overflow:hidden;margin-top:9px}
 .progress span{display:block;height:100%;width:0;background:var(--blue)}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.filter-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .results{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .result-panel{padding:0;min-width:0;overflow:hidden}
 .result-panel h2{padding:12px 14px;margin:0}
@@ -42,14 +42,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .table-wrap{overflow:auto;max-height:65vh}
 table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
 th,td{padding:8px 9px;border-top:1px solid var(--line);text-align:right}
-th{position:sticky;top:0;background:#172239;color:var(--muted);z-index:1}
+th{position:sticky;top:0;background:#edf2f8;color:#52627a;z-index:1}
 th:first-child,td:first-child{text-align:left}
 td.pair{font-weight:700}
 .positive{color:var(--green)}
 .negative{color:var(--red)}
 .empty{padding:22px;color:var(--muted);text-align:center}
 footer{color:var(--muted);font-size:11px;padding:10px 2px}
-@media(max-width:850px){.results{grid-template-columns:1fr}h1{font-size:19px}}
+@media(max-width:1000px){.filter-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.filter-columns{grid-template-columns:1fr}.results{grid-template-columns:1fr}h1{font-size:19px}}
 </style>
 </head>
 <body>
@@ -101,34 +102,21 @@ footer{color:var(--muted);font-size:11px;padding:10px 2px}
 </div>
 </section>
 
-<div class="two">
+<div class="filter-columns">
 <section class="panel">
-<h2>2. Histogram confirmation timeframes</h2>
-<p class="hint">Every selected timeframe must have a histogram in the crossover direction.</p>
-<div id="histTfs" class="checkgrid"></div>
+<h2>2. Histogram and DEA confirmations</h2>
+<p class="hint">Every selected timeframe must confirm the crossover direction.</p>
+<strong>Histogram timeframes</strong>
+<div id="histTfs" class="checkgrid" style="margin:8px 0 14px"></div>
+<strong>DEA timeframes</strong>
+<div id="deaTfs" class="checkgrid" style="margin-top:8px"></div>
 </section>
-<section class="panel">
-<h2>3. DEA confirmation timeframes</h2>
-<p class="hint">Every selected timeframe must confirm DIF above DEA for bullish, or DIF below DEA for bearish.</p>
-<div id="deaTfs" class="checkgrid"></div>
-</section>
-</div>
-
-<div class="two">
-<section class="panel">
-<h2>4. Supertrend confirmation</h2>
-<p class="hint">Every selected timeframe must agree with the signal direction. Supertrend uses ATR(10), multiplier 3.</p>
-<div id="stTfs" class="checkgrid"></div>
-</section>
-<section class="panel">
-<h2>5. RSI filters by timeframe</h2>
-<p class="hint">Enable any rows you want. Each enabled row must fall within its own minimum and maximum range.</p>
-<div id="rsiRows" class="rsi-list"></div>
-</section>
-</div>
 
 <section class="panel">
-<h2>6. Optional EMA confirmation</h2>
+<h2>3. Supertrend and EMA</h2>
+<p class="hint">Supertrend uses ATR(10), multiplier 3. EMA confirmation is optional.</p>
+<strong>Supertrend timeframes</strong>
+<div id="stTfs" class="checkgrid" style="margin:8px 0 14px"></div>
 <label class="check">
 <input id="emaOn" type="checkbox">
 Require EMA 9 above EMA 21 for bullish / below for bearish
@@ -138,6 +126,13 @@ Require EMA 9 above EMA 21 for bullish / below for bearish
 </div>
 </section>
 
+<section class="panel">
+<h2>4. RSI filters by timeframe</h2>
+<p class="hint">Enable any rows you want. Each enabled row must fall within its own minimum and maximum range.</p>
+<div id="rsiRows" class="rsi-list"></div>
+</section>
+</div>
+
 <div class="results">
 <section class="result-panel bull">
 <h2>▲ Bullish crossovers</h2>
@@ -145,6 +140,7 @@ Require EMA 9 above EMA 21 for bullish / below for bearish
 <table><thead id="bullHead"></thead><tbody id="bullBody"><tr><td class="empty">No results yet.</td></tr></tbody></table>
 </div>
 </section>
+
 <section class="result-panel bear">
 <h2>▼ Bearish crossovers</h2>
 <div class="table-wrap">
@@ -155,7 +151,9 @@ Require EMA 9 above EMA 21 for bullish / below for bearish
 
 <footer>
 MACD uses standard 12 / 26 / 9 settings. Only completed candles are used.
-Crossover age is measured on the baseline timeframe; results are eligible from bar 1 through bar 10.
+Crossover Age is measured on the baseline timeframe and displayed from 1/10 through 10/10.
+Histogram Count shows consecutive completed baseline candles with the current histogram direction, capped at 10.
+Colored dots show bullish or bearish direction. Grey dashes mean a confirmation was not selected.
 Supertrend uses ATR 10, multiplier 3. This tool is informational and does not place trades.
 </footer>
 </main>
@@ -381,46 +379,45 @@ function fmt(v,d=6){
 }
 
 function render(){
- const cfg=checkedConfig();
-
  const cols=[
   "Pair",
-  "Bar",
-  "Histogram ("+cfg.base+")",
-  "DIF ("+cfg.base+")",
-  "DEA ("+cfg.base+")",
-  "Confirmations",
+  "Crossover Age",
+  "Histogram Count",
+  "Histogram",
+  "DEA",
+  "Supertrend",
+  "EMA",
   "RSI",
-  "Price",
-  "24h change",
-  "24h volume"
+  "24h Change"
  ];
 
  for(const id of ["bullHead","bearHead"]){
   $(id).innerHTML="<tr>"+cols.map(c=>"<th>"+c+"</th>").join("")+"</tr>";
  }
 
- const row=x=>
-  '<tr>'+
-  '<td class="pair">'+x.symbol+'</td>'+
-  '<td>'+x.age+'</td>'+
-  '<td class="'+(x.dir==="bull"?"positive":"negative")+'">'+fmt(x.hist)+'</td>'+
-  '<td>'+fmt(x.dif)+'</td>'+
-  '<td>'+fmt(x.dea)+'</td>'+
-  '<td>'+x.confirm+'</td>'+
-  '<td>'+x.rsiText+'</td>'+
-  '<td>'+fmt(x.price)+'</td>'+
-  '<td class="'+(x.change>=0?"positive":"negative")+'">'+fmt(x.change)+'%</td>'+
-  '<td>'+fmt(x.volume,0)+'</td>'+
-  '</tr>';
+ const row=x=>{
+  const dot=(active,title)=>active
+   ?'<span class="'+(x.dir==="bull"?"positive":"negative")+'" title="'+title+'">●</span>'
+   :'<span style="color:#aab5c4" title="Not selected">—</span>';
+
+  return '<tr><td class="pair">'+x.symbol+'</td>'+
+   '<td>'+x.age+'/10</td>'+
+   '<td>'+x.histCount+'/10</td>'+
+   '<td>'+dot(true,"Baseline histogram "+x.dir)+'</td>'+
+   '<td>'+dot(x.deaOn,"DIF/DEA confirmation")+'</td>'+
+   '<td>'+dot(x.stOn,"Supertrend confirmation")+'</td>'+
+   '<td>'+dot(x.emaOn,"EMA confirmation")+'</td>'+
+   '<td>'+x.rsiText+'</td>'+
+   '<td class="'+(x.change>=0?"positive":"negative")+'">'+(x.change>0?"+":"")+fmt(x.change,2)+'%</td></tr>';
+ };
 
  $("bullBody").innerHTML=state.lastBull.length
   ?state.lastBull.map(row).join("")
-  :'<tr><td class="empty" colspan="10">No bullish matches.</td></tr>';
+  :'<tr><td class="empty" colspan="9">No bullish matches.</td></tr>';
 
  $("bearBody").innerHTML=state.lastBear.length
   ?state.lastBear.map(row).join("")
-  :'<tr><td class="empty" colspan="10">No bearish matches.</td></tr>';
+  :'<tr><td class="empty" colspan="9">No bearish matches.</td></tr>';
 
  $("count").textContent=
   state.lastBull.length+" bullish · "+state.lastBear.length+" bearish";
@@ -483,6 +480,14 @@ async function analyzeSymbol(ticker,cfg){
 
  const dir=bm.hist[bm.hist.length-1]>0?"bull":"bear";
  const last=base.length-1;
+
+ let histCount=0;
+ for(let i=bm.hist.length-1;i>=0&&histCount<10;i--){
+  const h=bm.hist[i];
+  if(h==null||(dir==="bull"?h<=0:h>=0))break;
+  histCount++;
+ }
+
  const confirm=[];
 
  for(const tf of cfg.hist){
@@ -533,14 +538,12 @@ async function analyzeSymbol(ticker,cfg){
   symbol,
   dir,
   age,
-  hist:bm.hist[last],
-  dif:bm.dif[last],
-  dea:bm.dea[last],
-  confirm:confirm.length?confirm.join(", "):"—",
+  histCount,
+  deaOn:cfg.dea.length>0,
+  stOn:cfg.st.length>0,
+  emaOn:cfg.ema,
   rsiText:rsiVals.length?rsiVals.join(" · "):"—",
-  price:+ticker.lastPrice,
-  change:+ticker.priceChangePercent,
-  volume:+ticker.quoteVolume
+  change:+ticker.priceChangePercent
  };
 }
 
@@ -684,17 +687,16 @@ $("csvBtn").addEventListener("click",()=>{
  }
 
  const headers=[
-  "symbol","direction","bar","histogram","dif","dea",
-  "confirmations","rsi","price","change_percent","quote_volume"
+  "symbol","direction","crossover_age","histogram_count",
+  "histogram_signal","dea_confirmation","supertrend_confirmation",
+  "ema_confirmation","rsi","change_percent"
  ];
 
  const csv=[
   headers.join(","),
   ...rows.map(x=>[
-   x.symbol,x.dir,x.age,x.hist,x.dif,x.dea,
-   '"'+x.confirm.replaceAll('"','""')+'"',
-   '"'+x.rsiText+'"',
-   x.price,x.change,x.volume
+   x.symbol,x.dir,x.age+"/10",x.histCount+"/10",x.dir,
+   x.deaOn,x.stOn,x.emaOn,'"'+x.rsiText+'"',x.change
   ].join(","))
  ].join("\n");
 
