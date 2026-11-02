@@ -253,7 +253,9 @@ let lastResults={bull:[],bear:[]};
 let activeController=null,scanToken=0,rateLimitedUntil=0;
 let requestQueue=[],activeRequests=0,lastRequestAt=0,queueTimer=null;
 let requestErrors=0,scanStartedAt=0,progressTotal=0,progressDone=0;
-const MAX_WORKERS=8,REQUEST_GAP_MS=250,REQUEST_TIMEOUT_MS=15000;
+
+/* Reduced concurrency and a longer gap between requests. */
+const MAX_WORKERS=4,REQUEST_GAP_MS=400,REQUEST_TIMEOUT_MS=15000;
 
 class BinanceRateLimitError extends Error{
  constructor(status,waitSeconds){
@@ -354,13 +356,17 @@ async function runQueuedRequest(job){
  throw lastError||new Error('Binance API unavailable');
 }
 
+/* Only network-level failures try another Binance host.
+   HTTP errors such as 403, 418, 429 and 5xx are not host-switched. */
 async function api(path){
  let lastError;
  for(let i=0;i<API.length;i++){
   try{
    return await queuedFetch(API[i]+path,activeController?activeController.signal:null);
   }catch(e){
-   if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;
+   if(e instanceof BinanceRateLimitError||
+      e.name==='AbortError'||
+      /^Binance HTTP \d+/.test(String(e.message||'')))throw e;
    lastError=e;
   }
  }
@@ -539,15 +545,10 @@ async function scan(){
   $('state').textContent=`Status: Scanning ${symbols.length} pairs`;
 
   await workerPool(symbols,MAX_WORKERS,async symbol=>{
-   const intervals=new Set([macdTf,...deaConfirmTfs,...macdConfirmTfs,...stConfirmTfs,...rsiConfirmTfs]);
-   if(filterDifZero||filterDeaZero)intervals.add(deaTf);
-   const data={};
-   await Promise.all([...intervals].map(async tf=>{
-    const raw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=100`);
-    /* Do not remove the current, still-forming candle. */
-    data[tf]=raw;
-   }));
-
+   /* STAGE 1: Fetch only the primary MACD timeframe for each symbol. */
+   const macdRaw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${macdTf}&limit=100`);
+   /* Do not remove the current, still-forming candle. */
+   const data={[macdTf]:macdRaw};
    const macdKlines=data[macdTf];
    if(macdKlines.length<35)return;
    const macdCloses=macdKlines.map(k=>Number(k[4]));
@@ -555,6 +556,25 @@ async function scan(){
    const bullBar=crossoverBar(macdValues.hist,'bull');
    const bearBar=crossoverBar(macdValues.hist,'bear');
    const current=macdValues.hist.length-1;
+
+   const bullCandidate=bullSet.has(symbol)&&bullBar!==null&&bullBar>=1&&bullBar<=crossWindow;
+   const bearCandidate=bearSet.has(symbol)&&bearBar!==null&&bearBar>=1&&bearBar<=crossWindow;
+
+   /* No recent crossover: skip all confirmation-timeframe requests. */
+   if(!bullCandidate&&!bearCandidate)return;
+
+   /* STAGE 2: Fetch only enabled confirmations, and only for crossover candidates. */
+   const intervals=new Set([...deaConfirmTfs,...macdConfirmTfs,...stConfirmTfs,...rsiConfirmTfs]);
+   if(filterDifZero||filterDeaZero)intervals.add(deaTf);
+
+   /* The primary MACD data is already available; do not fetch it twice. */
+   intervals.delete(macdTf);
+
+   await Promise.all([...intervals].map(async tf=>{
+    const raw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=100`);
+    /* Do not remove the current, still-forming candle. */
+    data[tf]=raw;
+   }));
 
    let zeroDif=null,zeroDea=null;
    if(filterDifZero||filterDeaZero){
@@ -597,7 +617,7 @@ async function scan(){
    const item=marketMap.get(symbol);
    if(!item)return;
 
-   if(bullBar!==null&&bullBar>=1&&bullBar<=crossWindow){
+   if(bullCandidate){
     const macdPass=macdConfirmTfs.every(tf=>macdConfirm[tf]>0);
     const stPass=stConfirmTfs.every(tf=>stConfirm[tf]==='Bullish');
     const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiBullMin_'+tf).value)&&rsiConfirm[tf]<=Number($('rsiBullMax_'+tf).value));
@@ -614,7 +634,7 @@ async function scan(){
     }
    }
 
-   if(bearBar!==null&&bearBar>=1&&bearBar<=crossWindow){
+   if(bearCandidate){
     const macdPass=macdConfirmTfs.every(tf=>macdConfirm[tf]<0);
     const stPass=stConfirmTfs.every(tf=>stConfirm[tf]==='Bearish');
     const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiBearMin_'+tf).value)&&rsiConfirm[tf]<=Number($('rsiBearMax_'+tf).value));
