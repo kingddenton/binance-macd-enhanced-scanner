@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,6 +137,21 @@ td.green{color:var(--green)}td.red{color:var(--red)}
 <label class="check"><input type="checkbox" value="4h">4h</label>
 </div>
 </div>
+
+<div>
+<div class="check"><input type="checkbox" id="deaEnabled"><label for="deaEnabled">Enable DEA zero-line confirmation</label></div>
+<div class="checks" id="deaTfs">
+<label class="check"><input type="checkbox" value="1m" checked>1m</label>
+<label class="check"><input type="checkbox" value="3m">3m</label>
+<label class="check"><input type="checkbox" value="5m">5m</label>
+<label class="check"><input type="checkbox" value="15m">15m</label>
+<label class="check"><input type="checkbox" value="30m">30m</label>
+<label class="check"><input type="checkbox" value="1h">1h</label>
+<label class="check"><input type="checkbox" value="4h">4h</label>
+</div>
+<div class="small">Bullish: DEA above 0 · Bearish: DEA below 0 · Selected timeframes use AND logic.</div>
+</div>
+
 <div>
 <div class="check"><input type="checkbox" id="rsiEnabled"><label for="rsiEnabled">Enable RSI confirmation</label></div>
 <div class="field"><label for="rsiPeriod">RSI period</label><input id="rsiPeriod" type="number" min="2" max="50" value="14"></div>
@@ -150,6 +164,7 @@ td.green{color:var(--green)}td.red{color:var(--red)}
 <label class="check"><input type="checkbox" value="4h">4h</label>
 </div>
 </div>
+
 <div>
 <div class="check"><input type="checkbox" id="stEnabled"><label for="stEnabled">Enable Supertrend confirmation</label></div>
 <div class="small">ATR period 10 · Multiplier 3</div>
@@ -196,6 +211,7 @@ td.green{color:var(--green)}td.red{color:var(--red)}
 </section>
 </div>
 </main>
+
 <script>
 "use strict";
 const HOSTS=["https://fapi.binance.com","https://fapi1.binance.com","https://fapi2.binance.com"];
@@ -205,9 +221,11 @@ let busy=false,scanToken=0,refreshTimer=null,startedAt=0;
 let lastResults={bull:[],bear:[]};
 let currentProgress={done:0,total:0};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
 function setStatus(s){$("status").textContent=s}
 function setProgress(done,total){currentProgress={done,total};$("scanned").textContent=done;$("total").textContent=total;$("progressBar").style.width=(total?done/total*100:0)+"%"}
 function elapsed(){return Math.max(0,Math.round((Date.now()-startedAt)/1000))+"s"}
+
 async function api(path,token){
  let lastError;
  for(const host of HOSTS){
@@ -225,6 +243,7 @@ async function api(path,token){
  }
  throw lastError||Error("All Binance endpoints failed");
 }
+
 async function getExchangeInfo(token){
  if(exchangeCache&&Date.now()-exchangeCacheAt<30*60*1000)return exchangeCache;
  const data=await api("/fapi/v1/exchangeInfo",token);
@@ -234,6 +253,7 @@ async function getTickers(token){return api("/fapi/v1/ticker/24hr",token)}
 async function getKlines(symbol,interval,token){
  return api("/fapi/v1/klines?symbol="+encodeURIComponent(symbol)+"&interval="+interval+"&limit=100",token);
 }
+
 function ema(values,period){
  if(values.length<period)return [];
  const out=new Array(values.length).fill(null);
@@ -242,13 +262,15 @@ function ema(values,period){
  for(let i=period;i<values.length;i++){seed=values[i]*k+seed*(1-k);out[i]=seed}
  return out;
 }
+
 function macdCalc(closes){
  const fast=ema(closes,12),slow=ema(closes,26),dif=[],valid=[];
  for(let i=0;i<closes.length;i++){dif[i]=fast[i]===null||slow[i]===null?null:fast[i]-slow[i];if(dif[i]!==null)valid.push({i,v:dif[i]})}
  const signalValues=ema(valid.map(x=>x.v),9),dea=new Array(closes.length).fill(null),hist=new Array(closes.length).fill(null);
- valid.forEach((x,j)=>{if(signalValues[j]!==null){dea[x.i]=signalValues[j];hist[x.i]=dif[x.i]-dea[j]}});
+ valid.forEach((x,j)=>{if(signalValues[j]!==null){dea[x.i]=signalValues[j];hist[x.i]=dif[x.i]-dea[x.i]}});
  return {dif,dea,hist};
 }
+
 function rsiCalc(closes,period){
  if(closes.length<=period)return null;
  let gain=0,loss=0;
@@ -258,6 +280,7 @@ function rsiCalc(closes,period){
  if(avgL===0)return 100;
  return 100-(100/(1+avgG/avgL));
 }
+
 function atrCalc(high,low,close,period){
  const tr=[];
  for(let i=0;i<close.length;i++){tr.push(i===0?high[i]-low[i]:Math.max(high[i]-low[i],Math.abs(high[i]-close[i-1]),Math.abs(low[i]-close[i-1])))}
@@ -267,6 +290,7 @@ function atrCalc(high,low,close,period){
  for(let i=period;i<tr.length;i++){a=(a*(period-1)+tr[i])/period;out[i]=a}
  return out;
 }
+
 function supertrendCalc(high,low,close,period=10,mult=3){
  const atr=atrCalc(high,low,close,period),upper=[],lower=[],trend=[];
  let finalU=0,finalL=0,dir=1;
@@ -280,20 +304,31 @@ function supertrendCalc(high,low,close,period=10,mult=3){
  }
  return trend;
 }
-function parseCandles(raw){
- return {time:raw.map(x=>+x[0]),open:raw.map(x=>+x[1]),high:raw.map(x=>+x[2]),low:raw.map(x=>+x[3]),close:raw.map(x=>+x[4]),volume:raw.map(x=>+x[5])};
+
+/* Only include candles whose closing time has passed. */
+const INTERVAL_MS={"1m":60000,"3m":180000,"5m":300000,"15m":900000,"30m":1800000,"1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,"12h":43200000,"1d":86400000};
+
+function parseCandles(raw,interval){
+ const duration=INTERVAL_MS[interval];
+ const closed=raw.filter(x=>!duration||(+x[0]+duration<=Date.now()));
+ return {time:closed.map(x=>+x[0]),open:closed.map(x=>+x[1]),high:closed.map(x=>+x[2]),low:closed.map(x=>+x[3]),close:closed.map(x=>+x[4]),volume:closed.map(x=>+x[5])};
 }
+
 function selectedTfs(id){return [...$(id).querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)}
+
 function config(){
- return {primary:$("primaryTf").value,baseline:Math.max(1,Math.min(100,+$("baseline").value||10)),rsiPeriod:Math.max(2,Math.min(50,+$("rsiPeriod").value||14)),macdOn:$("macdEnabled").checked,macdTfs:selectedTfs("macdTfs"),rsiOn:$("rsiEnabled").checked,rsiTfs:selectedTfs("rsiTfs"),stOn:$("stEnabled").checked,stTfs:selectedTfs("stTfs")};
+ return {primary:$("primaryTf").value,baseline:Math.max(1,Math.min(100,+$("baseline").value||10)),rsiPeriod:Math.max(2,Math.min(50,+$("rsiPeriod").value||14)),macdOn:$("macdEnabled").checked,macdTfs:selectedTfs("macdTfs"),deaOn:$("deaEnabled").checked,deaTfs:selectedTfs("deaTfs"),rsiOn:$("rsiEnabled").checked,rsiTfs:selectedTfs("rsiTfs"),stOn:$("stEnabled").checked,stTfs:selectedTfs("stTfs")};
 }
+
 function validateConfig(c){
- for(const [on,tfs,name] of [[c.macdOn,c.macdTfs,"MACD"],[c.rsiOn,c.rsiTfs,"RSI"],[c.stOn,c.stTfs,"Supertrend"]]){
+ for(const [on,tfs,name] of [[c.macdOn,c.macdTfs,"MACD"],[c.deaOn,c.deaTfs,"DEA"],[c.rsiOn,c.rsiTfs,"RSI"],[c.stOn,c.stTfs,"Supertrend"]]){
   if(on&&!tfs.length)throw Error("Select at least one "+name+" confirmation timeframe, or disable that confirmation.");
  }
 }
+
 function isCrossover(hist,baseline){
- const n=hist.length-1;if(n<1||hist[n]===null)return null;
+ const n=hist.length-1;
+ if(n<1||hist[n]===null)return null;
  const start=Math.max(1,n-baseline+1);
  for(let i=n;i>=start;i--){
   if(hist[i]===null||hist[i-1]===null)continue;
@@ -302,43 +337,65 @@ function isCrossover(hist,baseline){
  }
  return null;
 }
+
 async function analyzeSymbol(symbol,ticker,c,token){
  const needed=new Set([c.primary]);
  if(c.macdOn)c.macdTfs.forEach(x=>needed.add(x));
+ if(c.deaOn)c.deaTfs.forEach(x=>needed.add(x));
  if(c.rsiOn)c.rsiTfs.forEach(x=>needed.add(x));
  if(c.stOn)c.stTfs.forEach(x=>needed.add(x));
+
  const rawByTf={};
  await Promise.all([...needed].map(async tf=>{rawByTf[tf]=await getKlines(symbol,tf,token)}));
  if(token!==scanToken)throw Error("Scan cancelled");
- const primary=parseCandles(rawByTf[c.primary]),macd=macdCalc(primary.close);
+
+ const primary=parseCandles(rawByTf[c.primary],c.primary);
+ const macd=macdCalc(primary.close);
  const crossover=isCrossover(macd.hist,c.baseline);
  if(!crossover)return null;
+
  const direction=crossover.direction;
  const sign=direction==="bull"?1:-1;
+
+ /* MACD histogram sign confirmation */
  for(const tf of c.macdOn?c.macdTfs:[]){
-  const d=macdCalc(parseCandles(rawByTf[tf]).close);
+  const d=macdCalc(parseCandles(rawByTf[tf],tf).close);
   const h=d.hist.filter(x=>x!==null).at(-1);
   if(h===undefined||Math.sign(h)!==sign)return null;
  }
+
+ /* DEA zero-line confirmation: positive for bullish, negative for bearish */
+ for(const tf of c.deaOn?c.deaTfs:[]){
+  const d=macdCalc(parseCandles(rawByTf[tf],tf).close);
+  const deaValue=d.dea.filter(x=>x!==null).at(-1);
+  if(deaValue===undefined)return null;
+  if(direction==="bull"&&deaValue<=0)return null;
+  if(direction==="bear"&&deaValue>=0)return null;
+ }
+
  let rsiValue=null;
  for(const tf of c.rsiOn?c.rsiTfs:[]){
-  const r=rsiCalc(parseCandles(rawByTf[tf]).close,c.rsiPeriod);
+  const r=rsiCalc(parseCandles(rawByTf[tf],tf).close,c.rsiPeriod);
   if(r===null)return null;
   if(rsiValue===null)rsiValue=r;
   if(direction==="bull"&&r<=50)return null;
   if(direction==="bear"&&r>=50)return null;
  }
+
  let stValue=null;
  for(const tf of c.stOn?c.stTfs:[]){
-  const p=parseCandles(rawByTf[tf]),trend=supertrendCalc(p.high,p.low,p.close);
+  const p=parseCandles(rawByTf[tf],tf),trend=supertrendCalc(p.high,p.low,p.close);
   const t=trend.filter(x=>x!==null).at(-1);
   if(t===undefined||t!==sign)return null;
   stValue=t===1?"Bullish":"Bearish";
  }
+
  const last=primary.close.length-1;
  return {symbol,price:+ticker.lastPrice,change:+ticker.priceChangePercent,volume:+ticker.quoteVolume,dif:macd.dif[last],dea:macd.dea[last],hist:macd.hist[last],rsi:rsiValue,st:stValue||"—",candlesBack:crossover.candlesBack,time:Date.now(),direction};
 }
+
 function fmt(v,d=5){return v===null||v===undefined||!Number.isFinite(v)?"—":Number(v).toFixed(d)}
+
 function render(){
  const q=$("search").value.trim().toUpperCase(),sort=$("sort").value;
  for(const type of ["bull","bear"]){
@@ -353,11 +410,13 @@ function render(){
  $("bullCount").textContent=lastResults.bull.length;
  $("bearCount").textContent=lastResults.bear.length;
 }
+
 function addResult(result){
  if(!result)return;
  const list=lastResults[result.direction];
  if(!list.some(x=>x.symbol===result.symbol))list.push(result);
 }
+
 function chooseUniverse(tickers){
  const minVol=Math.max(0,+$("minVolume").value||0);
  let eligible=tickers.filter(t=>t.symbol.endsWith("USDT")&&+t.quoteVolume>=minVol);
@@ -370,25 +429,35 @@ function chooseUniverse(tickers){
  const map=new Map([...gainers,...losers].map(t=>[t.symbol,t]));
  return [...map.values()];
 }
+
 async function runScan(){
  if(busy)return;
- const c=config();try{validateConfig(c)}catch(e){setStatus(e.message);return}
+ const c=config();
+ try{validateConfig(c)}catch(e){setStatus(e.message);return}
+
  busy=true;const token=++scanToken;startedAt=Date.now();
  $("startBtn").disabled=true;$("onceBtn").disabled=true;$("stopBtn").disabled=false;
  lastResults={bull:[],bear:[]};render();setProgress(0,0);
+
  try{
   setStatus("Loading Binance market information...");
   const [info,tickers]=await Promise.all([getExchangeInfo(token),getTickers(token)]);
   if(token!==scanToken)return;
+
   const allowed=new Set(info.symbols.filter(s=>s.status==="TRADING"&&s.contractType==="PERPETUAL"&&s.quoteAsset==="USDT").map(s=>s.symbol));
   const universe=chooseUniverse(tickers).filter(t=>allowed.has(t.symbol));
   setProgress(0,universe.length);
+
   if(!universe.length){setStatus("No eligible pairs match your volume and universe filters.");return}
+
   setStatus("Scanning "+universe.length+" eligible pairs...");
   let done=0,renderQueued=false,errors=0;
+
   const queue=[...universe],workers=Array.from({length:8},async()=>{
    while(queue.length&&token===scanToken){
-    const ticker=queue.shift();if(!ticker)break;
+    const ticker=queue.shift();
+    if(!ticker)break;
+
     try{
      const result=await analyzeSymbol(ticker.symbol,ticker,c,token);
      if(token!==scanToken)return;
@@ -398,32 +467,50 @@ async function runScan(){
      errors++;
      if(e.rateLimit){setStatus(e.message);stopScan();return}
     }
+
     done++;setProgress(done,universe.length);$("elapsed").textContent=elapsed();
+
     if(done%8===0||done===universe.length){
-     if(!renderQueued){renderQueued=true;requestAnimationFrame(()=>{renderQueued=false;if(token===scanToken)render()})}
+     if(!renderQueued){
+      renderQueued=true;
+      requestAnimationFrame(()=>{renderQueued=false;if(token===scanToken)render()});
+     }
     }
    }
   });
+
   await Promise.all(workers);
   if(token!==scanToken)return;
+
   render();setProgress(done,universe.length);
   setStatus("Scan complete. "+done+" pairs checked; "+errors+" request errors.");
  }catch(e){
   if(token===scanToken)setStatus("Scan error: "+e.message);
  }finally{
-  if(token===scanToken){busy=false;$("startBtn").disabled=false;$("onceBtn").disabled=false;$("stopBtn").disabled=true;$("elapsed").textContent=elapsed()}
+  if(token===scanToken){
+   busy=false;
+   $("startBtn").disabled=false;
+   $("onceBtn").disabled=false;
+   $("stopBtn").disabled=true;
+   $("elapsed").textContent=elapsed();
+  }
  }
 }
+
 function stopScan(){
  scanToken++;busy=false;
- $("startBtn").disabled=false;$("onceBtn").disabled=false;$("stopBtn").disabled=true;
+ $("startBtn").disabled=false;
+ $("onceBtn").disabled=false;
+ $("stopBtn").disabled=true;
  setStatus("Scan stopped. Completed results are retained.");
 }
+
 function startAuto(){
  if(refreshTimer)clearInterval(refreshTimer);
  const seconds=+$("refresh").value;
  if(seconds>0){refreshTimer=setInterval(()=>{if(!busy)runScan()},seconds*1000)}
 }
+
 function exportCsv(){
  const rows=[...lastResults.bull,...lastResults.bear];
  if(!rows.length){setStatus("No results to export.");return}
@@ -433,6 +520,7 @@ function exportCsv(){
  const url=URL.createObjectURL(blob),a=document.createElement("a");
  a.href=url;a.download="binance-macd-scanner-results.csv";a.click();URL.revokeObjectURL(url);
 }
+
 $("startBtn").addEventListener("click",()=>{startAuto();runScan()});
 $("onceBtn").addEventListener("click",runScan);
 $("stopBtn").addEventListener("click",stopScan);
