@@ -47,11 +47,24 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 </select>
 </div>
 <div>
-<label>DEA confirmation timeframe</label>
+<label>DIF / DEA zero-line filter timeframe</label>
 <select id="deaTf">
 <option>1m</option><option>3m</option><option selected>5m</option>
 <option>15m</option><option>30m</option><option>1h</option><option>4h</option>
 </select>
+</div>
+
+<div style="grid-column:1/-1">
+<label>Multiple DEA confirmations — select any timeframes</label>
+<div class="controls">
+<div class="check"><input id="deaConfirm_1m" type="checkbox"><label for="deaConfirm_1m">1m DEA</label></div>
+<div class="check"><input id="deaConfirm_3m" type="checkbox"><label for="deaConfirm_3m">3m DEA</label></div>
+<div class="check"><input id="deaConfirm_5m" type="checkbox"><label for="deaConfirm_5m">5m DEA</label></div>
+<div class="check"><input id="deaConfirm_15m" type="checkbox"><label for="deaConfirm_15m">15m DEA</label></div>
+<div class="check"><input id="deaConfirm_30m" type="checkbox"><label for="deaConfirm_30m">30m DEA</label></div>
+<div class="check"><input id="deaConfirm_1h" type="checkbox"><label for="deaConfirm_1h">1h DEA</label></div>
+<div class="check"><input id="deaConfirm_4h" type="checkbox"><label for="deaConfirm_4h">4h DEA</label></div>
+</div>
 </div>
 
 <div style="grid-column:1/-1">
@@ -101,7 +114,6 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 <div><label>Early crossover window (bars)</label><input id="crossWindow" type="number" value="10" min="3" max="30" step="1"></div>
 <div><label>Automatic refresh</label><select id="refresh"><option value="0">Off</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></div>
 
-<div class="check"><input id="useDea" type="checkbox"><label for="useDea">Enable DEA zero-line confirmation</label></div>
 <div class="check"><input id="filterDifZero" type="checkbox"><label for="filterDifZero">DIF positive / negative</label></div>
 <div class="check"><input id="filterDeaZero" type="checkbox"><label for="filterDeaZero">DEA positive / negative</label></div>
 </div>
@@ -129,7 +141,7 @@ Enabled MACD timeframes are classified automatically: histogram above zero is bu
 Enabled Supertrend timeframes must all agree with the result direction.
 Each enabled RSI timeframe has its own bullish minimum and bearish maximum. All enabled RSI timeframes must pass.
 Mixed bullish/bearish confirmations do not qualify for either side.
-DEA confirmation uses the selected DEA timeframe: positive confirms bullish, negative confirms bearish, exactly zero confirms neither.
+Every selected DEA timeframe is checked independently: DEA above zero confirms bullish, below zero confirms bearish, exactly zero confirms neither. All selected DEA timeframes must agree. The separate DIF / DEA zero-line filters use the timeframe selected above.
 DIF and DEA zero-line filters remain independently optional.
 MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 </div>
@@ -306,7 +318,7 @@ async function scan(){
   const symbols=[...new Set([...bullSet,...bearSet])];
   const marketMap=new Map(market.map(x=>[x.symbol,x]));
   const macdTf=$('macdTf').value,deaTf=$('deaTf').value;
-  const useDea=$('useDea').checked;
+  const deaConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('deaConfirm_'+tf).checked);
   const macdConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('macdConfirm_'+tf).checked);
   const stConfirmTfs=['1m','3m','5m','15m','30m','1h','2h','4h'].filter(tf=>$('stConfirm_'+tf).checked);
   const rsiConfirmTfs=['1m','3m','5m','15m','30m','1h','2h','4h'].filter(tf=>$('rsiEnable_'+tf).checked);
@@ -317,8 +329,8 @@ async function scan(){
   $('state').textContent=`Status: Scanning ${symbols.length} pairs`;
 
   await workerPool(symbols,6,async symbol=>{
-   const intervals=new Set([macdTf,...macdConfirmTfs,...stConfirmTfs,...rsiConfirmTfs]);
-   if(useDea||filterDifZero||filterDeaZero)intervals.add(deaTf);
+   const intervals=new Set([macdTf,...deaConfirmTfs,...macdConfirmTfs,...stConfirmTfs,...rsiConfirmTfs]);
+   if(filterDifZero||filterDeaZero)intervals.add(deaTf);
    const data={};
    await Promise.all([...intervals].map(async tf=>{
     const raw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=100`);
@@ -334,14 +346,21 @@ async function scan(){
    const bearBar=crossoverBar(macdValues.hist,'bear');
    const current=macdValues.hist.length-1;
 
-   let zeroDif=null,zeroDea=null,deaBull=true,deaBear=true;
-   if(useDea||filterDifZero||filterDeaZero){
+   let zeroDif=null,zeroDea=null;
+   if(filterDifZero||filterDeaZero){
     const deaKlines=data[deaTf];
     if(deaKlines.length<35)return;
     const deaValues=macd(deaKlines.map(k=>Number(k[4])));
     const zi=deaValues.dea.length-1;
     zeroDif=deaValues.dif[zi];zeroDea=deaValues.dea[zi];
-    if(useDea){deaBull=zeroDea>0;deaBear=zeroDea<0;}
+   }
+
+   const deaConfirm={};
+   for(const tf of deaConfirmTfs){
+    const closes=data[tf].map(k=>Number(k[4]));
+    if(closes.length<35)return;
+    const values=macd(closes);
+    deaConfirm[tf]=values.dea[values.dea.length-1];
    }
 
    const macdConfirm={};
@@ -374,7 +393,8 @@ async function scan(){
     const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiMin_'+tf).value));
     const difZeroPass=!filterDifZero||zeroDif>0;
     const deaZeroPass=!filterDeaZero||zeroDea>0;
-    if(bullSet.has(symbol)&&macdPass&&rsiPass&&stPass&&deaBull&&difZeroPass&&deaZeroPass){
+    const deaPass=deaConfirmTfs.every(tf=>deaConfirm[tf]>0);
+    if(bullSet.has(symbol)&&macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass){
      bullishResults.push({
       symbol,price:item.price,bar:bullBar,window:crossWindow,
       hist:macdValues.hist[current],dea:macdValues.dea[current],
@@ -390,7 +410,8 @@ async function scan(){
     const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]<=Number($('rsiMax_'+tf).value));
     const difZeroPass=!filterDifZero||zeroDif<0;
     const deaZeroPass=!filterDeaZero||zeroDea<0;
-    if(bearSet.has(symbol)&&macdPass&&rsiPass&&stPass&&deaBear&&difZeroPass&&deaZeroPass){
+    const deaPass=deaConfirmTfs.every(tf=>deaConfirm[tf]<0);
+    if(bearSet.has(symbol)&&macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass){
      bearishResults.push({
       symbol,price:item.price,bar:bearBar,window:crossWindow,
       hist:macdValues.hist[current],dea:macdValues.dea[current],
