@@ -43,7 +43,10 @@ td.green{color:var(--green)}td.red{color:var(--red)}
 .small{font-size:11px;color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .hidden{display:none}
-@media(max-width:600px){main{padding:8px}.panel{padding:10px}h1{font-size:18px}}
+.results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:start}
+.results-grid>.panel{min-width:0;margin-bottom:0}
+.results-grid .table-wrap{max-width:100%}
+@media(max-width:600px){main{padding:8px}.panel{padding:10px}h1{font-size:18px}.results-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.results-grid>.panel{padding:7px}.results-grid h2{font-size:13px}.results-grid table{min-width:680px}}
 </style>
 </head>
 <body>
@@ -182,14 +185,16 @@ td.green{color:var(--green)}td.red{color:var(--red)}
 </div>
 </section>
 
+<div class="results-grid">
 <section class="panel">
 <h2 class="green">Bullish crossover results</h2>
-<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Price</th><th>24h Change</th><th>24h Volume</th><th>MACD DIF</th><th>DEA</th><th>Histogram</th><th>RSI</th><th>Supertrend</th><th>Detected</th></tr></thead><tbody id="bullBody"><tr><td colspan="10" class="empty">No bullish results yet.</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Price</th><th>24h Change</th><th>24h Volume</th><th>MACD DIF</th><th>DEA</th><th>Histogram</th><th>RSI</th><th>Supertrend</th><th>Candles Back</th><th>Detected</th></tr></thead><tbody id="bullBody"><tr><td colspan="11" class="empty">No bullish results yet.</td></tr></tbody></table></div>
 </section>
 <section class="panel">
 <h2 class="red">Bearish crossover results</h2>
-<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Price</th><th>24h Change</th><th>24h Volume</th><th>MACD DIF</th><th>DEA</th><th>Histogram</th><th>RSI</th><th>Supertrend</th><th>Detected</th></tr></thead><tbody id="bearBody"><tr><td colspan="10" class="empty">No bearish results yet.</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Price</th><th>24h Change</th><th>24h Volume</th><th>MACD DIF</th><th>DEA</th><th>Histogram</th><th>RSI</th><th>Supertrend</th><th>Candles Back</th><th>Detected</th></tr></thead><tbody id="bearBody"><tr><td colspan="11" class="empty">No bearish results yet.</td></tr></tbody></table></div>
 </section>
+</div>
 </main>
 <script>
 "use strict";
@@ -241,7 +246,7 @@ function macdCalc(closes){
  const fast=ema(closes,12),slow=ema(closes,26),dif=[],valid=[];
  for(let i=0;i<closes.length;i++){dif[i]=fast[i]===null||slow[i]===null?null:fast[i]-slow[i];if(dif[i]!==null)valid.push({i,v:dif[i]})}
  const signalValues=ema(valid.map(x=>x.v),9),dea=new Array(closes.length).fill(null),hist=new Array(closes.length).fill(null);
- valid.forEach((x,j)=>{if(signalValues[j]!==null){dea[x.i]=signalValues[j];hist[x.i]=dif[x.i]-dea[x.i]}});
+ valid.forEach((x,j)=>{if(signalValues[j]!==null){dea[x.i]=signalValues[j];hist[x.i]=dif[x.i]-dea[j]}});
  return {dif,dea,hist};
 }
 function rsiCalc(closes,period){
@@ -292,8 +297,8 @@ function isCrossover(hist,baseline){
  const start=Math.max(1,n-baseline+1);
  for(let i=n;i>=start;i--){
   if(hist[i]===null||hist[i-1]===null)continue;
-  if(hist[i]>0&&hist[i-1]<=0)return "bull";
-  if(hist[i]<0&&hist[i-1]>=0)return "bear";
+  if(hist[i]>0&&hist[i-1]<=0)return {direction:"bull",candlesBack:n-i};
+  if(hist[i]<0&&hist[i-1]>=0)return {direction:"bear",candlesBack:n-i};
  }
  return null;
 }
@@ -306,8 +311,9 @@ async function analyzeSymbol(symbol,ticker,c,token){
  await Promise.all([...needed].map(async tf=>{rawByTf[tf]=await getKlines(symbol,tf,token)}));
  if(token!==scanToken)throw Error("Scan cancelled");
  const primary=parseCandles(rawByTf[c.primary]),macd=macdCalc(primary.close);
- const direction=isCrossover(macd.hist,c.baseline);
- if(!direction)return null;
+ const crossover=isCrossover(macd.hist,c.baseline);
+ if(!crossover)return null;
+ const direction=crossover.direction;
  const sign=direction==="bull"?1:-1;
  for(const tf of c.macdOn?c.macdTfs:[]){
   const d=macdCalc(parseCandles(rawByTf[tf]).close);
@@ -330,7 +336,7 @@ async function analyzeSymbol(symbol,ticker,c,token){
   stValue=t===1?"Bullish":"Bearish";
  }
  const last=primary.close.length-1;
- return {symbol,price:+ticker.lastPrice,change:+ticker.priceChangePercent,volume:+ticker.quoteVolume,dif:macd.dif[last],dea:macd.dea[last],hist:macd.hist[last],rsi:rsiValue,st:stValue||"—",time:Date.now(),direction};
+ return {symbol,price:+ticker.lastPrice,change:+ticker.priceChangePercent,volume:+ticker.quoteVolume,dif:macd.dif[last],dea:macd.dea[last],hist:macd.hist[last],rsi:rsiValue,st:stValue||"—",candlesBack:crossover.candlesBack,time:Date.now(),direction};
 }
 function fmt(v,d=5){return v===null||v===undefined||!Number.isFinite(v)?"—":Number(v).toFixed(d)}
 function render(){
@@ -341,8 +347,8 @@ function render(){
   else if(sort==="volume")rows.sort((a,b)=>b.volume-a.volume);
   else rows.sort((a,b)=>b.time-a.time);
   const body=$(type+"Body");
-  if(!rows.length){body.innerHTML='<tr><td colspan="10" class="empty">No '+(type==="bull"?"bullish":"bearish")+' results yet.</td></tr>';continue}
-  body.innerHTML=rows.map(x=>`<tr><td><strong>${x.symbol}</strong></td><td>${fmt(x.price,8)}</td><td class="${x.change>=0?"green":"red"}">${fmt(x.change,2)}%</td><td>${fmt(x.volume,0)}</td><td>${fmt(x.dif)}</td><td>${fmt(x.dea)}</td><td class="${x.hist>=0?"green":"red"}">${fmt(x.hist)}</td><td>${fmt(x.rsi,2)}</td><td>${x.st}</td><td>${new Date(x.time).toLocaleTimeString()}</td></tr>`).join("");
+  if(!rows.length){body.innerHTML='<tr><td colspan="11" class="empty">No '+(type==="bull"?"bullish":"bearish")+' results yet.</td></tr>';continue}
+  body.innerHTML=rows.map(x=>`<tr><td><strong>${x.symbol}</strong></td><td>${fmt(x.price,8)}</td><td class="${x.change>=0?"green":"red"}">${fmt(x.change,2)}%</td><td>${fmt(x.volume,0)}</td><td>${fmt(x.dif)}</td><td>${fmt(x.dea)}</td><td class="${x.hist>=0?"green":"red"}">${fmt(x.hist)}</td><td>${fmt(x.rsi,2)}</td><td>${x.st}</td><td>${x.candlesBack}</td><td>${new Date(x.time).toLocaleTimeString()}</td></tr>`).join("");
  }
  $("bullCount").textContent=lastResults.bull.length;
  $("bearCount").textContent=lastResults.bear.length;
