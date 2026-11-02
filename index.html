@@ -95,16 +95,80 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 </div>
 
 <div style="grid-column:1/-1">
-<label>Independent RSI confirmations — enable timeframes and set thresholds separately</label>
+<label>Independent RSI confirmations — enable each timeframe and set bullish and bearish ranges separately</label>
 <div class="controls">
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_1m" type="checkbox"><label for="rsiEnable_1m">1m RSI</label></div><label>Bullish minimum</label><input id="rsiMin_1m" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_1m" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_3m" type="checkbox"><label for="rsiEnable_3m">3m RSI</label></div><label>Bullish minimum</label><input id="rsiMin_3m" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_3m" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_5m" type="checkbox"><label for="rsiEnable_5m">5m RSI</label></div><label>Bullish minimum</label><input id="rsiMin_5m" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_5m" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_15m" type="checkbox"><label for="rsiEnable_15m">15m RSI</label></div><label>Bullish minimum</label><input id="rsiMin_15m" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_15m" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_30m" type="checkbox"><label for="rsiEnable_30m">30m RSI</label></div><label>Bullish minimum</label><input id="rsiMin_30m" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_30m" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_1h" type="checkbox"><label for="rsiEnable_1h">1h RSI</label></div><label>Bullish minimum</label><input id="rsiMin_1h" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_1h" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_2h" type="checkbox"><label for="rsiEnable_2h">2h RSI</label></div><label>Bullish minimum</label><input id="rsiMin_2h" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_2h" type="number" value="50" min="0" max="100"></div>
-<div class="panel" style="margin:0;padding:9px"><div class="check" style="padding-top:0"><input id="rsiEnable_4h" type="checkbox"><label for="rsiEnable_4h">4h RSI</label></div><label>Bullish minimum</label><input id="rsiMin_4h" type="number" value="50" min="0" max="100"><label style="margin-top:7px">Bearish maximum</label><input id="rsiMax_4h" type="number" value="50" min="0" max="100"></div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_1m" type="checkbox"><label for="rsiEnable_1m">1m RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_1m" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_1m" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_1m" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_1m" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_3m" type="checkbox"><label for="rsiEnable_3m">3m RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_3m" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_3m" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_3m" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_3m" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_5m" type="checkbox"><label for="rsiEnable_5m">5m RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_5m" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_5m" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_5m" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_5m" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_15m" type="checkbox"><label for="rsiEnable_15m">15m RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_15m" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_15m" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_15m" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_15m" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_30m" type="checkbox"><label for="rsiEnable_30m">30m RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_30m" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_30m" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_30m" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_30m" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_1h" type="checkbox"><label for="rsiEnable_1h">1h RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_1h" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_1h" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_1h" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_1h" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_2h" type="checkbox"><label for="rsiEnable_2h">2h RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_2h" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_2h" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_2h" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_2h" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
+<div class="panel" style="margin:0;padding:9px">
+ <div class="check" style="padding-top:0"><input id="rsiEnable_4h" type="checkbox"><label for="rsiEnable_4h">4h RSI</label></div>
+ <div class="controls" style="grid-template-columns:1fr 1fr;gap:7px">
+  <div><label>Bullish min</label><input id="rsiBullMin_4h" type="number" value="50" min="0" max="100" step="0.1"></div>
+  <div><label>Bullish max</label><input id="rsiBullMax_4h" type="number" value="100" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish min</label><input id="rsiBearMin_4h" type="number" value="0" min="0" max="100" step="0.1"></div>
+  <div><label>Bearish max</label><input id="rsiBearMax_4h" type="number" value="50" min="0" max="100" step="0.1"></div>
+ </div>
+</div>
 </div>
 </div>
 
@@ -139,7 +203,7 @@ The primary MACD histogram crossover candle is Bar 1. Signals remain eligible th
 All indicators use Binance's latest returned candle, including the currently forming candle. Live values can change before candle close.
 Enabled MACD timeframes are classified automatically: histogram above zero is bullish, below zero is bearish, exactly zero is neutral. All enabled timeframes must agree.
 Enabled Supertrend timeframes must all agree with the result direction.
-Each enabled RSI timeframe has its own bullish minimum and bearish maximum. All enabled RSI timeframes must pass.
+Each enabled RSI timeframe has independent bullish minimum/maximum and bearish minimum/maximum ranges. All enabled RSI timeframes must fall inside the relevant range.
 Mixed bullish/bearish confirmations do not qualify for either side.
 Every selected DEA timeframe is checked independently: DEA above zero confirms bullish, below zero confirms bearish, exactly zero confirms neither. All selected DEA timeframes must agree. The separate DIF / DEA zero-line filters use the timeframe selected above.
 DIF and DEA zero-line filters remain independently optional.
@@ -322,6 +386,14 @@ async function scan(){
   const macdConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('macdConfirm_'+tf).checked);
   const stConfirmTfs=['1m','3m','5m','15m','30m','1h','2h','4h'].filter(tf=>$('stConfirm_'+tf).checked);
   const rsiConfirmTfs=['1m','3m','5m','15m','30m','1h','2h','4h'].filter(tf=>$('rsiEnable_'+tf).checked);
+
+  for(const tf of rsiConfirmTfs){
+   const values=['rsiBullMin_','rsiBullMax_','rsiBearMin_','rsiBearMax_'].map(prefix=>Number($(prefix+tf).value));
+   if(values.some(v=>!Number.isFinite(v)||v<0||v>100)||values[0]>values[1]||values[2]>values[3]){
+    throw new Error('Invalid RSI range for '+tf+'. Use values from 0 to 100 and ensure each minimum is not above its maximum.');
+   }
+  }
+
   const filterDifZero=$('filterDifZero').checked,filterDeaZero=$('filterDeaZero').checked;
   const requestedWindow=Math.floor(Number($('crossWindow').value)||10);
   const crossWindow=Math.max(3,Math.min(30,requestedWindow));
@@ -390,7 +462,7 @@ async function scan(){
    if(bullBar!==null&&bullBar>=1&&bullBar<=crossWindow){
     const macdPass=macdConfirmTfs.every(tf=>macdConfirm[tf]>0);
     const stPass=stConfirmTfs.every(tf=>stConfirm[tf]==='Bullish');
-    const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiMin_'+tf).value));
+    const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiBullMin_'+tf).value)&&rsiConfirm[tf]<=Number($('rsiBullMax_'+tf).value));
     const difZeroPass=!filterDifZero||zeroDif>0;
     const deaZeroPass=!filterDeaZero||zeroDea>0;
     const deaPass=deaConfirmTfs.every(tf=>deaConfirm[tf]>0);
@@ -407,7 +479,7 @@ async function scan(){
    if(bearBar!==null&&bearBar>=1&&bearBar<=crossWindow){
     const macdPass=macdConfirmTfs.every(tf=>macdConfirm[tf]<0);
     const stPass=stConfirmTfs.every(tf=>stConfirm[tf]==='Bearish');
-    const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]<=Number($('rsiMax_'+tf).value));
+    const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiBearMin_'+tf).value)&&rsiConfirm[tf]<=Number($('rsiBearMax_'+tf).value));
     const difZeroPass=!filterDifZero||zeroDif<0;
     const deaZeroPass=!filterDeaZero||zeroDea<0;
     const deaPass=deaConfirmTfs.every(tf=>deaConfirm[tf]<0);
