@@ -274,8 +274,8 @@ let activeController=null,scanToken=0,rateLimitedUntil=0;
 let requestQueue=[],activeRequests=0,lastRequestAt=0,queueTimer=null;
 let requestErrors=0,scanStartedAt=0,progressTotal=0,progressDone=0;
 
-/* Reduced concurrency and a longer gap between requests. */
-const MAX_WORKERS=4,REQUEST_GAP_MS=400,REQUEST_TIMEOUT_MS=15000;
+/* Balanced request throughput while keeping well below typical Binance weight limits. */
+const MAX_WORKERS=6,REQUEST_GAP_MS=150,REQUEST_TIMEOUT_MS=15000;
 
 class BinanceRateLimitError extends Error{
  constructor(status,waitSeconds){
@@ -666,13 +666,7 @@ async function scan(){
      :(candidate.slot===0?bearishA:bearishB);
     target.push(result);
    }
-  },token,()=>{
-   lastResults={
-    bullA:bullishA.slice().sort((a,b)=>a.bar-b.bar),bullB:bullishB.slice().sort((a,b)=>a.bar-b.bar),
-    bearA:bearishA.slice().sort((a,b)=>a.bar-b.bar),bearB:bearishB.slice().sort((a,b)=>a.bar-b.bar)
-   };
-   render();
-  });
+  },token);
 
   if(token===scanToken){
    lastResults={
