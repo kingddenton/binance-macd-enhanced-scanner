@@ -222,6 +222,7 @@ th{color:#aebbd0}.volume-col{font-weight:700}.volume-1h{color:#45d6e8;background
 <span class="stat" id="updated">Updated: —</span>
 <span class="stat" id="counts">Bullish: 0 · Bearish: 0</span>
 </div>
+<div class="note" id="bearDiagnostics">Bearish diagnostics will appear after the next scan.</div>
 <div class="note">
 Both Primary MACD timeframes are scanned independently. Each has its own Bar 1–window crossover count and separate result section. The same selected confirmation matrix is applied to both.
 All indicators use Binance's latest returned candle, including the currently forming candle. Live values can change before candle close.
@@ -551,6 +552,7 @@ async function scan(){
  $('state').textContent='Status: Connecting to Binance';
  $('scanned').textContent='Pairs scanned: 0';
  const bullishA=[],bullishB=[],bearishA=[],bearishB=[];
+ const diagnostic={bearPrimaryA:0,bearPrimaryB:0,bearMissingConfirmData:0,bearRejectMACD:0,bearRejectSupertrend:0,bearRejectRSI:0,bearRejectDEA:0,bearRejectZeroLine:0,bearPassedConfirmations:0,bearRejectOIChange:0,bearRejectOIValue:0,bearPassedOI:0};
  const elapsedTimer=setInterval(()=>{
   if(token===scanToken&&busy){
    const elapsed=(performance.now()-scanStartedAt)/1000;
@@ -625,6 +627,7 @@ async function scan(){
      candidates.push({slot:index,direction:'bull',bar:bullBar,values,current});
     }
     if(bearSet.has(symbol)&&bearBar!==null&&bearBar>=1&&bearBar<=crossWindow){
+     diagnostic[index===0?'bearPrimaryA':'bearPrimaryB']++;
      candidates.push({slot:index,direction:'bear',bar:bearBar,values,current});
     }
    }
@@ -640,10 +643,11 @@ async function scan(){
     data[tf]=raw;
    }));
 
+   const noteMissingBearConfirmData=()=>{diagnostic.bearMissingConfirmData+=candidates.filter(c=>c.direction==='bear').length;};
    let zeroDif=null,zeroDea=null;
    if(filterDifZero||filterDeaZero){
     const deaKlines=data[deaTf];
-    if(!deaKlines||deaKlines.length<35)return;
+    if(!deaKlines||deaKlines.length<35){noteMissingBearConfirmData();return;}
     const deaValues=macd(deaKlines.map(k=>Number(k[4])));
     const zi=deaValues.dea.length-1;
     zeroDif=deaValues.dif[zi];zeroDea=deaValues.dea[zi];
@@ -651,21 +655,21 @@ async function scan(){
 
    const deaConfirm={},macdConfirm={},stConfirm={},rsiConfirm={};
    for(const tf of deaConfirmTfs){
-    if(!data[tf]||data[tf].length<35)return;
+    if(!data[tf]||data[tf].length<35){noteMissingBearConfirmData();return;}
     const values=macd(data[tf].map(k=>Number(k[4])));
     deaConfirm[tf]=values.dea[values.dea.length-1];
    }
    for(const tf of macdConfirmTfs){
-    if(!data[tf]||data[tf].length<35)return;
+    if(!data[tf]||data[tf].length<35){noteMissingBearConfirmData();return;}
     const values=macd(data[tf].map(k=>Number(k[4])));
     macdConfirm[tf]=values.hist[values.hist.length-1];
    }
    for(const tf of stConfirmTfs){
-    if(!data[tf]||data[tf].length<13)return;
+    if(!data[tf]||data[tf].length<13){noteMissingBearConfirmData();return;}
     stConfirm[tf]=calculateSupertrend(data[tf]);
    }
    for(const tf of rsiConfirmTfs){
-    if(!data[tf]||data[tf].length<15)return;
+    if(!data[tf]||data[tf].length<15){noteMissingBearConfirmData();return;}
     rsiConfirm[tf]=calculateRSI(data[tf].map(k=>Number(k[4])));
    }
 
@@ -680,7 +684,17 @@ async function scan(){
     const difZeroPass=!filterDifZero||(bullish?zeroDif>0:zeroDif<0);
     const deaZeroPass=!filterDeaZero||(bullish?zeroDea>0:zeroDea<0);
     const deaPass=deaConfirmTfs.every(tf=>bullish?deaConfirm[tf]>0:deaConfirm[tf]<0);
-    if(macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass)passingCandidates.push(candidate);
+    if(!bullish){
+     if(!macdPass)diagnostic.bearRejectMACD++;
+     if(!stPass)diagnostic.bearRejectSupertrend++;
+     if(!rsiPass)diagnostic.bearRejectRSI++;
+     if(!deaPass)diagnostic.bearRejectDEA++;
+     if(!difZeroPass||!deaZeroPass)diagnostic.bearRejectZeroLine++;
+    }
+    if(macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass){
+     passingCandidates.push(candidate);
+     if(!bullish)diagnostic.bearPassedConfirmations++;
+    }
    }
    if(!passingCandidates.length)return;
    let oiValue=null,oiChange5m=null,oiFilterChange=null;
@@ -695,7 +709,10 @@ async function scan(){
     }
    }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
    const oiFilterOn=$('oiFilterEnabled').checked,oiMinimum=Number($('oiMinChange').value);const oiValueFilterOn=$('oiValueFilterEnabled').checked,oiValueMinimum=Number($('oiMinValue').value);
+   if(oiFilterOn&&(oiFilterChange===null||!Number.isFinite(oiMinimum)||oiFilterChange<oiMinimum))diagnostic.bearRejectOIChange+=passingCandidates.filter(c=>c.direction==='bear').length;
+   if(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum))diagnostic.bearRejectOIValue+=passingCandidates.filter(c=>c.direction==='bear').length;
    const oiPassingCandidates=passingCandidates.filter(()=>!(oiFilterOn&&(oiFilterChange===null||!Number.isFinite(oiMinimum)||oiFilterChange<oiMinimum))&&!(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum)));
+   diagnostic.bearPassedOI+=oiPassingCandidates.filter(c=>c.direction==='bear').length;
    if(!oiPassingCandidates.length)return;
    /* One 1m-kline request supplies both rolling volume windows for this symbol. */
    const volumeKlines=await api('/fapi/v1/klines?symbol='+encodeURIComponent(symbol)+'&interval=1m&limit=1000');
@@ -714,6 +731,7 @@ async function scan(){
     bearA:bearishA.sort((a,b)=>a.bar-b.bar),bearB:bearishB.sort((a,b)=>a.bar-b.bar)
    };
    render();
+   $('bearDiagnostics').textContent='Bearish diagnostics (this scan): Primary crossovers — '+diagnostic.bearPrimaryA+' on '+macdTfA+' / '+diagnostic.bearPrimaryB+' on '+macdTfB+'; missing confirmation data — '+diagnostic.bearMissingConfirmData+'; rejected by MACD — '+diagnostic.bearRejectMACD+'; Supertrend — '+diagnostic.bearRejectSupertrend+'; RSI — '+diagnostic.bearRejectRSI+'; DEA — '+diagnostic.bearRejectDEA+'; DIF/DEA zero-line — '+diagnostic.bearRejectZeroLine+'; passed confirmations — '+diagnostic.bearPassedConfirmations+'; rejected by OI change — '+diagnostic.bearRejectOIChange+'; rejected by OI value — '+diagnostic.bearRejectOIValue+'; passed OI stage — '+diagnostic.bearPassedOI+'; displayed — '+(bearishA.length+bearishB.length)+'. Rejection counts can overlap when multiple confirmations fail.';
    $('state').textContent='Status: Scan complete · '+requestErrors+' request errors';
    $('updated').textContent='Updated: '+new Date().toLocaleTimeString();
   }
