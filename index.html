@@ -642,8 +642,8 @@ async function scan(){
     const stPass=stConfirmTfs.every(tf=>stConfirm[tf]===(bullish?'Bullish':'Bearish'));
     const rsiPass=rsiConfirmTfs.every(tf=>{
      const value=rsiConfirm[tf];
-     const min=Number($(bullish?'rsiBullMin_':'rsiBearMin_').value);
-     const max=Number($(bullish?'rsiBullMax_':'rsiBearMax_').value);
+     const min=Number($((bullish?'rsiBullMin_':'rsiBearMin_')+tf).value);
+     const max=Number($((bullish?'rsiBullMax_':'rsiBearMax_')+tf).value);
      return value!==null&&value>=min&&value<=max;
     });
     const difZeroPass=!filterDifZero||(bullish?zeroDif>0:zeroDif<0);
