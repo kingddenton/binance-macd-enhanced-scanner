@@ -229,14 +229,14 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <section class="panel bull">
 <h2>Bullish early crossovers</h2>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>Histogram</th><th>DEA</th><th>RSI</th><th>Supertrend</th><th>24h Change</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bullRows"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 <section class="panel bear">
 <h2>Bearish early crossovers</h2>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>Histogram</th><th>DEA</th><th>RSI</th><th>Supertrend</th><th>24h Change</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bearRows"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
@@ -456,9 +456,8 @@ function format(value,decimals=4){
 function render(){
  const makeRow=s=>`<tr>
  <td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td>
- <td>${format(s.hist,7)}</td><td>${format(s.dea,7)}</td>
- <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${s.st||'—'}</td>
- <td>${format(s.change,2)}%</td></tr>`;
+ <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${format(s.change,2)}%</td>
+ <td>${format(s.hist,7)}</td><td>${format(s.dea,7)}</td><td>${s.st||'—'}</td></tr>`;
  $('bullRows').innerHTML=lastResults.bull.length?lastResults.bull.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No bullish signals found.</td></tr>';
  $('bearRows').innerHTML=lastResults.bear.length?lastResults.bear.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No bearish signals found.</td></tr>';
  $('counts').textContent=`Bullish: ${lastResults.bull.length} · Bearish: ${lastResults.bear.length}`;
