@@ -39,10 +39,17 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 <section class="panel">
 <div class="controls">
 <div>
-<label>Primary MACD crossover timeframe</label>
-<select id="macdTf">
+<label>Primary MACD timeframe 1</label>
+<select id="macdTfA">
 <option>1m</option><option>3m</option><option selected>5m</option>
 <option>15m</option><option>30m</option><option>1h</option><option>4h</option>
+</select>
+</div>
+<div>
+<label>Primary MACD timeframe 2</label>
+<select id="macdTfB">
+<option>1m</option><option>3m</option><option>5m</option>
+<option selected>15m</option><option>30m</option><option>1h</option><option>4h</option>
 </select>
 </div>
 <div>
@@ -213,13 +220,13 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 <span class="stat" id="counts">Bullish: 0 · Bearish: 0</span>
 </div>
 <div class="note">
-The primary MACD histogram crossover candle is Bar 1. Signals remain eligible through the selected crossover window.
+Both Primary MACD timeframes are scanned independently. Each has its own Bar 1–window crossover count and separate result section. The same selected confirmation matrix is applied to both.
 All indicators use Binance's latest returned candle, including the currently forming candle. Live values can change before candle close.
-Enabled MACD timeframes are classified automatically: histogram above zero is bullish, below zero is bearish, exactly zero is neutral. All enabled timeframes must agree.
-Enabled Supertrend timeframes must all agree with the result direction.
+Enabled MACD confirmation timeframes are classified automatically: histogram above zero is bullish, below zero is bearish, exactly zero is neutral. All enabled timeframes must agree for each primary candidate.
+Enabled Supertrend confirmation timeframes must all agree with the result direction.
 Each enabled RSI timeframe has independent bullish minimum/maximum and bearish minimum/maximum ranges. All enabled RSI timeframes must fall inside the relevant range.
 Mixed bullish/bearish confirmations do not qualify for either side.
-Every selected DEA timeframe is checked independently: DEA above zero confirms bullish, below zero confirms bearish, exactly zero confirms neither. All selected DEA timeframes must agree. The separate DIF / DEA zero-line filters use the timeframe selected above.
+Every selected DEA confirmation timeframe is checked independently: DEA above zero confirms bullish, below zero confirms bearish, exactly zero confirms neither. All selected DEA timeframes must agree. The separate DIF / DEA zero-line filters use the timeframe selected above.
 DIF and DEA zero-line filters remain independently optional.
 MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 </div>
@@ -228,16 +235,28 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="columns">
 <section class="panel bull">
 <h2>Bullish early crossovers</h2>
+<h3 id="bullTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
 <thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bullRows"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+<tbody id="bullRowsA"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+</table></div>
+<h3 id="bullTfBLabel">15m Primary MACD</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsB"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 <section class="panel bear">
 <h2>Bearish early crossovers</h2>
+<h3 id="bearTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
 <thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bearRows"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+<tbody id="bearRowsA"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+</table></div>
+<h3 id="bearTfBLabel">15m Primary MACD</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsB"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 </div>
@@ -249,7 +268,7 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 const $=id=>document.getElementById(id);
 const API=['https://fapi.binance.com','https://fapi1.binance.com','https://fapi2.binance.com'];
 let running=false,busy=false,timer=null;
-let lastResults={bull:[],bear:[]};
+let lastResults={bullA:[],bullB:[],bearA:[],bearB:[]};
 let activeController=null,scanToken=0,rateLimitedUntil=0;
 let requestQueue=[],activeRequests=0,lastRequestAt=0,queueTimer=null;
 let requestErrors=0,scanStartedAt=0,progressTotal=0,progressDone=0;
@@ -458,9 +477,10 @@ function render(){
  <td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td>
  <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${format(s.change,2)}%</td>
  <td><span class="${s.hist>0?'hist-positive':s.hist<0?'hist-negative':'hist-zero'}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||'—'}</td></tr>`;
- $('bullRows').innerHTML=lastResults.bull.length?lastResults.bull.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No bullish signals found.</td></tr>';
- $('bearRows').innerHTML=lastResults.bear.length?lastResults.bear.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No bearish signals found.</td></tr>';
- $('counts').textContent=`Bullish: ${lastResults.bull.length} · Bearish: ${lastResults.bear.length}`;
+ const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No signals found.</td></tr>';
+ put('bullRowsA',lastResults.bullA);put('bullRowsB',lastResults.bullB);
+ put('bearRowsA',lastResults.bearA);put('bearRowsB',lastResults.bearB);
+ $('counts').textContent=`Bullish: ${lastResults.bullA.length+lastResults.bullB.length} · Bearish: ${lastResults.bearA.length+lastResults.bearB.length}`;
 }
 
 async function workerPool(items,limit,callback,token,onProgress){
@@ -495,7 +515,7 @@ async function scan(){
  $('duration').textContent='Elapsed: 0.0s';
  $('state').textContent='Status: Connecting to Binance';
  $('scanned').textContent='Pairs scanned: 0';
- const bullishResults=[],bearishResults=[];
+ const bullishA=[],bullishB=[],bearishA=[],bearishB=[];
  const elapsedTimer=setInterval(()=>{
   if(token===scanToken&&busy){
    const elapsed=(performance.now()-scanStartedAt)/1000;
@@ -503,6 +523,13 @@ async function scan(){
   }
  },250);
  try{
+  const macdTfA=$('macdTfA').value,macdTfB=$('macdTfB').value;
+  if(macdTfA===macdTfB)throw new Error('Choose two different Primary MACD timeframes.');
+  $('bullTfALabel').textContent=macdTfA+' Primary MACD';
+  $('bullTfBLabel').textContent=macdTfB+' Primary MACD';
+  $('bearTfALabel').textContent=macdTfA+' Primary MACD';
+  $('bearTfBLabel').textContent=macdTfB+' Primary MACD';
+
   const[exchangeInfo,tickers]=await Promise.all([
    api('/fapi/v1/exchangeInfo'),api('/fapi/v1/ticker/24hr')
   ]);
@@ -524,7 +551,8 @@ async function scan(){
   progressTotal=symbols.length;
   $('scanned').textContent='Pairs scanned: 0/'+progressTotal;
   const marketMap=new Map(market.map(x=>[x.symbol,x]));
-  const macdTf=$('macdTf').value,deaTf=$('deaTf').value;
+  const primaryTfs=[macdTfA,macdTfB];
+  const deaTf=$('deaTf').value;
   const deaConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('deaConfirm_'+tf).checked);
   const macdConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('macdConfirm_'+tf).checked);
   const stConfirmTfs=['1m','3m','5m','15m','30m','1h','2h','4h'].filter(tf=>$('stConfirm_'+tf).checked);
@@ -541,123 +569,111 @@ async function scan(){
   const requestedWindow=Math.floor(Number($('crossWindow').value)||10);
   const crossWindow=Math.max(3,Math.min(30,requestedWindow));
   $('crossWindow').value=crossWindow;
-  $('state').textContent=`Status: Scanning ${symbols.length} pairs`;
+  $('state').textContent='Status: Scanning '+symbols.length+' pairs across '+macdTfA+' and '+macdTfB;
 
   await workerPool(symbols,MAX_WORKERS,async symbol=>{
-   /* STAGE 1: Fetch only the primary MACD timeframe for each symbol. */
-   const macdRaw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${macdTf}&limit=100`);
-   /* Do not remove the current, still-forming candle. */
-   const data={[macdTf]:macdRaw};
-   const macdKlines=data[macdTf];
-   if(macdKlines.length<35)return;
-   const macdCloses=macdKlines.map(k=>Number(k[4]));
-   const macdValues=macd(macdCloses);
-   const bullBar=crossoverBar(macdValues.hist,'bull');
-   const bearBar=crossoverBar(macdValues.hist,'bear');
-   const current=macdValues.hist.length-1;
+   /* STAGE 1: Fetch each primary timeframe once. */
+   const data={};
+   await Promise.all(primaryTfs.map(async tf=>{
+    const raw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=100`);
+    data[tf]=raw;
+   }));
+   const candidates=[];
+   for(let index=0;index<primaryTfs.length;index++){
+    const tf=primaryTfs[index],klines=data[tf];
+    if(klines.length<35)continue;
+    const values=macd(klines.map(k=>Number(k[4])));
+    const current=values.hist.length-1;
+    const bullBar=crossoverBar(values.hist,'bull');
+    const bearBar=crossoverBar(values.hist,'bear');
+    if(bullSet.has(symbol)&&bullBar!==null&&bullBar>=1&&bullBar<=crossWindow){
+     candidates.push({slot:index,direction:'bull',bar:bullBar,values,current});
+    }
+    if(bearSet.has(symbol)&&bearBar!==null&&bearBar>=1&&bearBar<=crossWindow){
+     candidates.push({slot:index,direction:'bear',bar:bearBar,values,current});
+    }
+   }
+   /* No recent crossover on either primary timeframe: skip all confirmations. */
+   if(!candidates.length)return;
 
-   const bullCandidate=bullSet.has(symbol)&&bullBar!==null&&bullBar>=1&&bullBar<=crossWindow;
-   const bearCandidate=bearSet.has(symbol)&&bearBar!==null&&bearBar>=1&&bearBar<=crossWindow;
-
-   /* No recent crossover: skip all confirmation-timeframe requests. */
-   if(!bullCandidate&&!bearCandidate)return;
-
-   /* STAGE 2: Fetch only enabled confirmations, and only for crossover candidates. */
+   /* STAGE 2: Fetch the union of enabled confirmations once per coin. */
    const intervals=new Set([...deaConfirmTfs,...macdConfirmTfs,...stConfirmTfs,...rsiConfirmTfs]);
    if(filterDifZero||filterDeaZero)intervals.add(deaTf);
-
-   /* The primary MACD data is already available; do not fetch it twice. */
-   intervals.delete(macdTf);
-
+   for(const tf of primaryTfs)intervals.delete(tf);
    await Promise.all([...intervals].map(async tf=>{
     const raw=await api(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=100`);
-    /* Do not remove the current, still-forming candle. */
     data[tf]=raw;
    }));
 
    let zeroDif=null,zeroDea=null;
    if(filterDifZero||filterDeaZero){
     const deaKlines=data[deaTf];
-    if(deaKlines.length<35)return;
+    if(!deaKlines||deaKlines.length<35)return;
     const deaValues=macd(deaKlines.map(k=>Number(k[4])));
     const zi=deaValues.dea.length-1;
     zeroDif=deaValues.dif[zi];zeroDea=deaValues.dea[zi];
    }
 
-   const deaConfirm={};
+   const deaConfirm={},macdConfirm={},stConfirm={},rsiConfirm={};
    for(const tf of deaConfirmTfs){
-    const closes=data[tf].map(k=>Number(k[4]));
-    if(closes.length<35)return;
-    const values=macd(closes);
+    if(!data[tf]||data[tf].length<35)return;
+    const values=macd(data[tf].map(k=>Number(k[4])));
     deaConfirm[tf]=values.dea[values.dea.length-1];
    }
-
-   const macdConfirm={};
    for(const tf of macdConfirmTfs){
-    const closes=data[tf].map(k=>Number(k[4]));
-    if(closes.length<35)return;
-    const values=macd(closes);
+    if(!data[tf]||data[tf].length<35)return;
+    const values=macd(data[tf].map(k=>Number(k[4])));
     macdConfirm[tf]=values.hist[values.hist.length-1];
    }
-
-   const stConfirm={};
    for(const tf of stConfirmTfs){
-    if(data[tf].length<13)return;
+    if(!data[tf]||data[tf].length<13)return;
     stConfirm[tf]=calculateSupertrend(data[tf]);
    }
-
-   const rsiConfirm={};
    for(const tf of rsiConfirmTfs){
-    const closes=data[tf].map(k=>Number(k[4]));
-    if(closes.length<15)return;
-    rsiConfirm[tf]=calculateRSI(closes);
+    if(!data[tf]||data[tf].length<15)return;
+    rsiConfirm[tf]=calculateRSI(data[tf].map(k=>Number(k[4])));
    }
 
    const item=marketMap.get(symbol);
    if(!item)return;
-
-   if(bullCandidate){
-    const macdPass=macdConfirmTfs.every(tf=>macdConfirm[tf]>0);
-    const stPass=stConfirmTfs.every(tf=>stConfirm[tf]==='Bullish');
-    const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiBullMin_'+tf).value)&&rsiConfirm[tf]<=Number($('rsiBullMax_'+tf).value));
-    const difZeroPass=!filterDifZero||zeroDif>0;
-    const deaZeroPass=!filterDeaZero||zeroDea>0;
-    const deaPass=deaConfirmTfs.every(tf=>deaConfirm[tf]>0);
-    if(bullSet.has(symbol)&&macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass){
-     bullishResults.push({
-      symbol,price:item.price,bar:bullBar,window:crossWindow,
-      hist:macdValues.hist[current],dea:macdValues.dea[current],
-      rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,
-      st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change
-     });
-    }
-   }
-
-   if(bearCandidate){
-    const macdPass=macdConfirmTfs.every(tf=>macdConfirm[tf]<0);
-    const stPass=stConfirmTfs.every(tf=>stConfirm[tf]==='Bearish');
-    const rsiPass=rsiConfirmTfs.every(tf=>rsiConfirm[tf]!==null&&rsiConfirm[tf]>=Number($('rsiBearMin_'+tf).value)&&rsiConfirm[tf]<=Number($('rsiBearMax_'+tf).value));
-    const difZeroPass=!filterDifZero||zeroDif<0;
-    const deaZeroPass=!filterDeaZero||zeroDea<0;
-    const deaPass=deaConfirmTfs.every(tf=>deaConfirm[tf]<0);
-    if(bearSet.has(symbol)&&macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass){
-     bearishResults.push({
-      symbol,price:item.price,bar:bearBar,window:crossWindow,
-      hist:macdValues.hist[current],dea:macdValues.dea[current],
-      rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,
-      st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change
-     });
-    }
+   for(const candidate of candidates){
+    const bullish=candidate.direction==='bull';
+    const macdPass=macdConfirmTfs.every(tf=>bullish?macdConfirm[tf]>0:macdConfirm[tf]<0);
+    const stPass=stConfirmTfs.every(tf=>stConfirm[tf]===(bullish?'Bullish':'Bearish'));
+    const rsiPass=rsiConfirmTfs.every(tf=>{
+     const value=rsiConfirm[tf];
+     const min=Number($(bullish?'rsiBullMin_':'rsiBearMin_').value);
+     const max=Number($(bullish?'rsiBullMax_':'rsiBearMax_').value);
+     return value!==null&&value>=min&&value<=max;
+    });
+    const difZeroPass=!filterDifZero||(bullish?zeroDif>0:zeroDif<0);
+    const deaZeroPass=!filterDeaZero||(bullish?zeroDea>0:zeroDea<0);
+    const deaPass=deaConfirmTfs.every(tf=>bullish?deaConfirm[tf]>0:deaConfirm[tf]<0);
+    if(!(macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass))continue;
+    const result={
+     symbol,price:item.price,bar:candidate.bar,window:crossWindow,
+     hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],
+     rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,
+     st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change
+    };
+    const target=candidate.direction==='bull'
+     ?(candidate.slot===0?bullishA:bullishB)
+     :(candidate.slot===0?bearishA:bearishB);
+    target.push(result);
    }
   },token,()=>{
-   lastResults.bull=bullishResults.slice().sort((a,b)=>a.bar-b.bar);
-   lastResults.bear=bearishResults.slice().sort((a,b)=>a.bar-b.bar);
+   lastResults={
+    bullA:bullishA.slice().sort((a,b)=>a.bar-b.bar),bullB:bullishB.slice().sort((a,b)=>a.bar-b.bar),
+    bearA:bearishA.slice().sort((a,b)=>a.bar-b.bar),bearB:bearishB.slice().sort((a,b)=>a.bar-b.bar)
+   };
    render();
   });
 
   if(token===scanToken){
-   lastResults.bull=bullishResults.sort((a,b)=>a.bar-b.bar);
-   lastResults.bear=bearishResults.sort((a,b)=>a.bar-b.bar);
+   lastResults={
+    bullA:bullishA.sort((a,b)=>a.bar-b.bar),bullB:bullishB.sort((a,b)=>a.bar-b.bar),
+    bearA:bearishA.sort((a,b)=>a.bar-b.bar),bearB:bearishB.sort((a,b)=>a.bar-b.bar)
+   };
    render();
    $('state').textContent='Status: Scan complete · '+requestErrors+' request errors';
    $('updated').textContent='Updated: '+new Date().toLocaleTimeString();
@@ -684,7 +700,7 @@ async function scan(){
 
 const PRESET_STORAGE_KEY='binanceMacdScannerPresets_v1';
 const PRESET_CONTROL_IDS=[
- 'macdTf','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
+ 'macdTfA','macdTfB','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
  'filterDifZero','filterDeaZero',
  ...['1m','3m','5m','15m','30m','1h','4h'].flatMap(tf=>['deaConfirm_'+tf,'macdConfirm_'+tf]),
  ...['1m','3m','5m','15m','30m','1h','2h','4h'].flatMap(tf=>['stConfirm_'+tf,'rsiEnable_'+tf]),
@@ -790,7 +806,7 @@ $('onceBtn').addEventListener('click',()=>{
 });
 $('stopBtn').addEventListener('click',stopScanner);
 $('clearBtn').addEventListener('click',()=>{
- lastResults={bull:[],bear:[]};render();
+ lastResults={bullA:[],bullB:[],bearA:[],bearB:[]};render();
  $('scanned').textContent='Pairs scanned: 0';
  $('state').textContent='Status: Results cleared';
 });
