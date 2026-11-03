@@ -26,7 +26,7 @@ button.scanning{background:#159b68;animation:pulse 1.15s ease-in-out infinite}
 .columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .bull h2{color:#39d98a}.bear h2{color:#ff737d}.hist-positive{color:#39d98a;font-weight:700}.hist-negative{color:#ff737d;font-weight:700}.hist-zero{color:#aebbd0}
 .tablewrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:600px;font-size:12px}
+table{width:100%;border-collapse:collapse;min-width:760px;font-size:12px}
 th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #263750;white-space:nowrap}
 th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 .note{font-size:11px;color:#8799b2;line-height:1.5;margin-top:12px}
@@ -187,6 +187,7 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 
 <div class="check"><input id="filterDifZero" type="checkbox"><label for="filterDifZero">DIF positive / negative</label></div>
 <div class="check"><input id="filterDeaZero" type="checkbox"><label for="filterDeaZero">DEA positive / negative</label></div>
+<div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Open Interest (OI) — display and optional filter</label><div class="controls"><div><label>OI timeframe</label><select id="oiTf"><option>5m</option><option>15m</option><option>30m</option><option selected>1h</option><option>2h</option><option>4h</option><option>6h</option><option>12h</option><option>1d</option></select></div><div class="check"><input id="oiFilterEnabled" type="checkbox"><label for="oiFilterEnabled">Enable minimum OI change filter</label></div><div><label>Minimum OI change (%)</label><input id="oiMinChange" type="number" value="0" step="0.1"></div></div><div class="note">OI value is Binance’s USDT notional. OI change compares the latest two OI records for the selected timeframe. Filter is off by default.</div></div>
 </div>
 
 <div class="actions">
@@ -239,13 +240,13 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bullChangeFilter">24h price change:</label> <select id="bullChangeFilter"><option value="positive" selected>Positive only (+%)</option><option value="all">All changes</option></select></div>
 <h3 id="bullTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bullRowsA"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsA"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bullTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bullRowsB"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsB"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 <section class="panel bear">
@@ -253,13 +254,13 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bearChangeFilter">24h price change:</label> <select id="bearChangeFilter"><option value="negative" selected>Negative only (−%)</option><option value="all">All changes</option></select></div>
 <h3 id="bearTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bearRowsA"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsA"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bearTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bearRowsB"><tr><td colspan="8" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsB"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 </div>
@@ -476,23 +477,15 @@ function format(value,decimals=4){
 }
 
 function render(){
- /* Keep the reader's current viewport position stable while result rows are rebuilt. */
  const savedScrollX=window.scrollX,savedScrollY=window.scrollY;
- const makeRow=s=>`<tr>
- <td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td>
- <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${format(s.change,2)}%</td>
- <td><span class="${s.hist>0?'hist-positive':s.hist<0?'hist-negative':'hist-zero'}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||'—'}</td></tr>`;
- const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No signals found.</td></tr>';
- const bullRows=rows=>rows.filter(s=>$('bullChangeFilter').value==='all'||s.change>0);
- const bearRows=rows=>rows.filter(s=>$('bearChangeFilter').value==='all'||s.change<0);
- const bullA=bullRows(lastResults.bullA),bullB=bullRows(lastResults.bullB);
- const bearA=bearRows(lastResults.bearA),bearB=bearRows(lastResults.bearB);
- put('bullRowsA',bullA);put('bullRowsB',bullB);
- put('bearRowsA',bearA);put('bearRowsB',bearB);
- $('counts').textContent=`Bullish: ${bullA.length+bullB.length} · Bearish: ${bearA.length+bearB.length}`;
- $('bullChangeFilter').onchange=render;
- $('bearChangeFilter').onchange=render;
- /* Restore only the scroll position; browser zoom remains under the user's control. */
+ const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":format(s.oiValue,0)}</td><td>${s.oiChange===null?"—":(s.oiChange>0?"+":"")+format(s.oiChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||"—"}</td></tr>`;
+ const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(""):'<tr><td colspan="10" class="empty">No signals found.</td></tr>';
+ const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value))));
+ const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value))));
+ const bullA=bullRows(lastResults.bullA),bullB=bullRows(lastResults.bullB),bearA=bearRows(lastResults.bearA),bearB=bearRows(lastResults.bearB);
+ put("bullRowsA",bullA);put("bullRowsB",bullB);put("bearRowsA",bearA);put("bearRowsB",bearB);
+ $("counts").textContent=`Bullish: ${bullA.length+bullB.length} · Bearish: ${bearA.length+bearB.length}`;
+ $("bullChangeFilter").onchange=render;$("bearChangeFilter").onchange=render;$("oiFilterEnabled").onchange=render;$("oiMinChange").oninput=render;
  if(window.scrollX!==savedScrollX||window.scrollY!==savedScrollY)window.scrollTo(savedScrollX,savedScrollY);
 }
 
@@ -649,29 +642,33 @@ async function scan(){
 
    const item=marketMap.get(symbol);
    if(!item)return;
+   const passingCandidates=[];
    for(const candidate of candidates){
     const bullish=candidate.direction==='bull';
     const macdPass=macdConfirmTfs.every(tf=>bullish?macdConfirm[tf]>0:macdConfirm[tf]<0);
     const stPass=stConfirmTfs.every(tf=>stConfirm[tf]===(bullish?'Bullish':'Bearish'));
-    const rsiPass=rsiConfirmTfs.every(tf=>{
-     const value=rsiConfirm[tf];
-     const min=Number($((bullish?'rsiBullMin_':'rsiBearMin_')+tf).value);
-     const max=Number($((bullish?'rsiBullMax_':'rsiBearMax_')+tf).value);
-     return value!==null&&value>=min&&value<=max;
-    });
+    const rsiPass=rsiConfirmTfs.every(tf=>{const value=rsiConfirm[tf];const min=Number($((bullish?'rsiBullMin_':'rsiBearMin_')+tf).value);const max=Number($((bullish?'rsiBullMax_':'rsiBearMax_')+tf).value);return value!==null&&value>=min&&value<=max;});
     const difZeroPass=!filterDifZero||(bullish?zeroDif>0:zeroDif<0);
     const deaZeroPass=!filterDeaZero||(bullish?zeroDea>0:zeroDea<0);
     const deaPass=deaConfirmTfs.every(tf=>bullish?deaConfirm[tf]>0:deaConfirm[tf]<0);
-    if(!(macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass))continue;
-    const result={
-     symbol,price:item.price,bar:candidate.bar,window:crossWindow,
-     hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],
-     rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,
-     st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change
-    };
-    const target=candidate.direction==='bull'
-     ?(candidate.slot===0?bullishA:bullishB)
-     :(candidate.slot===0?bearishA:bearishB);
+    if(macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass)passingCandidates.push(candidate);
+   }
+   if(!passingCandidates.length)return;
+   let oiValue=null,oiChange=null;
+   try{
+    const oiPeriod=$('oiTf').value;
+    const oiRows=await api('/futures/data/openInterestHist?symbol='+encodeURIComponent(symbol)+'&period='+encodeURIComponent(oiPeriod)+'&limit=2');
+    if(Array.isArray(oiRows)&&oiRows.length){
+     const latest=oiRows[oiRows.length-1];oiValue=Number(latest.sumOpenInterestValue);
+     if(oiRows.length>=2){const previous=Number(oiRows[oiRows.length-2].sumOpenInterestValue);if(Number.isFinite(previous)&&previous!==0&&Number.isFinite(oiValue))oiChange=((oiValue-previous)/previous)*100;}
+     if(!Number.isFinite(oiValue))oiValue=null;
+    }
+   }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
+   const oiFilterOn=$('oiFilterEnabled').checked,oiMinimum=Number($('oiMinChange').value);
+   for(const candidate of passingCandidates){
+    if(oiFilterOn&&(oiChange===null||!Number.isFinite(oiMinimum)||oiChange<oiMinimum))continue;
+    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange};
+    const target=candidate.direction==='bull'?(candidate.slot===0?bullishA:bullishB):(candidate.slot===0?bearishA:bearishB);
     target.push(result);
    }
   },token);
@@ -708,7 +705,7 @@ async function scan(){
 const PRESET_STORAGE_KEY='binanceMacdScannerPresets_v1';
 const PRESET_CONTROL_IDS=[
  'macdTfA','macdTfB','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
- 'filterDifZero','filterDeaZero',
+ 'filterDifZero','filterDeaZero','oiTf','oiFilterEnabled','oiMinChange',
  ...['1m','3m','5m','15m','30m','1h','4h'].flatMap(tf=>['deaConfirm_'+tf,'macdConfirm_'+tf]),
  ...['1m','3m','5m','15m','30m','1h','2h','4h'].flatMap(tf=>['stConfirm_'+tf,'rsiEnable_'+tf]),
  ...['1m','3m','5m','15m','30m','1h','2h','4h'].flatMap(tf=>['rsiBullMin_'+tf,'rsiBullMax_'+tf,'rsiBearMin_'+tf,'rsiBearMax_'+tf])
