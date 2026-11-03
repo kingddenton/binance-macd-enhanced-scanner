@@ -188,6 +188,7 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 <div class="check"><input id="filterDifZero" type="checkbox"><label for="filterDifZero">DIF positive / negative</label></div>
 <div class="check"><input id="filterDeaZero" type="checkbox"><label for="filterDeaZero">DEA positive / negative</label></div>
 <div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Open Interest (OI) — display and optional filter</label><div class="controls"><div><label>OI timeframe</label><select id="oiTf"><option>5m</option><option>15m</option><option>30m</option><option selected>1h</option><option>2h</option><option>4h</option><option>6h</option><option>12h</option><option>1d</option></select></div><div class="check"><input id="oiFilterEnabled" type="checkbox"><label for="oiFilterEnabled">Enable minimum OI change filter</label></div><div><label>Minimum OI change (%)</label><input id="oiMinChange" type="number" value="0" step="0.1"></div><div class="check"><input id="oiValueFilterEnabled" type="checkbox"><label for="oiValueFilterEnabled">Enable minimum OI value filter</label></div><div><label>Minimum OI value (USDT)</label><input id="oiMinValue" type="number" value="50000" min="0" step="1000"></div></div><div class="note">OI value is Binance’s USDT notional. OI change compares the latest two OI records for the selected timeframe. Both filters are optional and off by default.</div></div>
+<div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Rolling Volume Change — Binance USDT quote volume</label><div class="controls"><div class="check"><input id="vol1hEnabled" type="checkbox"><label for="vol1hEnabled">Enable 1h volume change filter</label></div><div><label>Minimum 1h volume change (%)</label><input id="vol1hMin" type="number" value="0" step="0.1"></div><div class="check"><input id="vol4hEnabled" type="checkbox"><label for="vol4hEnabled">Enable 4h volume change filter</label></div><div><label>Minimum 4h volume change (%)</label><input id="vol4hMin" type="number" value="0" step="0.1"></div></div><div class="note">Compares the latest completed rolling window with the immediately preceding equal-length window: 60 vs 60 completed 1-minute candles for 1h, and 240 vs 240 for 4h. Uses Binance kline quote volume (USDT). Filters are optional and off by default.</div></div>
 </div>
 
 <div class="actions">
@@ -240,13 +241,13 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bullChangeFilter">24h price change:</label> <select id="bullChangeFilter"><option value="positive" selected>Positive only (+%)</option><option value="all">All changes</option></select></div>
 <h3 id="bullTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bullRowsA"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsA"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bullTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bullRowsB"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 <section class="panel bear">
@@ -254,13 +255,13 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bearChangeFilter">24h price change:</label> <select id="bearChangeFilter"><option value="negative" selected>Negative only (−%)</option><option value="all">All changes</option></select></div>
 <h3 id="bearTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bearRowsA"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsA"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bearTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
-<tbody id="bearRowsB"><tr><td colspan="10" class="empty">Waiting for scan</td></tr></tbody>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
 </div>
@@ -472,6 +473,16 @@ function crossoverBar(hist,direction){
  return null;
 }
 
+function rollingVolumeChange(klines,windowSize){
+ const completed=klines.filter(k=>Number(k[6])<Date.now());
+ if(completed.length<windowSize*2)return null;
+ const end=completed.length;
+ const current=completed.slice(end-windowSize,end).reduce((sum,k)=>sum+Number(k[7]||0),0);
+ const previous=completed.slice(end-windowSize*2,end-windowSize).reduce((sum,k)=>sum+Number(k[7]||0),0);
+ if(!Number.isFinite(current)||!Number.isFinite(previous)||previous<=0)return null;
+ return ((current-previous)/previous)*100;
+}
+
 function format(value,decimals=4){
  return Number.isFinite(value)?value.toFixed(decimals):'—';
 }
@@ -482,14 +493,14 @@ function formatInteger(value){
 
 function render(){
  const savedScrollX=window.scrollX,savedScrollY=window.scrollY;
- const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":formatInteger(s.oiValue)}</td><td>${s.oiChange===null?"—":(s.oiChange>0?"+":"")+format(s.oiChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||"—"}</td></tr>`;
- const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(""):'<tr><td colspan="10" class="empty">No signals found.</td></tr>';
- const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value))));
- const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value))));
+ const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":formatInteger(s.oiValue)}</td><td>${s.oiChange===null?"—":(s.oiChange>0?"+":"")+format(s.oiChange,2)+"%"}</td><td>${s.vol1hChange===null?"—":(s.vol1hChange>0?"+":"")+format(s.vol1hChange,2)+"%"}</td><td>${s.vol4hChange===null?"—":(s.vol4hChange>0?"+":"")+format(s.vol4hChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||"—"}</td></tr>`;
+ const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(""):'<tr><td colspan="12" class="empty">No signals found.</td></tr>';
+ const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hEnabled").checked||(s.vol1hChange!==null&&s.vol1hChange>=Number($("vol1hMin").value)))&&(!$("vol4hEnabled").checked||(s.vol4hChange!==null&&s.vol4hChange>=Number($("vol4hMin").value))));
+ const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hEnabled").checked||(s.vol1hChange!==null&&s.vol1hChange>=Number($("vol1hMin").value)))&&(!$("vol4hEnabled").checked||(s.vol4hChange!==null&&s.vol4hChange>=Number($("vol4hMin").value))));
  const bullA=bullRows(lastResults.bullA),bullB=bullRows(lastResults.bullB),bearA=bearRows(lastResults.bearA),bearB=bearRows(lastResults.bearB);
  put("bullRowsA",bullA);put("bullRowsB",bullB);put("bearRowsA",bearA);put("bearRowsB",bearB);
  $("counts").textContent=`Bullish: ${bullA.length+bullB.length} · Bearish: ${bearA.length+bearB.length}`;
- $("bullChangeFilter").onchange=render;$("bearChangeFilter").onchange=render;$("oiFilterEnabled").onchange=render;$("oiMinChange").oninput=render;$("oiValueFilterEnabled").onchange=render;$("oiMinValue").oninput=render;
+ $("bullChangeFilter").onchange=render;$("bearChangeFilter").onchange=render;$("oiFilterEnabled").onchange=render;$("oiMinChange").oninput=render;$("oiValueFilterEnabled").onchange=render;$("oiMinValue").oninput=render;$("vol1hEnabled").onchange=render;$("vol1hMin").oninput=render;$("vol4hEnabled").onchange=render;$("vol4hMin").oninput=render;
  if(window.scrollX!==savedScrollX||window.scrollY!==savedScrollY)window.scrollTo(savedScrollX,savedScrollY);
 }
 
@@ -669,9 +680,18 @@ async function scan(){
     }
    }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
    const oiFilterOn=$('oiFilterEnabled').checked,oiMinimum=Number($('oiMinChange').value);const oiValueFilterOn=$('oiValueFilterEnabled').checked,oiValueMinimum=Number($('oiMinValue').value);
-   for(const candidate of passingCandidates){
-    if(oiFilterOn&&(oiChange===null||!Number.isFinite(oiMinimum)||oiChange<oiMinimum))continue;if(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum))continue;
-    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange};
+   const oiPassingCandidates=passingCandidates.filter(()=>!(oiFilterOn&&(oiChange===null||!Number.isFinite(oiMinimum)||oiChange<oiMinimum))&&!(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum)));
+   if(!oiPassingCandidates.length)return;
+   /* One 1m-kline request supplies both rolling volume windows for this symbol. */
+   const volumeKlines=await api('/fapi/v1/klines?symbol='+encodeURIComponent(symbol)+'&interval=1m&limit=1000');
+   const vol1hChange=rollingVolumeChange(volumeKlines,60);
+   const vol4hChange=rollingVolumeChange(volumeKlines,240);
+   const vol1hFilterOn=$('vol1hEnabled').checked,vol1hMinimum=Number($('vol1hMin').value);
+   const vol4hFilterOn=$('vol4hEnabled').checked,vol4hMinimum=Number($('vol4hMin').value);
+   for(const candidate of oiPassingCandidates){
+    if(vol1hFilterOn&&(vol1hChange===null||!Number.isFinite(vol1hMinimum)||vol1hChange<vol1hMinimum))continue;
+    if(vol4hFilterOn&&(vol4hChange===null||!Number.isFinite(vol4hMinimum)||vol4hChange<vol4hMinimum))continue;
+    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange,vol1hChange,vol4hChange};
     const target=candidate.direction==='bull'?(candidate.slot===0?bullishA:bullishB):(candidate.slot===0?bearishA:bearishB);
     target.push(result);
    }
@@ -709,7 +729,7 @@ async function scan(){
 const PRESET_STORAGE_KEY='binanceMacdScannerPresets_v1';
 const PRESET_CONTROL_IDS=[
  'macdTfA','macdTfB','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
- 'filterDifZero','filterDeaZero','oiTf','oiFilterEnabled','oiMinChange','oiValueFilterEnabled','oiMinValue',
+ 'filterDifZero','filterDeaZero','oiTf','oiFilterEnabled','oiMinChange','oiValueFilterEnabled','oiMinValue','vol1hEnabled','vol1hMin','vol4hEnabled','vol4hMin',
  ...['1m','3m','5m','15m','30m','1h','4h'].flatMap(tf=>['deaConfirm_'+tf,'macdConfirm_'+tf]),
  ...['1m','3m','5m','15m','30m','1h','2h','4h'].flatMap(tf=>['stConfirm_'+tf,'rsiEnable_'+tf]),
  ...['1m','3m','5m','15m','30m','1h','2h','4h'].flatMap(tf=>['rsiBullMin_'+tf,'rsiBullMax_'+tf,'rsiBearMin_'+tf,'rsiBearMax_'+tf])
