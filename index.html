@@ -241,12 +241,12 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bullChangeFilter">24h price change:</label> <select id="bullChangeFilter"><option value="positive" selected>Positive only (+%)</option><option value="all">All changes</option></select></div>
 <h3 id="bullTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bullRowsA"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bullTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bullRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
@@ -255,12 +255,12 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bearChangeFilter">24h price change:</label> <select id="bearChangeFilter"><option value="negative" selected>Negative only (−%)</option><option value="all">All changes</option></select></div>
 <h3 id="bearTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bearRowsA"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bearTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th>1h Vol Change</th><th>4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bearRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
@@ -507,10 +507,10 @@ function formatInteger(value){
 
 function render(){
  const savedScrollX=window.scrollX,savedScrollY=window.scrollY;
- const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":formatInteger(s.oiValue)}</td><td>${s.oiChange===null?"—":(s.oiChange>0?"+":"")+format(s.oiChange,2)+"%"}</td><td>${s.vol1hChange===null?"—":(s.vol1hChange>0?"+":"")+format(s.vol1hChange,2)+"%"}</td><td>${s.vol4hChange===null?"—":(s.vol4hChange>0?"+":"")+format(s.vol4hChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||"—"}</td></tr>`;
+ const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":formatInteger(s.oiValue)}</td><td>${s.oiChange5m===null?"—":(s.oiChange5m>0?"+":"")+format(s.oiChange5m,2)+"%"}</td><td>${s.vol1hChange===null?"—":(s.vol1hChange>0?"+":"")+format(s.vol1hChange,2)+"%"}</td><td>${s.vol4hChange===null?"—":(s.vol4hChange>0?"+":"")+format(s.vol4hChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}" title="MACD histogram direction">${s.hist>0?"🟢":s.hist<0?"🔴":"—"}</span></td><td><span class="${s.dea>0?"hist-positive":s.dea<0?"hist-negative":"hist-zero"}" title="DEA direction">${s.dea>0?"🟢":s.dea<0?"🔴":"—"}</span></td><td>${s.st||"—"}</td></tr>`;
  const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(""):'<tr><td colspan="12" class="empty">No signals found.</td></tr>';
- const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hEnabled").checked||(s.vol1hChange!==null&&s.vol1hChange>=Number($("vol1hMin").value)))&&(!$("vol4hEnabled").checked||(s.vol4hChange!==null&&s.vol4hChange>=Number($("vol4hMin").value))));
- const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiChange!==null&&s.oiChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hEnabled").checked||(s.vol1hChange!==null&&(Number($("vol1hMin").value)>0?s.vol1hChange<=-Number($("vol1hMin").value):s.vol1hChange<0)))&&(!$("vol4hEnabled").checked||(s.vol4hChange!==null&&(Number($("vol4hMin").value)>0?s.vol4hChange<=-Number($("vol4hMin").value):s.vol4hChange<0))));
+ const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiFilterChange!==null&&s.oiFilterChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hEnabled").checked||(s.vol1hChange!==null&&s.vol1hChange>=Number($("vol1hMin").value)))&&(!$("vol4hEnabled").checked||(s.vol4hChange!==null&&s.vol4hChange>=Number($("vol4hMin").value))));
+ const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiFilterChange!==null&&s.oiFilterChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hEnabled").checked||(s.vol1hChange!==null&&(Number($("vol1hMin").value)>0?s.vol1hChange<=-Number($("vol1hMin").value):s.vol1hChange<0)))&&(!$("vol4hEnabled").checked||(s.vol4hChange!==null&&(Number($("vol4hMin").value)>0?s.vol4hChange<=-Number($("vol4hMin").value):s.vol4hChange<0))));
  const bullA=bullRows(lastResults.bullA),bullB=bullRows(lastResults.bullB),bearA=bearRows(lastResults.bearA),bearB=bearRows(lastResults.bearB);
  put("bullRowsA",bullA);put("bullRowsB",bullB);put("bearRowsA",bearA);put("bearRowsB",bearB);
  $("counts").textContent=`Bullish: ${bullA.length+bullB.length} · Bearish: ${bearA.length+bearB.length}`;
@@ -683,19 +683,19 @@ async function scan(){
     if(macdPass&&rsiPass&&stPass&&deaPass&&difZeroPass&&deaZeroPass)passingCandidates.push(candidate);
    }
    if(!passingCandidates.length)return;
-   let oiValue=null,oiChange=null;
+   let oiValue=null,oiChange5m=null,oiFilterChange=null;
    try{
     const oiWindowMinutes=Number($('oiTf').value);
     const oiRows=await api('/futures/data/openInterestHist?symbol='+encodeURIComponent(symbol)+'&period=5m&limit=4');
     if(Array.isArray(oiRows)&&oiRows.length){
      const latest=oiRows.reduce((a,b)=>Number(a.timestamp)>Number(b.timestamp)?a:b);
      oiValue=Number(latest.sumOpenInterestValue);
-     oiChange=rollingOIChange(oiRows,oiWindowMinutes);
+     oiChange5m=rollingOIChange(oiRows,5);oiFilterChange=rollingOIChange(oiRows,oiWindowMinutes);
      if(!Number.isFinite(oiValue))oiValue=null;
     }
    }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
    const oiFilterOn=$('oiFilterEnabled').checked,oiMinimum=Number($('oiMinChange').value);const oiValueFilterOn=$('oiValueFilterEnabled').checked,oiValueMinimum=Number($('oiMinValue').value);
-   const oiPassingCandidates=passingCandidates.filter(()=>!(oiFilterOn&&(oiChange===null||!Number.isFinite(oiMinimum)||oiChange<oiMinimum))&&!(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum)));
+   const oiPassingCandidates=passingCandidates.filter(()=>!(oiFilterOn&&(oiFilterChange===null||!Number.isFinite(oiMinimum)||oiFilterChange<oiMinimum))&&!(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum)));
    if(!oiPassingCandidates.length)return;
    /* One 1m-kline request supplies both rolling volume windows for this symbol. */
    const volumeKlines=await api('/fapi/v1/klines?symbol='+encodeURIComponent(symbol)+'&interval=1m&limit=1000');
@@ -711,7 +711,7 @@ async function scan(){
      if(vol1hFilterOn&&(vol1hChange===null||!Number.isFinite(vol1hMinimum)||(vol1hMinimum>0?vol1hChange>-vol1hMinimum:vol1hChange>=0)))continue;
      if(vol4hFilterOn&&(vol4hChange===null||!Number.isFinite(vol4hMinimum)||(vol4hMinimum>0?vol4hChange>-vol4hMinimum:vol4hChange>=0)))continue;
     }
-    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange,vol1hChange,vol4hChange};
+    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange5m,oiFilterChange,vol1hChange,vol4hChange};
     const target=candidate.direction==='bull'?(candidate.slot===0?bullishA:bullishB):(candidate.slot===0?bearishA:bearishB);
     target.push(result);
    }
