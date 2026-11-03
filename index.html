@@ -23,7 +23,7 @@ button.scanning{background:#159b68;animation:pulse 1.15s ease-in-out infinite}
 .status{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
 .stat{background:#0b1628;padding:9px;border-radius:7px}
 .columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.bull h2{color:#39d98a}.bear h2{color:#ff737d}
+.bull h2{color:#39d98a}.bear h2{color:#ff737d}.hist-positive{color:#39d98a;font-weight:700}.hist-negative{color:#ff737d;font-weight:700}.hist-zero{color:#aebbd0}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;min-width:600px;font-size:12px}
 th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #263750;white-space:nowrap}
@@ -457,7 +457,7 @@ function render(){
  const makeRow=s=>`<tr>
  <td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td>
  <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${format(s.change,2)}%</td>
- <td>${format(s.hist,7)}</td><td>${format(s.dea,7)}</td><td>${s.st||'—'}</td></tr>`;
+ <td><span class="${s.hist>0?'hist-positive':s.hist<0?'hist-negative':'hist-zero'}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||'—'}</td></tr>`;
  $('bullRows').innerHTML=lastResults.bull.length?lastResults.bull.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No bullish signals found.</td></tr>';
  $('bearRows').innerHTML=lastResults.bear.length?lastResults.bear.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No bearish signals found.</td></tr>';
  $('counts').textContent=`Bullish: ${lastResults.bull.length} · Bearish: ${lastResults.bear.length}`;
