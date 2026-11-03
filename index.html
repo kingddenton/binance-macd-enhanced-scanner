@@ -28,7 +28,7 @@ button.scanning{background:#159b68;animation:pulse 1.15s ease-in-out infinite}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;min-width:760px;font-size:12px}
 th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #263750;white-space:nowrap}
-th{color:#aebbd0}.volume-col{color:#45d6e8;background:rgba(69,214,232,.09);font-weight:700}.empty{text-align:center;padding:22px;color:#91a2ba}
+th{color:#aebbd0}.volume-col{font-weight:700}.volume-1h{color:#45d6e8;background:rgba(69,214,232,.09)}.volume-4h{color:#8b9cff;background:rgba(139,156,255,.10)}.volume-both-positive{color:#39d98a!important;background:rgba(57,217,138,.13)!important}.empty{text-align:center;padding:22px;color:#91a2ba}
 .note{font-size:11px;color:#8799b2;line-height:1.5;margin-top:12px}
 @media(max-width:760px){.columns{grid-template-columns:1fr}body{padding:9px}}
 </style>
@@ -241,12 +241,12 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bullChangeFilter">24h price change:</label> <select id="bullChangeFilter"><option value="positive" selected>Positive only (+%)</option><option value="all">All changes</option></select></div>
 <h3 id="bullTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col">1h Vol Change</th><th class="volume-col">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bullRowsA"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bullTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col">1h Vol Change</th><th class="volume-col">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bullRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
@@ -255,12 +255,12 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="filter-row"><label for="bearChangeFilter">24h price change:</label> <select id="bearChangeFilter"><option value="negative" selected>Negative only (−%)</option><option value="all">All changes</option></select></div>
 <h3 id="bearTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col">1h Vol Change</th><th class="volume-col">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bearRowsA"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 <h3 id="bearTfBLabel">15m Primary MACD</h3>
 <div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col">1h Vol Change</th><th class="volume-col">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bearRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
@@ -507,7 +507,7 @@ function formatInteger(value){
 
 function render(){
  const savedScrollX=window.scrollX,savedScrollY=window.scrollY;
- const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":formatInteger(s.oiValue)}</td><td>${s.oiChange5m===null?"—":(s.oiChange5m>0?"+":"")+format(s.oiChange5m,2)+"%"}</td><td class="volume-col">${s.vol1hChange===null?"—":(s.vol1hChange>0?"+":"")+format(s.vol1hChange,2)+"%"}</td><td class="volume-col">${s.vol4hChange===null?"—":(s.vol4hChange>0?"+":"")+format(s.vol4hChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}" title="MACD histogram direction">${s.hist>0?"🟢":s.hist<0?"🔴":"—"}</span></td><td><span class="${s.dea>0?"hist-positive":s.dea<0?"hist-negative":"hist-zero"}" title="DEA direction">${s.dea>0?"🟢":s.dea<0?"🔴":"—"}</span></td><td>${s.st||"—"}</td></tr>`;
+ const makeRow=s=>`<tr><td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td><td>${s.rsi===null?"—":format(s.rsi,1)}</td><td>${format(s.change,2)}%</td><td>${s.oiValue===null?"—":formatInteger(s.oiValue)}</td><td>${s.oiChange5m===null?"—":(s.oiChange5m>0?"+":"")+format(s.oiChange5m,2)+"%"}</td><td class="volume-col volume-1h${s.vol1hChange!==null&&s.vol4hChange!==null&&s.vol1hChange>0&&s.vol4hChange>0?" volume-both-positive":""}">${s.vol1hChange===null?"—":(s.vol1hChange>0?"+":"")+format(s.vol1hChange,2)+"%"}</td><td class="volume-col volume-4h${s.vol1hChange!==null&&s.vol4hChange!==null&&s.vol1hChange>0&&s.vol4hChange>0?" volume-both-positive":""}">${s.vol4hChange===null?"—":(s.vol4hChange>0?"+":"")+format(s.vol4hChange,2)+"%"}</td><td><span class="${s.hist>0?"hist-positive":s.hist<0?"hist-negative":"hist-zero"}" title="MACD histogram direction">${s.hist>0?"🟢":s.hist<0?"🔴":"—"}</span></td><td><span class="${s.dea>0?"hist-positive":s.dea<0?"hist-negative":"hist-zero"}" title="DEA direction">${s.dea>0?"🟢":s.dea<0?"🔴":"—"}</span></td><td>${s.st||"—"}</td></tr>`;
  const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(""):'<tr><td colspan="12" class="empty">No signals found.</td></tr>';
  const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiFilterChange!==null&&s.oiFilterChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value))));
  const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiFilterChange!==null&&s.oiFilterChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value))));
