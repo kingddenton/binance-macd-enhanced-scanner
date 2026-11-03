@@ -187,7 +187,7 @@ th{color:#aebbd0}.empty{text-align:center;padding:22px;color:#91a2ba}
 
 <div class="check"><input id="filterDifZero" type="checkbox"><label for="filterDifZero">DIF positive / negative</label></div>
 <div class="check"><input id="filterDeaZero" type="checkbox"><label for="filterDeaZero">DEA positive / negative</label></div>
-<div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Open Interest (OI) — display and optional filter</label><div class="controls"><div><label>OI timeframe</label><select id="oiTf"><option>5m</option><option>15m</option><option>30m</option><option selected>1h</option><option>2h</option><option>4h</option><option>6h</option><option>12h</option><option>1d</option></select></div><div class="check"><input id="oiFilterEnabled" type="checkbox"><label for="oiFilterEnabled">Enable minimum OI change filter</label></div><div><label>Minimum OI change (%)</label><input id="oiMinChange" type="number" value="0" step="0.1"></div><div class="check"><input id="oiValueFilterEnabled" type="checkbox"><label for="oiValueFilterEnabled">Enable minimum OI value filter</label></div><div><label>Minimum OI value (USDT)</label><input id="oiMinValue" type="number" value="50000" min="0" step="1000"></div></div><div class="note">OI value is Binance’s USDT notional. OI change compares the latest two OI records for the selected timeframe. Both filters are optional and off by default.</div></div>
+<div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Open Interest (OI) — display and optional filter</label><div class="controls"><div><label>OI timeframe</label><select id="oiTf"><option value="5" selected>5m rolling</option><option value="10">10m rolling</option><option value="15">15m rolling</option></select></div><div class="check"><input id="oiFilterEnabled" type="checkbox"><label for="oiFilterEnabled">Enable minimum OI change filter</label></div><div><label>Minimum OI change (%)</label><input id="oiMinChange" type="number" value="0" step="0.1"></div><div class="check"><input id="oiValueFilterEnabled" type="checkbox"><label for="oiValueFilterEnabled">Enable minimum OI value filter</label></div><div><label>Minimum OI value (USDT)</label><input id="oiMinValue" type="number" value="50000" min="0" step="1000"></div></div><div class="note">OI value is the latest Binance USDT notional snapshot. OI change uses rolling 5m, 10m or 15m comparisons built from Binance 5m OI history: latest snapshot vs the snapshot 1, 2 or 3 intervals earlier. Both filters are optional and off by default.</div></div>
 <div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Rolling Volume Change — Binance USDT quote volume</label><div class="controls"><div class="check"><input id="vol1hEnabled" type="checkbox"><label for="vol1hEnabled">Enable 1h volume change filter</label></div><div><label>Minimum 1h volume change (%)</label><input id="vol1hMin" type="number" value="0" step="0.1"></div><div class="check"><input id="vol4hEnabled" type="checkbox"><label for="vol4hEnabled">Enable 4h volume change filter</label></div><div><label>Minimum 4h volume change (%)</label><input id="vol4hMin" type="number" value="0" step="0.1"></div></div><div class="note">Uses Binance USDT quote volume: latest completed rolling window vs the preceding equal-length window (60 vs 60 one-minute candles for 1h; 240 vs 240 for 4h). When enabled, bullish results require volume expansion by at least the entered percentage; bearish results require volume contraction by at least the same magnitude. With a threshold of 0, bullish requires a positive change and bearish requires a negative change. Filters are optional and off by default.</div></div>
 </div>
 
@@ -483,6 +483,20 @@ function rollingVolumeChange(klines,windowSize){
  return ((current-previous)/previous)*100;
 }
 
+function rollingOIChange(rows,windowMinutes){
+ const steps=windowMinutes/5;
+ if(!Number.isInteger(steps)||steps<1)return null;
+ const valid=(Array.isArray(rows)?rows:[]).filter(r=>Number.isFinite(Number(r.timestamp))&&Number.isFinite(Number(r.sumOpenInterestValue))).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));
+ if(valid.length<=steps)return null;
+ const latest=valid[valid.length-1],earlier=valid[valid.length-1-steps];
+ const elapsed=Number(latest.timestamp)-Number(earlier.timestamp);
+ const expected=windowMinutes*60*1000;
+ if(Math.abs(elapsed-expected)>60000)return null;
+ const current=Number(latest.sumOpenInterestValue),previous=Number(earlier.sumOpenInterestValue);
+ if(!Number.isFinite(current)||!Number.isFinite(previous)||previous<=0)return null;
+ return ((current-previous)/previous)*100;
+}
+
 function format(value,decimals=4){
  return Number.isFinite(value)?value.toFixed(decimals):'—';
 }
@@ -671,11 +685,12 @@ async function scan(){
    if(!passingCandidates.length)return;
    let oiValue=null,oiChange=null;
    try{
-    const oiPeriod=$('oiTf').value;
-    const oiRows=await api('/futures/data/openInterestHist?symbol='+encodeURIComponent(symbol)+'&period='+encodeURIComponent(oiPeriod)+'&limit=2');
+    const oiWindowMinutes=Number($('oiTf').value);
+    const oiRows=await api('/futures/data/openInterestHist?symbol='+encodeURIComponent(symbol)+'&period=5m&limit=4');
     if(Array.isArray(oiRows)&&oiRows.length){
-     const latest=oiRows[oiRows.length-1];oiValue=Number(latest.sumOpenInterestValue);
-     if(oiRows.length>=2){const previous=Number(oiRows[oiRows.length-2].sumOpenInterestValue);if(Number.isFinite(previous)&&previous!==0&&Number.isFinite(oiValue))oiChange=((oiValue-previous)/previous)*100;}
+     const latest=oiRows.reduce((a,b)=>Number(a.timestamp)>Number(b.timestamp)?a:b);
+     oiValue=Number(latest.sumOpenInterestValue);
+     oiChange=rollingOIChange(oiRows,oiWindowMinutes);
      if(!Number.isFinite(oiValue))oiValue=null;
     }
    }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
