@@ -6,6 +6,7 @@
 <title>Binance MACD Early Crossover Scanner</title>
 <style>
 *{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;padding:14px;background:#0b1220;color:#e8edf5;font-family:Arial,sans-serif;max-width:1500px;margin:auto}
 h1{font-size:22px}h2{font-size:17px}
 .panel{background:#121d30;border:1px solid #263750;border-radius:10px;padding:14px;margin:12px 0}
@@ -473,6 +474,8 @@ function format(value,decimals=4){
 }
 
 function render(){
+ /* Keep the reader's current viewport position stable while result rows are rebuilt. */
+ const savedScrollX=window.scrollX,savedScrollY=window.scrollY;
  const makeRow=s=>`<tr>
  <td><b>${s.symbol}</b></td><td>${format(s.price,8)}</td><td>${s.bar}/${s.window}</td>
  <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${format(s.change,2)}%</td>
@@ -481,6 +484,8 @@ function render(){
  put('bullRowsA',lastResults.bullA);put('bullRowsB',lastResults.bullB);
  put('bearRowsA',lastResults.bearA);put('bearRowsB',lastResults.bearB);
  $('counts').textContent=`Bullish: ${lastResults.bullA.length+lastResults.bullB.length} · Bearish: ${lastResults.bearA.length+lastResults.bearB.length}`;
+ /* Restore only the scroll position; browser zoom remains under the user's control. */
+ if(window.scrollX!==savedScrollX||window.scrollY!==savedScrollY)window.scrollTo(savedScrollX,savedScrollY);
 }
 
 async function workerPool(items,limit,callback,token,onProgress){
