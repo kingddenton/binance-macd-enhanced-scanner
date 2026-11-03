@@ -236,6 +236,7 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <div class="columns">
 <section class="panel bull">
 <h2>Bullish early crossovers</h2>
+<div class="filter-row"><label for="bullChangeFilter">24h price change:</label> <select id="bullChangeFilter"><option value="positive" selected>Positive only (+%)</option><option value="all">All changes</option></select></div>
 <h3 id="bullTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
 <thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
@@ -249,6 +250,7 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 </section>
 <section class="panel bear">
 <h2>Bearish early crossovers</h2>
+<div class="filter-row"><label for="bearChangeFilter">24h price change:</label> <select id="bearChangeFilter"><option value="negative" selected>Negative only (−%)</option><option value="all">All changes</option></select></div>
 <h3 id="bearTfALabel">5m Primary MACD</h3>
 <div class="tablewrap"><table>
 <thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
@@ -481,9 +483,15 @@ function render(){
  <td>${s.rsi===null?'—':format(s.rsi,1)}</td><td>${format(s.change,2)}%</td>
  <td><span class="${s.hist>0?'hist-positive':s.hist<0?'hist-negative':'hist-zero'}">${format(s.hist,7)}</span></td><td>${format(s.dea,7)}</td><td>${s.st||'—'}</td></tr>`;
  const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(''):'<tr><td colspan="8" class="empty">No signals found.</td></tr>';
- put('bullRowsA',lastResults.bullA);put('bullRowsB',lastResults.bullB);
- put('bearRowsA',lastResults.bearA);put('bearRowsB',lastResults.bearB);
- $('counts').textContent=`Bullish: ${lastResults.bullA.length+lastResults.bullB.length} · Bearish: ${lastResults.bearA.length+lastResults.bearB.length}`;
+ const bullRows=rows=>rows.filter(s=>$('bullChangeFilter').value==='all'||s.change>0);
+ const bearRows=rows=>rows.filter(s=>$('bearChangeFilter').value==='all'||s.change<0);
+ const bullA=bullRows(lastResults.bullA),bullB=bullRows(lastResults.bullB);
+ const bearA=bearRows(lastResults.bearA),bearB=bearRows(lastResults.bearB);
+ put('bullRowsA',bullA);put('bullRowsB',bullB);
+ put('bearRowsA',bearA);put('bearRowsB',bearB);
+ $('counts').textContent=`Bullish: ${bullA.length+bullB.length} · Bearish: ${bearA.length+bearB.length}`;
+ $('bullChangeFilter').onchange=render;
+ $('bearChangeFilter').onchange=render;
  /* Restore only the scroll position; browser zoom remains under the user's control. */
  if(window.scrollX!==savedScrollX||window.scrollY!==savedScrollY)window.scrollTo(savedScrollX,savedScrollY);
 }
