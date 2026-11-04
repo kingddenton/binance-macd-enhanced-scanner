@@ -54,6 +54,18 @@ th{color:#aebbd0}.volume-col{font-weight:700}.volume-1h{color:#45d6e8;background
 </select>
 </div>
 <div>
+<label>Primary MACD timeframe 3</label>
+<select id="macdTfC">
+<option selected>1m</option><option>3m</option><option>5m</option><option>15m</option><option>30m</option><option>1h</option><option>4h</option>
+</select>
+</div>
+<div>
+<label>Primary MACD timeframe 4</label>
+<select id="macdTfD">
+<option>1m</option><option>3m</option><option>5m</option><option>15m</option><option>30m</option><option selected>1h</option><option>4h</option>
+</select>
+</div>
+<div>
 <label>DIF / DEA zero-line filter timeframe</label>
 <select id="deaTf">
 <option>1m</option><option>3m</option><option selected>5m</option>
@@ -250,6 +262,16 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bullRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
+<h3 id="bullTfCLabel">1m Primary MACD</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsC"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
+</table></div>
+<h3 id="bullTfDLabel">1h Primary MACD</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bullRowsD"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
+</table></div>
 </section>
 <section class="panel bear">
 <h2>Bearish early crossovers</h2>
@@ -264,6 +286,16 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
 <tbody id="bearRowsB"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
+<h3 id="bearTfCLabel">1m Primary MACD</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsC"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
+</table></div>
+<h3 id="bearTfDLabel">1h Primary MACD</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pair</th><th>Price</th><th>Bar</th><th>RSI</th><th>24h Change</th><th>OI Value (USDT)</th><th>OI 5m Change</th><th class="volume-col volume-1h">1h Vol Change</th><th class="volume-col volume-4h">4h Vol Change</th><th>Histogram</th><th>DEA</th><th>Supertrend</th></tr></thead>
+<tbody id="bearRowsD"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
+</table></div>
 </section>
 </div>
 <div class="note">Data source: Binance USDⓈ-M Futures public endpoints. No API key required. This application does not execute trades.</div>
@@ -274,7 +306,7 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 const $=id=>document.getElementById(id);
 const API=['https://fapi.binance.com','https://fapi1.binance.com','https://fapi2.binance.com'];
 let running=false,busy=false,timer=null;
-let lastResults={bullA:[],bullB:[],bearA:[],bearB:[]};
+let lastResults={bullA:[],bullB:[],bullC:[],bullD:[],bearA:[],bearB:[],bearC:[],bearD:[]};
 let activeController=null,scanToken=0,rateLimitedUntil=0;
 let requestQueue=[],activeRequests=0,lastRequestAt=0,queueTimer=null;
 let requestErrors=0,scanStartedAt=0,progressTotal=0,progressDone=0;
@@ -516,9 +548,10 @@ function render(){
  const put=(id,rows)=>$(id).innerHTML=rows.length?rows.map(makeRow).join(""):'<tr><td colspan="12" class="empty">No signals found.</td></tr>';
  const bullRows=rows=>rows.filter(s=>($("bullChangeFilter").value==="all"||s.change>0)&&(!$("oiFilterEnabled").checked||(s.oiFilterChange!==null&&s.oiFilterChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hFilterEnabled").checked||(s.vol1hChange!==null&&Number.isFinite(Number($("vol1hMinChange").value))&&s.vol1hChange>=Math.max(0,Number($("vol1hMinChange").value))))&&(!$("vol4hFilterEnabled").checked||(s.vol4hChange!==null&&Number.isFinite(Number($("vol4hMinChange").value))&&s.vol4hChange>=Math.max(0,Number($("vol4hMinChange").value)))));
  const bearRows=rows=>rows.filter(s=>($("bearChangeFilter").value==="all"||s.change<0)&&(!$("oiFilterEnabled").checked||(s.oiFilterChange!==null&&s.oiFilterChange>=Number($("oiMinChange").value)))&&(!$("oiValueFilterEnabled").checked||(s.oiValue!==null&&s.oiValue>=Number($("oiMinValue").value)))&&(!$("vol1hFilterEnabled").checked||(s.vol1hChange!==null&&Number.isFinite(Number($("vol1hMinChange").value))&&s.vol1hChange<=-Math.max(0,Number($("vol1hMinChange").value))))&&(!$("vol4hFilterEnabled").checked||(s.vol4hChange!==null&&Number.isFinite(Number($("vol4hMinChange").value))&&s.vol4hChange<=-Math.max(0,Number($("vol4hMinChange").value)))));
- const bullA=bullRows(lastResults.bullA),bullB=bullRows(lastResults.bullB),bearA=bearRows(lastResults.bearA),bearB=bearRows(lastResults.bearB);
- put("bullRowsA",bullA);put("bullRowsB",bullB);put("bearRowsA",bearA);put("bearRowsB",bearB);
- $("counts").textContent=`Bullish: ${bullA.length+bullB.length} · Bearish: ${bearA.length+bearB.length}`;
+ const bull=[lastResults.bullA,lastResults.bullB,lastResults.bullC,lastResults.bullD].map(bullRows);
+ const bear=[lastResults.bearA,lastResults.bearB,lastResults.bearC,lastResults.bearD].map(bearRows);
+ ["A","B","C","D"].forEach((slot,i)=>{put("bullRows"+slot,bull[i]);put("bearRows"+slot,bear[i]);});
+ $("counts").textContent=`Bullish: ${bull.reduce((n,r)=>n+r.length,0)} · Bearish: ${bear.reduce((n,r)=>n+r.length,0)}`;
  $("bullChangeFilter").onchange=render;$("bearChangeFilter").onchange=render;$("oiFilterEnabled").onchange=render;$("oiMinChange").oninput=render;$("oiValueFilterEnabled").onchange=render;$("oiMinValue").oninput=render;$("vol1hFilterEnabled").onchange=render;$("vol1hMinChange").oninput=render;$("vol4hFilterEnabled").onchange=render;$("vol4hMinChange").oninput=render;
  if(window.scrollX!==savedScrollX||window.scrollY!==savedScrollY)window.scrollTo(savedScrollX,savedScrollY);
 }
@@ -555,8 +588,8 @@ async function scan(){
  $('duration').textContent='Elapsed: 0.0s';
  $('state').textContent='Status: Connecting to Binance';
  $('scanned').textContent='Pairs scanned: 0';
- const bullishA=[],bullishB=[],bearishA=[],bearishB=[];
- const diagnostic={bearPrimaryA:0,bearPrimaryB:0,bearMissingConfirmData:0,bearRejectMACD:0,bearRejectSupertrend:0,bearRejectRSI:0,bearRejectDEA:0,bearRejectZeroLine:0,bearPassedConfirmations:0,bearRejectOIChange:0,bearRejectOIValue:0,bearPassedOI:0};
+ const bullish=[[],[],[],[]],bearish=[[],[],[],[]];
+ const diagnostic={bearPrimary:[0,0,0,0],bearMissingConfirmData:0,bearRejectMACD:0,bearRejectSupertrend:0,bearRejectRSI:0,bearRejectDEA:0,bearRejectZeroLine:0,bearPassedConfirmations:0,bearRejectOIChange:0,bearRejectOIValue:0,bearPassedOI:0};
  const elapsedTimer=setInterval(()=>{
   if(token===scanToken&&busy){
    const elapsed=(performance.now()-scanStartedAt)/1000;
@@ -564,12 +597,12 @@ async function scan(){
   }
  },250);
  try{
-  const macdTfA=$('macdTfA').value,macdTfB=$('macdTfB').value;
-  if(macdTfA===macdTfB)throw new Error('Choose two different Primary MACD timeframes.');
-  $('bullTfALabel').textContent=macdTfA+' Primary MACD';
-  $('bullTfBLabel').textContent=macdTfB+' Primary MACD';
-  $('bearTfALabel').textContent=macdTfA+' Primary MACD';
-  $('bearTfBLabel').textContent=macdTfB+' Primary MACD';
+  const primaryTfs=['A','B','C','D'].map(slot=>$('macdTf'+slot).value);
+  if(new Set(primaryTfs).size!==primaryTfs.length)throw new Error('Choose four different Primary MACD timeframes.');
+  ['A','B','C','D'].forEach((slot,index)=>{
+   $('bullTf'+slot+'Label').textContent=primaryTfs[index]+' Primary MACD';
+   $('bearTf'+slot+'Label').textContent=primaryTfs[index]+' Primary MACD';
+  });
 
   const[exchangeInfo,tickers]=await Promise.all([
    api('/fapi/v1/exchangeInfo'),api('/fapi/v1/ticker/24hr')
@@ -592,7 +625,6 @@ async function scan(){
   progressTotal=symbols.length;
   $('scanned').textContent='Pairs scanned: 0/'+progressTotal;
   const marketMap=new Map(market.map(x=>[x.symbol,x]));
-  const primaryTfs=[macdTfA,macdTfB];
   const deaTf=$('deaTf').value;
   const deaConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('deaConfirm_'+tf).checked);
   const macdConfirmTfs=['1m','3m','5m','15m','30m','1h','4h'].filter(tf=>$('macdConfirm_'+tf).checked);
@@ -610,7 +642,7 @@ async function scan(){
   const requestedWindow=Math.floor(Number($('crossWindow').value)||10);
   const crossWindow=Math.max(3,Math.min(30,requestedWindow));
   $('crossWindow').value=crossWindow;
-  $('state').textContent='Status: Scanning '+symbols.length+' pairs across '+macdTfA+' and '+macdTfB;
+  $('state').textContent='Status: Scanning '+symbols.length+' pairs across '+primaryTfs.join(', ');
 
   await workerPool(symbols,MAX_WORKERS,async symbol=>{
    /* STAGE 1: Fetch each primary timeframe once. */
@@ -631,7 +663,7 @@ async function scan(){
      candidates.push({slot:index,direction:'bull',bar:bullBar,values,current});
     }
     if(bearSet.has(symbol)&&bearBar!==null&&bearBar>=1&&bearBar<=crossWindow){
-     diagnostic[index===0?'bearPrimaryA':'bearPrimaryB']++;
+     diagnostic.bearPrimary[index]++;
      candidates.push({slot:index,direction:'bear',bar:bearBar,values,current});
     }
    }
@@ -731,18 +763,18 @@ async function scan(){
    const vol4hChange=rollingVolumeChange(volumeKlines,240);
    for(const candidate of oiPassingCandidates){
     const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange5m,oiFilterChange,oiIncrease5m,vol1hChange,vol4hChange};
-    const target=candidate.direction==='bull'?(candidate.slot===0?bullishA:bullishB):(candidate.slot===0?bearishA:bearishB);
-    target.push(result);
+    (candidate.direction==='bull'?bullish:bearish)[candidate.slot].push(result);
    }
   },token);
 
   if(token===scanToken){
-   lastResults={
-    bullA:bullishA.sort((a,b)=>a.bar-b.bar),bullB:bullishB.sort((a,b)=>a.bar-b.bar),
-    bearA:bearishA.sort((a,b)=>a.bar-b.bar),bearB:bearishB.sort((a,b)=>a.bar-b.bar)
-   };
+   lastResults={};
+   ['A','B','C','D'].forEach((slot,index)=>{
+    lastResults['bull'+slot]=bullish[index].sort((a,b)=>a.bar-b.bar);
+    lastResults['bear'+slot]=bearish[index].sort((a,b)=>a.bar-b.bar);
+   });
    render();
-   $('bearDiagnostics').textContent='Bearish diagnostics (this scan): Primary crossovers — '+diagnostic.bearPrimaryA+' on '+macdTfA+' / '+diagnostic.bearPrimaryB+' on '+macdTfB+'; missing confirmation data — '+diagnostic.bearMissingConfirmData+'; rejected by MACD — '+diagnostic.bearRejectMACD+'; Supertrend — '+diagnostic.bearRejectSupertrend+'; RSI — '+diagnostic.bearRejectRSI+'; DEA — '+diagnostic.bearRejectDEA+'; DIF/DEA zero-line — '+diagnostic.bearRejectZeroLine+'; passed confirmations — '+diagnostic.bearPassedConfirmations+'; rejected by OI change — '+diagnostic.bearRejectOIChange+'; rejected by OI value — '+diagnostic.bearRejectOIValue+'; passed OI stage — '+diagnostic.bearPassedOI+'; displayed — '+(bearishA.length+bearishB.length)+'. Rejection counts can overlap when multiple confirmations fail.';
+   $('bearDiagnostics').textContent='Bearish diagnostics (this scan): Primary crossovers — '+diagnostic.bearPrimary.map((count,index)=>count+' on '+primaryTfs[index]).join(' / ')+'; missing confirmation data — '+diagnostic.bearMissingConfirmData+'; rejected by MACD — '+diagnostic.bearRejectMACD+'; Supertrend — '+diagnostic.bearRejectSupertrend+'; RSI — '+diagnostic.bearRejectRSI+'; DEA — '+diagnostic.bearRejectDEA+'; DIF/DEA zero-line — '+diagnostic.bearRejectZeroLine+'; passed confirmations — '+diagnostic.bearPassedConfirmations+'; rejected by OI change — '+diagnostic.bearRejectOIChange+'; rejected by OI value — '+diagnostic.bearRejectOIValue+'; passed OI stage — '+diagnostic.bearPassedOI+'; displayed — '+bearish.reduce((n,rows)=>n+rows.length,0)+'. Rejection counts can overlap when multiple confirmations fail.';
    $('state').textContent='Status: Scan complete · '+requestErrors+' request errors';
    $('updated').textContent='Updated: '+new Date().toLocaleTimeString();
   }
@@ -768,7 +800,7 @@ async function scan(){
 
 const PRESET_STORAGE_KEY='binanceMacdScannerPresets_v1';
 const PRESET_CONTROL_IDS=[
- 'macdTfA','macdTfB','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
+ 'macdTfA','macdTfB','macdTfC','macdTfD','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
  'filterDifZero','filterDeaZero','oi5mAbsFilterEnabled','oi5mAbsMin','oi5mPctFilterEnabled','oi5mPctMin','oiTf','oiFilterEnabled','oiMinChange','oiValueFilterEnabled','oiMinValue',
   'vol1hFilterEnabled','vol1hMinChange','vol4hFilterEnabled','vol4hMinChange',
  ...['1m','3m','5m','15m','30m','1h','4h'].flatMap(tf=>['deaConfirm_'+tf,'macdConfirm_'+tf]),
@@ -875,7 +907,7 @@ $('onceBtn').addEventListener('click',()=>{
 });
 $('stopBtn').addEventListener('click',stopScanner);
 $('clearBtn').addEventListener('click',()=>{
- lastResults={bullA:[],bullB:[],bearA:[],bearB:[]};render();
+ lastResults={bullA:[],bullB:[],bullC:[],bullD:[],bearA:[],bearB:[],bearC:[],bearD:[]};render();
  $('scanned').textContent='Pairs scanned: 0';
  $('state').textContent='Status: Results cleared';
 });
