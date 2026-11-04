@@ -187,7 +187,7 @@ th{color:#aebbd0}.volume-col{font-weight:700}.volume-1h{color:#45d6e8;background
 
 <div class="check"><input id="filterDifZero" type="checkbox"><label for="filterDifZero">DIF positive / negative</label></div>
 <div class="check"><input id="filterDeaZero" type="checkbox"><label for="filterDeaZero">DEA positive / negative</label></div>
-<div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Open Interest (OI) — display and optional filter</label><div class="controls"><div><label>OI timeframe</label><select id="oiTf"><option value="5" selected>5m rolling</option><option value="10">10m rolling</option><option value="15">15m rolling</option></select></div><div class="check"><input id="oiFilterEnabled" type="checkbox"><label for="oiFilterEnabled">Enable minimum OI change filter</label></div><div><label>Minimum OI change (%)</label><input id="oiMinChange" type="number" value="0" step="0.1"></div><div class="check"><input id="oiValueFilterEnabled" type="checkbox"><label for="oiValueFilterEnabled">Enable minimum OI value filter</label></div><div><label>Minimum OI value (USDT)</label><input id="oiMinValue" type="number" value="50000" min="0" step="1000"></div></div><div class="note">OI value is the latest Binance USDT notional snapshot. OI change uses rolling 5m, 10m or 15m comparisons built from Binance 5m OI history: latest snapshot vs the snapshot 1, 2 or 3 intervals earlier. Both filters are optional and off by default.</div></div>
+<div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Open Interest (OI) — short-term increase filters</label><div class="controls"><div class="check"><input id="oi5mAbsFilterEnabled" type="checkbox"><label for="oi5mAbsFilterEnabled">Enable minimum 5m OI increase (USDT)</label></div><div><label>Minimum 5m OI increase (USDT)</label><input id="oi5mAbsMin" type="number" value="50000" min="0" step="1000"></div><div class="check"><input id="oi5mPctFilterEnabled" type="checkbox"><label for="oi5mPctFilterEnabled">Enable minimum 5m OI increase (%)</label></div><div><label>Minimum 5m OI increase (%)</label><input id="oi5mPctMin" type="number" value="1" min="0" step="0.1"></div></div><div class="note">Both filters use the same two Binance 5m OI snapshots. The absolute filter measures the increase in OI notional (USDT), not total OI outstanding. If both are enabled, both conditions must pass. Each filter is optional and independently editable.</div><div class="controls" style="margin-top:10px"><div><label>Additional OI change timeframe</label><select id="oiTf"><option value="5" selected>5m rolling</option><option value="10">10m rolling</option><option value="15">15m rolling</option></select></div><div class="check"><input id="oiFilterEnabled" type="checkbox"><label for="oiFilterEnabled">Enable additional minimum OI change filter</label></div><div><label>Minimum OI change (%)</label><input id="oiMinChange" type="number" value="0" step="0.1"></div><div class="check"><input id="oiValueFilterEnabled" type="checkbox"><label for="oiValueFilterEnabled">Enable total OI value filter</label></div><div><label>Minimum total OI value (USDT)</label><input id="oiMinValue" type="number" value="50000" min="0" step="1000"></div></div><div class="note">The additional OI change and total OI value filters remain separate optional filters. Total OI value is the latest Binance USDT notional snapshot; it is not the 5m increase.</div></div>
 <div style="grid-column:1/-1;border-top:1px solid #263750;padding-top:10px"><label>Rolling Volume Change — display always, optional filters</label><div class="controls"><div class="check"><input id="vol1hFilterEnabled" type="checkbox"><label for="vol1hFilterEnabled">Enable 1h volume-change filter</label></div><div><label>1h minimum change (%)</label><input id="vol1hMinChange" type="number" value="0" min="0" step="0.1"></div><div class="check"><input id="vol4hFilterEnabled" type="checkbox"><label for="vol4hFilterEnabled">Enable 4h volume-change filter</label></div><div><label>4h minimum change (%)</label><input id="vol4hMinChange" type="number" value="0" min="0" step="0.1"></div></div><div class="note">Both percentage columns remain visible whether filters are enabled or disabled. For bullish signals, an enabled filter requires volume change at or above its threshold; for bearish signals, it requires volume change at or below the negative threshold. Each timeframe is independent. Values use Binance USDT quote volume over rolling completed 60-minute and 240-minute windows versus the preceding equal-length windows.</div></div>
 </div>
 
@@ -484,7 +484,7 @@ function rollingVolumeChange(klines,windowSize){
  return ((current-previous)/previous)*100;
 }
 
-function rollingOIChange(rows,windowMinutes){
+function rollingOISnapshots(rows,windowMinutes){
  const steps=windowMinutes/5;
  if(!Number.isInteger(steps)||steps<1)return null;
  const valid=(Array.isArray(rows)?rows:[]).filter(r=>Number.isFinite(Number(r.timestamp))&&Number.isFinite(Number(r.sumOpenInterestValue))).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));
@@ -495,7 +495,11 @@ function rollingOIChange(rows,windowMinutes){
  if(Math.abs(elapsed-expected)>60000)return null;
  const current=Number(latest.sumOpenInterestValue),previous=Number(earlier.sumOpenInterestValue);
  if(!Number.isFinite(current)||!Number.isFinite(previous)||previous<=0)return null;
- return ((current-previous)/previous)*100;
+ return {current,previous,increase:current-previous,change:((current-previous)/previous)*100};
+}
+function rollingOIChange(rows,windowMinutes){
+ const comparison=rollingOISnapshots(rows,windowMinutes);
+ return comparison?comparison.change:null;
 }
 
 function format(value,decimals=4){
@@ -697,21 +701,28 @@ async function scan(){
     }
    }
    if(!passingCandidates.length)return;
-   let oiValue=null,oiChange5m=null,oiFilterChange=null;
+   let oiValue=null,oiChange5m=null,oiFilterChange=null,oiIncrease5m=null;
    try{
     const oiWindowMinutes=Number($('oiTf').value);
     const oiRows=await api('/futures/data/openInterestHist?symbol='+encodeURIComponent(symbol)+'&period=5m&limit=4');
     if(Array.isArray(oiRows)&&oiRows.length){
      const latest=oiRows.reduce((a,b)=>Number(a.timestamp)>Number(b.timestamp)?a:b);
      oiValue=Number(latest.sumOpenInterestValue);
-     oiChange5m=rollingOIChange(oiRows,5);oiFilterChange=rollingOIChange(oiRows,oiWindowMinutes);
+     const oi5mComparison=rollingOISnapshots(oiRows,5);
+     oiIncrease5m=oi5mComparison?oi5mComparison.increase:null;
+     oiChange5m=oi5mComparison?oi5mComparison.change:null;
+     oiFilterChange=rollingOIChange(oiRows,oiWindowMinutes);
      if(!Number.isFinite(oiValue))oiValue=null;
     }
    }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
+   const oi5mAbsOn=$('oi5mAbsFilterEnabled').checked,oi5mAbsMinimum=Number($('oi5mAbsMin').value);
+   const oi5mPctOn=$('oi5mPctFilterEnabled').checked,oi5mPctMinimum=Number($('oi5mPctMin').value);
+   const oi5mAbsFail=oi5mAbsOn&&(oiIncrease5m===null||!Number.isFinite(oi5mAbsMinimum)||oi5mAbsMinimum<0||oiIncrease5m<oi5mAbsMinimum);
+   const oi5mPctFail=oi5mPctOn&&(oiChange5m===null||!Number.isFinite(oi5mPctMinimum)||oi5mPctMinimum<0||oiChange5m<oi5mPctMinimum);
    const oiFilterOn=$('oiFilterEnabled').checked,oiMinimum=Number($('oiMinChange').value);const oiValueFilterOn=$('oiValueFilterEnabled').checked,oiValueMinimum=Number($('oiMinValue').value);
    if(oiFilterOn&&(oiFilterChange===null||!Number.isFinite(oiMinimum)||oiFilterChange<oiMinimum))diagnostic.bearRejectOIChange+=passingCandidates.filter(c=>c.direction==='bear').length;
    if(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum))diagnostic.bearRejectOIValue+=passingCandidates.filter(c=>c.direction==='bear').length;
-   const oiPassingCandidates=passingCandidates.filter(()=>!(oiFilterOn&&(oiFilterChange===null||!Number.isFinite(oiMinimum)||oiFilterChange<oiMinimum))&&!(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum)));
+   const oiPassingCandidates=passingCandidates.filter(()=>!oi5mAbsFail&&!oi5mPctFail&&!(oiFilterOn&&(oiFilterChange===null||!Number.isFinite(oiMinimum)||oiFilterChange<oiMinimum))&&!(oiValueFilterOn&&(oiValue===null||!Number.isFinite(oiValueMinimum)||oiValue<oiValueMinimum)));
    diagnostic.bearPassedOI+=oiPassingCandidates.filter(c=>c.direction==='bear').length;
    if(!oiPassingCandidates.length)return;
    /* One 1m-kline request supplies both rolling volume windows for this symbol. */
@@ -719,7 +730,7 @@ async function scan(){
    const vol1hChange=rollingVolumeChange(volumeKlines,60);
    const vol4hChange=rollingVolumeChange(volumeKlines,240);
    for(const candidate of oiPassingCandidates){
-    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange5m,oiFilterChange,vol1hChange,vol4hChange};
+    const result={symbol,price:item.price,bar:candidate.bar,window:crossWindow,hist:candidate.values.hist[candidate.current],dea:candidate.values.dea[candidate.current],rsi:rsiConfirmTfs.length?rsiConfirm[rsiConfirmTfs[0]]:null,st:stConfirmTfs.length?stConfirm[stConfirmTfs[0]]:'—',change:item.change,oiValue,oiChange5m,oiFilterChange,oiIncrease5m,vol1hChange,vol4hChange};
     const target=candidate.direction==='bull'?(candidate.slot===0?bullishA:bullishB):(candidate.slot===0?bearishA:bearishB);
     target.push(result);
    }
@@ -758,7 +769,7 @@ async function scan(){
 const PRESET_STORAGE_KEY='binanceMacdScannerPresets_v1';
 const PRESET_CONTROL_IDS=[
  'macdTfA','macdTfB','deaTf','universe','customUniverse','minVol','crossWindow','refresh',
- 'filterDifZero','filterDeaZero','oiTf','oiFilterEnabled','oiMinChange','oiValueFilterEnabled','oiMinValue',
+ 'filterDifZero','filterDeaZero','oi5mAbsFilterEnabled','oi5mAbsMin','oi5mPctFilterEnabled','oi5mPctMin','oiTf','oiFilterEnabled','oiMinChange','oiValueFilterEnabled','oiMinValue',
   'vol1hFilterEnabled','vol1hMinChange','vol4hFilterEnabled','vol4hMinChange',
  ...['1m','3m','5m','15m','30m','1h','4h'].flatMap(tf=>['deaConfirm_'+tf,'macdConfirm_'+tf]),
  ...['1m','3m','5m','15m','30m','1h','2h','4h'].flatMap(tf=>['stConfirm_'+tf,'rsiEnable_'+tf]),
