@@ -38,6 +38,8 @@ th{color:#aebbd0}.volume-col{font-weight:700}.volume-1h{color:#45d6e8;background
 .fresh-timeframe{color:#39d98a;margin:14px 0 6px}
 .fresh-empty{padding:16px;color:#91a2ba;text-align:center}
 
+
+.view-tabs{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}.view-tab{width:auto;min-width:150px;background:#263750}.view-tab.active{background:#2674df}.fresh-table{min-width:650px}.fresh-table th,.fresh-table td{padding:9px 7px}.fresh-timeframe{color:#39d98a;margin:18px 0 7px}.fresh-positive{color:#39d98a;font-weight:700}
 </style>
 </head>
 <body>
@@ -49,6 +51,52 @@ th{color:#aebbd0}.volume-col{font-weight:700}.volume-1h{color:#45d6e8;background
 </div>
 <div id="legacyView">
 
+<div class="view-tabs">
+<button id="mainTabBtn" class="view-tab active" type="button">Original MM Scanner</button>
+<button id="freshTabBtn" class="view-tab" type="button">Fresh Bullish MACD</button>
+</div>
+<section id="freshScannerView" class="panel" hidden>
+<h2>Fresh Bullish MACD Histogram Crossovers</h2>
+<div class="note">Bullish only: the latest MACD histogram must have crossed from zero or below to positive and must still be positive. Candle age is counted separately on each selected timeframe.</div>
+<div class="controls">
+<div><label>Timeframes to monitor</label>
+<div class="check"><input id="freshTf_1m" type="checkbox" checked><label for="freshTf_1m">1m</label></div>
+<div class="check"><input id="freshTf_3m" type="checkbox" checked><label for="freshTf_3m">3m</label></div>
+<div class="check"><input id="freshTf_5m" type="checkbox" checked><label for="freshTf_5m">5m</label></div>
+<div class="check"><input id="freshTf_15m" type="checkbox" checked><label for="freshTf_15m">15m</label></div>
+</div>
+<div><label>Maximum crossover age (candles)</label><input id="freshMaxBars" type="number" value="10" min="2" max="100" step="1"></div>
+<div><label>Coin ranking basis</label><select id="freshRank"><option value="volume">24h quote volume — highest first</option><option value="change">24h price change — highest gainers first</option></select></div>
+<div><label>Coin universe</label><select id="freshUniverse"><option value="20" selected>Top 20</option><option value="50">Top 50</option><option value="100">Top 100</option><option value="200">Top 200</option><option value="all">All eligible USDT perpetuals</option></select></div>
+<div><label>Minimum total OI Value (USDT)</label><input id="freshMinOI" type="number" value="100000" min="0" step="10000"></div>
+<div class="check"><input id="freshOIFilter" type="checkbox"><label for="freshOIFilter">Apply minimum total OI Value</label></div>
+<div><label>Automatic refresh</label><select id="freshRefresh"><option value="0">Off</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></div>
+<div style="grid-column:1/-1"><label>Independent DEA confirmation — each selected timeframe requires its own DEA to be positive</label>
+<div class="controls">
+<div class="check"><input id="freshDea_1m" type="checkbox"><label for="freshDea_1m">1m DEA above zero</label></div>
+<div class="check"><input id="freshDea_3m" type="checkbox"><label for="freshDea_3m">3m DEA above zero</label></div>
+<div class="check"><input id="freshDea_5m" type="checkbox"><label for="freshDea_5m">5m DEA above zero</label></div>
+<div class="check"><input id="freshDea_15m" type="checkbox"><label for="freshDea_15m">15m DEA above zero</label></div>
+</div></div>
+</div>
+<div class="actions">
+<button id="freshStartBtn" type="button">Start monitoring</button>
+<button id="freshOnceBtn" class="secondary" type="button">Scan once</button>
+<button id="freshStopBtn" class="secondary" type="button">Stop</button>
+<button id="freshClearBtn" class="secondary" type="button">Clear results</button>
+</div>
+<div class="status" style="margin-top:12px">
+<span class="stat" id="freshState">Status: Idle</span>
+<span class="stat" id="freshScanned">Pairs scanned: 0</span>
+<span class="stat" id="freshCount">Bullish signals: 0</span>
+<span class="stat" id="freshUpdated">Updated: —</span>
+</div>
+<div id="freshResults" style="margin-top:12px">
+<div class="empty">Select timeframes and start monitoring.</div>
+</div>
+<div class="note">Data is from Binance USDⓈ-M public endpoints. Standard MACD 12,26,9. The OI filter uses the latest Binance total OI notional value (sumOpenInterestValue), not OI increase. Results are scanner signals, not trade recommendations.</div>
+</section>
+<div id="mainScannerView">
 <section class="panel">
 <div class="controls">
 <div>
@@ -309,6 +357,7 @@ MACD uses standard 12, 26, 9 settings. Supertrend uses ATR 10, multiplier 3.
 <tbody id="bearRowsD"><tr><td colspan="12" class="empty">Waiting for scan</td></tr></tbody>
 </table></div>
 </section>
+</div>
 </div>
 <div class="note">Data source: Binance USDⓈ-M Futures public endpoints. No API key required. This application does not execute trades.</div>
 
@@ -990,6 +1039,166 @@ $("freshOnce").addEventListener("click",freshScanOnce);
 $("freshStop").addEventListener("click",()=>{stopFreshScanner();$("freshState").textContent="Status: Stopped";});
 $("freshClear").addEventListener("click",()=>{freshRowsByTf={"1m":[],"3m":[],"5m":[],"15m":[]};freshRender();$("freshState").textContent="Status: Results cleared";});
 $("freshRefresh").addEventListener("change",()=>{if(freshRunning){if(freshTimer)clearTimeout(freshTimer);if(!busy&&Number($("freshRefresh").value)>0)freshTimer=setTimeout(()=>{if(freshRunning&&!busy)freshScan();},Number($("freshRefresh").value)*1000);}});
+
+
+/* Independent Fresh Bullish MACD monitor. Uses the same throttled Binance request queue. */
+let activeView='main',freshRunning=false,freshTimer=null,freshRowsByTf={};
+const FRESH_TFS=['1m','3m','5m','15m'];
+function selectedFreshTfs(){return FRESH_TFS.filter(tf=>$('freshTf_'+tf).checked);}
+function stopFreshScanner(){
+ freshRunning=false;
+ if(freshTimer){clearTimeout(freshTimer);freshTimer=null;}
+ if(activeView==='fresh'&&busy){
+  scanToken++;busy=false;clearQueuedRequests(makeAbortError());
+  if(activeController&&!activeController.signal.aborted)activeController.abort();
+  activeController=null;
+ }
+ $('freshStartBtn').classList.remove('scanning');
+ $('freshStartBtn').textContent='Start monitoring';
+}
+function switchScannerView(view){
+ if(view===activeView)return;
+ if(view==='fresh'){
+  stopScanner();
+  activeView='fresh';
+  $('mainScannerView').hidden=true;
+  $('freshScannerView').hidden=false;
+  $('mainTabBtn').classList.remove('active');
+  $('freshTabBtn').classList.add('active');
+  $('freshState').textContent='Status: Ready — original scanner stopped';
+ }else{
+  stopFreshScanner();
+  if(busy){scanToken++;busy=false;clearQueuedRequests(makeAbortError());if(activeController&&!activeController.signal.aborted)activeController.abort();activeController=null;}
+  activeView='main';
+  $('freshScannerView').hidden=true;
+  $('mainScannerView').hidden=false;
+  $('freshTabBtn').classList.remove('active');
+  $('mainTabBtn').classList.add('active');
+  $('state').textContent='Status: Original scanner selected — press Start scanning';
+ }
+}
+function freshCrossAge(hist){
+ const last=hist.length-1;
+ if(last<1||!(hist[last]>0))return null;
+ for(let i=last;i>=1;i--){
+  if(hist[i]>0&&hist[i-1]<=0)return last-i+1;
+ }
+ return null;
+}
+function renderFreshResults(){
+ const host=$('freshResults');
+ const tfs=selectedFreshTfs();
+ if(!tfs.length){host.innerHTML='<div class="empty">Select at least one timeframe.</div>';return;}
+ let html='';
+ for(const tf of tfs){
+  const rows=freshRowsByTf[tf]||[];
+  html+='<h3 class="fresh-timeframe">'+tf+' bullish crossovers ('+rows.length+')</h3><div class="tablewrap"><table class="fresh-table"><thead><tr><th>Pair</th><th>Price</th><th>Crossover age</th><th>Histogram</th><th>DEA</th><th>Total OI Value (USDT)</th><th>24h Change</th><th>24h Quote Volume</th></tr></thead><tbody>';
+  if(!rows.length)html+='<tr><td colspan="8" class="empty">No fresh bullish crossover found on this timeframe.</td></tr>';
+  rows.forEach(x=>{html+='<tr><td><strong>'+x.symbol+'</strong></td><td>'+format(x.price)+'</td><td>'+x.age+' candles</td><td class="fresh-positive">'+format(x.hist)+'</td><td>'+format(x.dea)+'</td><td>'+format(x.oiValue)+'</td><td class="'+(x.change>=0?'fresh-positive':'hist-negative')+'">'+x.change.toFixed(2)+'%</td><td>'+format(x.volume)+'</td></tr>';});
+  html+='</tbody></table></div>';
+ }
+ host.innerHTML=html;
+}
+async function scanFresh(){
+ if(activeView!=='fresh'||busy||Date.now()<rateLimitedUntil)return;
+ const tfs=selectedFreshTfs();
+ if(!tfs.length){$('freshState').textContent='Select at least one timeframe.';return;}
+ const maxBars=Math.max(2,Math.min(100,Math.floor(Number($('freshMaxBars').value)||10)));
+ $('freshMaxBars').value=maxBars;
+ const minOI=Math.max(0,Number($('freshMinOI').value)||0);
+ const oiEnabled=$('freshOIFilter').checked;
+ const deaTfs=tfs.filter(tf=>$('freshDea_'+tf).checked);
+ busy=true;const token=++scanToken;activeController=new AbortController();
+ freshRowsByTf={};tfs.forEach(tf=>freshRowsByTf[tf]=[]);
+ $('freshState').textContent='Status: Loading Binance market universe';
+ $('freshScanned').textContent='Pairs scanned: 0';
+ $('freshCount').textContent='Bullish signals: 0';
+ try{
+  const [exchangeInfo,tickers]=await Promise.all([api('/fapi/v1/exchangeInfo'),api('/fapi/v1/ticker/24hr')]);
+  if(token!==scanToken)return;
+  const eligible=new Set(exchangeInfo.symbols.filter(x=>x.contractType==='PERPETUAL'&&x.quoteAsset==='USDT'&&x.status==='TRADING').map(x=>x.symbol));
+  let market=tickers.filter(x=>eligible.has(x.symbol)).map(x=>({symbol:x.symbol,price:Number(x.lastPrice),change:Number(x.priceChangePercent),volume:Number(x.quoteVolume)}));
+  const rank=$('freshRank').value;
+  market.sort((a,b)=>rank==='volume'?b.volume-a.volume:b.change-a.change);
+  const cap=$('freshUniverse').value;
+  if(cap!=='all')market=market.slice(0,Number(cap));
+  const total=market.length;
+  $('freshState').textContent='Status: Scanning '+total+' pairs · '+tfs.join(', ');
+  let next=0,done=0,signals=0;
+  const workers=Array.from({length:Math.min(4,total)},async()=>{
+   while(token===scanToken){
+    const idx=next++;if(idx>=total)return;
+    const item=market[idx];
+    try{
+     const candleSets=await Promise.all(tfs.map(tf=>api('/fapi/v1/klines?symbol='+encodeURIComponent(item.symbol)+'&interval='+tf+'&limit=100')));
+     if(token!==scanToken)return;
+     const candidates=[];
+     tfs.forEach((tf,i)=>{
+      const kl=candleSets[i];if(!Array.isArray(kl)||kl.length<35)return;
+      const values=macd(kl.map(k=>Number(k[4])));
+      const age=freshCrossAge(values.hist);
+      if(age!==null&&age<maxBars&&(!deaTfs.includes(tf)||values.dea[values.dea.length-1]>0)){
+       candidates.push({tf,age,hist:values.hist.at(-1),dea:values.dea.at(-1)});
+      }
+     });
+     if(candidates.length){
+      let oiValue=null;
+      try{
+       const rows=await api('/futures/data/openInterestHist?symbol='+encodeURIComponent(item.symbol)+'&period=5m&limit=2');
+       if(Array.isArray(rows)&&rows.length){
+        const latest=rows.reduce((a,b)=>Number(a.timestamp)>Number(b.timestamp)?a:b);
+        oiValue=Number(latest.sumOpenInterestValue);
+        if(!Number.isFinite(oiValue))oiValue=null;
+       }
+      }catch(e){if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;}
+      if(!oiEnabled||(oiValue!==null&&oiValue>=minOI)){
+       candidates.forEach(c=>{freshRowsByTf[c.tf].push({...item,age:c.age,hist:c.hist,dea:c.dea,oiValue});signals++;});
+      }
+     }
+    }catch(e){
+     if(e instanceof BinanceRateLimitError||e.name==='AbortError')throw e;
+     requestErrors++;
+    }
+    if(token!==scanToken)return;
+    done++;$('freshScanned').textContent='Pairs scanned: '+done+'/'+total;
+    $('freshState').textContent='Status: Scanning · '+done+'/'+total+' · '+requestErrors+' request errors';
+   }
+  });
+  await Promise.all(workers);
+  if(token===scanToken){
+   tfs.forEach(tf=>freshRowsByTf[tf].sort((a,b)=>a.age-b.age||b.volume-a.volume));
+   renderFreshResults();
+   $('freshCount').textContent='Bullish signals: '+signals;
+   $('freshUpdated').textContent='Updated: '+new Date().toLocaleTimeString();
+   $('freshState').textContent='Status: Scan complete';
+  }
+ }catch(e){
+  if(token===scanToken)$('freshState').textContent=e instanceof BinanceRateLimitError?e.message:(e.name==='AbortError'?'Status: Stopped':'Error: '+e.message);
+ }finally{
+  if(token===scanToken){
+   busy=false;activeController=null;
+   if(freshRunning&&activeView==='fresh'&&Number($('freshRefresh').value)>0&&Date.now()>=rateLimitedUntil){
+    freshTimer=setTimeout(()=>{freshTimer=null;if(freshRunning&&activeView==='fresh'&&!busy)scanFresh();},Number($('freshRefresh').value)*1000);
+   }
+  }
+ }
+}
+function startFreshScanner(){
+ if(activeView!=='fresh')return;
+ stopFreshScanner();freshRunning=true;
+ $('freshStartBtn').classList.add('scanning');$('freshStartBtn').textContent='MONITORING…';
+ scanFresh();
+}
+$('mainTabBtn').addEventListener('click',()=>switchScannerView('main'));
+$('freshTabBtn').addEventListener('click',()=>switchScannerView('fresh'));
+$('freshStartBtn').addEventListener('click',startFreshScanner);
+$('freshOnceBtn').addEventListener('click',()=>{stopFreshScanner();if(!busy)scanFresh();});
+$('freshStopBtn').addEventListener('click',stopFreshScanner);
+$('freshClearBtn').addEventListener('click',()=>{freshRowsByTf={};renderFreshResults();$('freshCount').textContent='Bullish signals: 0';$('freshState').textContent='Status: Results cleared';});
+$('freshRefresh').addEventListener('change',()=>{
+ if(freshRunning){if(freshTimer){clearTimeout(freshTimer);freshTimer=null;}if(!busy&&Number($('freshRefresh').value)>0)freshTimer=setTimeout(()=>{freshTimer=null;if(freshRunning&&activeView==='fresh'&&!busy)scanFresh();},Number($('freshRefresh').value)*1000);}
+});
+FRESH_TFS.forEach(tf=>$('freshTf_'+tf).addEventListener('change',renderFreshResults));
 
 const PRESET_STORAGE_KEY='binanceMacdScannerPresets_v1';
 const PRESET_CONTROL_IDS=[
