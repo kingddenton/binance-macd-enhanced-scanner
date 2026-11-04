@@ -38,6 +38,7 @@ function request(url){
 function ema(a,p){const k=2/(p+1),o=[];let v=a[0];o.push(v);for(let i=1;i<a.length;i++){v=a[i]*k+v*(1-k);o.push(v);}return o;}
 function macd(rows){const c=rows.map(x=>+x[4]),e12=ema(c,12),e26=ema(c,26),dif=c.map((_,i)=>e12[i]-e26[i]),dea=ema(dif,9),hist=dif.map((v,i)=>v-dea[i]);return {dif,dea,hist};}
 function rsi(rows,period=14){const c=rows.map(x=>+x[4]);if(c.length<=period)return null;let up=0,dn=0;for(let i=1;i<=period;i++){const d=c[i]-c[i-1];if(d>0)up+=d;else dn-=d;}let ag=up/period,al=dn/period;for(let i=period+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(period-1)+Math.max(d,0))/period;al=(al*(period-1)+Math.max(-d,0))/period;}return al===0?100:100-(100/(1+ag/al));}
+function rsiPass(tf,value){if(value===null||!Number.isFinite(value))return false;const a=$("rsiMin_"+tf).value.trim(),b=$("rsiMax_"+tf).value.trim(),min=a===""?null:Number(a),max=b===""?null:Number(b);if(min!==null&&(!Number.isFinite(min)||min<0||min>100))throw new Error(tf+" RSI minimum must be between 0 and 100.");if(max!==null&&(!Number.isFinite(max)||max<0||max>100))throw new Error(tf+" RSI maximum must be between 0 and 100.");if(min!==null&&max!==null&&min>max)throw new Error(tf+" RSI minimum cannot exceed its maximum.");return (min===null||value>=min)&&(max===null||value<=max);}
 function atr(rows,p=10){const tr=[];for(let i=1;i<rows.length;i++){const h=+rows[i][2],l=+rows[i][3],pc=+rows[i-1][4];tr.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));}return ema(tr,p);}
 function supertrend(rows,p=10,mult=3){
  if(rows.length<p+2)return null;const a=atr(rows,p),n=rows.length;let upper=0,lower=0,trend=1,st=0;
@@ -82,13 +83,10 @@ async function scan(){
     try{
      const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+tf+"&limit=100"),m=macd(rows),age=eventAge(m.hist,window);
      if(age<0)continue;
-     const i=m.hist.length-1,settings=cfg(tf);
+     const i=m.hist.length-1,rv=rsi(rows);if(!rsiPass(tf,rv))continue;
      let confirm=[];if(htfs.length){if(!confirmCache.has(t.symbol))confirmCache.set(t.symbol,confirmAll(t.symbol,htfs));const passed=await confirmCache.get(t.symbol);if(!passed)continue;confirm=passed;}
-     let oi=0;if(minOI>0){if(!oiCache.has(t.symbol))oiCache.set(t.symbol,await oiValue(t.symbol));oi=oiCache.get(t.symbol);if(!(oi>=minOI))continue;}else oi=0;
-     const deaState=settings.dea?(m.dea[i]>0?'<span class="bull">POSITIVE</span>':'<span class="bear">NEGATIVE</span>'):"—";
-     const st=settings.st?supertrend(rows)===1?'<span class="bull">BULLISH</span>':'<span class="bear">BEARISH</span>':"—";
-     const rv=settings.rsi?rsi(rows):null;
-     output[tf].push({symbol:t.symbol,change:Number(t.priceChangePercent),volume:Number(t.quoteVolume),age,window,confirm,oi,deaState,stState:st,rsiText:settings.rsi&&rv!==null?rv.toFixed(1):"—"});
+     if(!oiCache.has(t.symbol))oiCache.set(t.symbol,await oiValue(t.symbol));const oi=oiCache.get(t.symbol);if(minOI>0&&!(oi>=minOI))continue;
+     output[tf].push({symbol:t.symbol,age,window,confirm,oi});
     }catch(e){errors.push(t.symbol+" "+tf+": "+e.message);}
    }
    $("status").textContent="Scanned "+(si+1)+"/"+tickers.length+" symbols; collecting independent timeframe signals…";
