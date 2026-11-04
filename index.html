@@ -25,7 +25,7 @@
 "use strict";
 const $=id=>document.getElementById(id), TFS=["1m","3m","5m","15m"];
 const hosts=["https://fapi.binance.com","https://fapi1.binance.com","https://fapi2.binance.com"];
-let hostIndex=0,lastRequest=0,queue=Promise.resolve(),timer=null,busy=false,countdownTimer=null,nextAt=0;
+let hostIndex=0,lastRequest=0,queue=Promise.resolve(),timer=null,busy=false,countdownTimer=null,nextAt=0,autoActive=false;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function request(url){
  const run=async()=>{
@@ -100,15 +100,15 @@ async function scan(){
  }catch(e){$("status").className="status error";$("status").textContent="Scan stopped: "+e.message;}
  finally{busy=false;$("scanBtn").disabled=false;}
 }
-function stopAuto(){if(timer)clearInterval(timer);if(countdownTimer)clearInterval(countdownTimer);timer=null;countdownTimer=null;nextAt=0;$("autoBtn").textContent="Start auto-scan";$("countdown").textContent="";}
+function stopAuto(){autoActive=false;if(timer)clearTimeout(timer);if(countdownTimer)clearInterval(countdownTimer);timer=null;countdownTimer=null;nextAt=0;$("autoBtn").textContent="Start auto-scan";$("countdown").textContent="";}
 $("scanBtn").addEventListener("click",scan);
 $("autoBtn").addEventListener("click",()=>{
- if(timer){stopAuto();$("status").textContent="Auto-scan stopped. You can still use Scan once.";return;}
+ if(autoActive){stopAuto();$("status").textContent="Auto-scan stopped. You can still use Scan once.";return;}
  const seconds=Number($("refresh").value);if(!seconds){$("status").textContent="Select a refresh interval before starting auto-scan.";return;}
- $("autoBtn").textContent="Stop auto-scan";$("status").textContent="Auto-scan active — scanning now, then every "+seconds+" seconds.";scan();
- const schedule=()=>{nextAt=Date.now()+seconds*1000;};schedule();
- timer=setInterval(()=>{if(!busy){scan();schedule();}},seconds*1000);
- countdownTimer=setInterval(()=>{$("countdown").textContent=timer?"Next scan in "+Math.max(0,Math.ceil((nextAt-Date.now())/1000))+"s":"";},1000);
+ autoActive=true;$("autoBtn").textContent="Stop auto-scan";$("status").textContent="Auto-scan active — first scan starting now.";
+ countdownTimer=setInterval(()=>$("countdown").textContent=busy?"Auto-scan: scan in progress…":nextAt?"Next scan in "+Math.max(0,Math.ceil((nextAt-Date.now())/1000))+"s":"Auto-scan: preparing…",500);
+ const cycle=async()=>{if(!autoActive)return;await scan();if(!autoActive)return;nextAt=Date.now()+seconds*1000;timer=setTimeout(cycle,seconds*1000);};
+ cycle();
 });
 buildPanels();
 })();
