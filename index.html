@@ -33,6 +33,7 @@ function request(url){
  const run=async()=>{
   const gap=Math.max(0,220-(Date.now()-lastRequest));if(gap)await sleep(gap);lastRequest=Date.now();let last;
   for(let n=0;n<hosts.length;n++){const base=hosts[(hostIndex+n)%hosts.length];const reqAt=performance.now();diag.requests++;try{const res=await fetch(base+url,{cache:"no-store"});const elapsed=performance.now()-reqAt;diag.lastApiMs=elapsed;diag.totalApiMs+=elapsed;diag.maxApiMs=Math.max(diag.maxApiMs,elapsed);diag.lastHost=base.replace("https://","");if(res.status===418||res.status===429){diag.rateLimits++;diag.failures++;last=new Error("Binance rate limit ("+res.status+"). Requests paused; wait before retrying.");renderDiagnostics();await sleep(1800*(n+1));continue;}if(!res.ok)throw new Error("HTTP "+res.status);hostIndex=(hostIndex+n)%hosts.length;renderDiagnostics();return await res.json();}catch(e){if(!(e&&String(e.message).includes("Binance rate limit")))diag.failures++;last=e;renderDiagnostics();}
+  }
   throw last||new Error("Binance request failed");
  };
  const p=queue.then(run,run);queue=p.catch(()=>{});return p;
