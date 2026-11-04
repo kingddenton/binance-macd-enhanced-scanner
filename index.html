@@ -65,7 +65,7 @@ async function oiValue(symbol){const d=await request("/futures/data/openInterest
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function render(tf,rows,errors){
  const body=$("body_"+tf);$("n_"+tf).textContent=rows.length+" signals";
- body.innerHTML=rows.length?rows.map(x=>'<tr><td><strong>'+esc(x.symbol)+'</strong></td><td class="'+(x.change>=0?"bull":"bear")+'">'+(x.change>0?"+":"")+x.change.toFixed(2)+'%</td><td>'+x.volume.toLocaleString(undefined,{maximumFractionDigits:0})+'</td><td class="bull">GREEN</td><td>'+x.deaState+'</td><td>'+x.stState+'</td><td>'+x.rsiText+'</td><td>'+(x.age+1)+' / '+x.window+'</td><td class="bull">'+(x.confirm.length?x.confirm.join(" + "):"None selected")+'</td><td>'+x.oi.toLocaleString(undefined,{maximumFractionDigits:0})+'</td></tr>').join(""):'<tr><td colspan="10" class="empty">No symbols matched the '+tf+' primary MACD event and selected confirmations.</td></tr>';
+ body.innerHTML=rows.length?rows.map(x=>'<tr><td><strong>'+esc(x.symbol)+'</strong></td><td class="'+(x.change>=0?"bull":"bear")+'">'+(x.change>0?"+":"")+x.change.toFixed(2)+'%</td><td>'+x.volume.toLocaleString(undefined,{maximumFractionDigits:0})+'</td><td class="bull">GREEN</td><td>'+x.deaState+'</td><td>'+x.stState+'</td><td>'+x.rsiText+'</td><td>'+x.age+' / '+x.window+'</td><td class="bull">'+(x.confirm.length?x.confirm.join(" + "):"None selected")+'</td><td>'+x.oi.toLocaleString(undefined,{maximumFractionDigits:0})+'</td></tr>').join(""):'<tr><td colspan="10" class="empty">No symbols matched the '+tf+' primary MACD event and selected confirmations.</td></tr>';
  $("meta_"+tf).textContent=errors?"Some requests failed during this timeframe.":"Updated "+new Date().toLocaleTimeString();
 }
 async function scan(){
@@ -75,7 +75,7 @@ async function scan(){
  try{
   const tickers=await universe(),htfs=[...document.querySelectorAll("#htfChecks input:checked")].map(x=>x.value),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols across four independent primary timeframes…";
-  const oiCache=new Map();
+  const oiCache=new Map(),confirmCache=new Map();
   for(let si=0;si<tickers.length;si++){
    const t=tickers[si];
    for(const tf of TFS){
@@ -83,7 +83,7 @@ async function scan(){
      const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+tf+"&limit=100"),m=macd(rows),age=eventAge(m.hist,window);
      if(age<0)continue;
      const i=m.hist.length-1,settings=cfg(tf);
-     let confirm=[];if(htfs.length){const passed=await confirmAll(t.symbol,htfs);if(!passed)continue;confirm=passed;}
+     let confirm=[];if(htfs.length){if(!confirmCache.has(t.symbol))confirmCache.set(t.symbol,confirmAll(t.symbol,htfs));const passed=await confirmCache.get(t.symbol);if(!passed)continue;confirm=passed;}
      let oi=0;if(minOI>0){if(!oiCache.has(t.symbol))oiCache.set(t.symbol,await oiValue(t.symbol));oi=oiCache.get(t.symbol);if(!(oi>=minOI))continue;}else oi=0;
      const deaState=settings.dea?(m.dea[i]>0?'<span class="bull">POSITIVE</span>':'<span class="bear">NEGATIVE</span>'):"—";
      const st=settings.st?supertrend(rows)===1?'<span class="bull">BULLISH</span>':'<span class="bear">BEARISH</span>':"—";
