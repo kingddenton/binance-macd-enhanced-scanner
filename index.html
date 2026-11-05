@@ -21,7 +21,7 @@
 <div><label>Market universe</label><select id="universe"><option value="gainers">Top price gainers</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
 <div><label>Number of coins to scan</label><input id="scanCount" type="number" min="1" max="100" step="1" value="20"></div>
 <div><label>Minimum 24h quote volume (USDT)</label><input id="minVol" type="number" min="0" step="100000" value="2000000"></div>
-<div><label>Minimum OI value — 5m (USDT)</label><input id="minOI" type="number" min="0" step="100000" value="0"><div class="small">0 disables the OI filter. Checked only for primary MACD candidates.</div></div>
+<div><label>Minimum current OI value (USDT)</label><input id="minOI" type="number" min="0" step="100000" value="0"><div class="small">0 disables OI filtering, but current OI is still displayed for each result.</div></div>
 <div><label>Candle count</label><input id="eventBars" type="number" min="1" max="100" step="1" value="5"></div>
 <div><label>Refresh interval</label><select id="refresh"><option value="30" selected>30 seconds</option><option value="60">60 seconds</option><option value="120">2 minutes</option><option value="300">5 minutes</option><option value="0">Off</option></select></div>
 </div>
@@ -61,7 +61,7 @@ function supertrendInfo(rows,p=10,mult=3){
  const last=directions.length-1,latest=directions[last];for(let age=0;age<Math.min(rows.length-1,100);age++){const i=last-age;if(i>0&&directions[i]===latest&&directions[i-1]===-latest)return {trend:latest,flipAge:age};}return {trend:latest,flipAge:-1};
 }
 function eventAge(hist,maxBars,dir){for(let age=0;age<maxBars;age++){const i=hist.length-1-age;if(i<1)break;if(dir==="bull"&&hist[i]>0&&hist[i-1]<=0)return age;if(dir==="bear"&&hist[i]<0&&hist[i-1]>=0)return age;}return -1;}
-function panel(dir,tf){return '<section class="tfpanel"><h3 style="margin:0 0 9px;font-size:16px">'+tf+' MACD</h3><div class="statusline"><span class="small" id="meta_'+dir+'_'+tf+'">No scan yet</span><span class="small" id="n_'+dir+'_'+tf+'">0 signals</span></div><div class="tablewrap"><table class="compact-table"><thead><tr><th>Coin</th><th>Price</th><th>Candle count</th><th>RSI</th><th>MACD (DIF)</th><th>DEA</th><th>Supertrend reversal</th><th>Price % change</th></tr></thead><tbody id="body_'+dir+'_'+tf+'"><tr><td colspan="5" class="compact-empty">No scan results yet.</td></tr></tbody></table></div></section>';}
+function panel(dir,tf){return '<section class="tfpanel"><h3 style="margin:0 0 9px;font-size:16px">'+tf+' MACD</h3><div class="statusline"><span class="small" id="meta_'+dir+'_'+tf+'">No scan yet</span><span class="small" id="n_'+dir+'_'+tf+'">0 signals</span></div><div class="tablewrap"><table class="compact-table"><thead><tr><th>Coin</th><th>Price</th><th>Candle count</th><th>RSI</th><th>OI (USDT)</th><th>MACD (DIF)</th><th>DEA</th><th>Supertrend reversal</th><th>Price % change</th></tr></thead><tbody id="body_'+dir+'_'+tf+'"><tr><td colspan="5" class="compact-empty">No scan results yet.</td></tr></tbody></table></div></section>';}
 function buildPanels(){$("tfGrid").innerHTML='<div class="direction-column bull-column"><h2>BULLISH</h2><div class="direction-count">Positive MACD histogram crossover</div><div class="tfstack">'+TFS.map(tf=>panel("bull",tf)).join("")+'</div></div><div class="direction-column bear-column"><h2>BEARISH</h2><div class="direction-count">Negative MACD histogram crossover</div><div class="tfstack">'+TFS.map(tf=>panel("bear",tf)).join("")+'</div></div>';}
 async function universe(){
  const [all,ex]=await Promise.all([request("/fapi/v1/ticker/24hr"),request("/fapi/v1/exchangeInfo")]);
@@ -78,14 +78,15 @@ async function confirmAll(symbol,tfs,dir){
  const sign=dir==="bull"?1:-1,passed=[];for(const tf of tfs){diag.htfRuns++;const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100");const m=macd(rows),i=m.hist.length-1;if(!(sign*m.hist[i]>0&&sign*m.dif[i]>0&&sign*m.dea[i]>0))return null;passed.push(tf);}
  return passed;
 }
-async function oiValue(symbol){diag.oiRuns++;const d=await request("/futures/data/openInterestHist?symbol="+symbol+"&period=5m&limit=1");return d&&d.length?Number(d[d.length-1].sumOpenInterestValue):0;}
+async function oiValue(symbol,markMap){diag.oiRuns++;const d=await request("/fapi/v1/openInterest?symbol="+symbol);const quantity=Number(d&&d.openInterest),mark=Number(markMap.get(symbol));const value=quantity*mark;if(!Number.isFinite(value)||value<0)throw new Error("Current OI value unavailable for "+symbol);return value;}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function signedValue(v){const cls=v>0?"signed-positive":v<0?"signed-negative":"signed-zero";const shown=(v>0?"+":"")+Number(v).toPrecision(6);return '<span class="signed-value '+cls+'">'+shown+'</span>';}
 function rsiBadge(v){if(!Number.isFinite(v))return "—";const cls=v<30||v>=70?"rsi-high":v<50?"rsi-warm":"rsi-good";return '<span class="rsi-value '+cls+'">'+v.toFixed(1)+'</span>';}
 function pctBadge(v){if(!Number.isFinite(v))return "—";const cls=v>0?"pct-up":v<0?"pct-down":"signed-zero";return '<span class="pct-change '+cls+'">'+(v>0?"+":"")+v.toFixed(2)+'%</span>';}
+function oiDisplay(v){if(!Number.isFinite(v))return "—";if(v>=1e9)return "$"+(v/1e9).toFixed(2)+"B";if(v>=1e6)return "$"+(v/1e6).toFixed(2)+"M";if(v>=1e3)return "$"+(v/1e3).toFixed(2)+"K";return "$"+v.toFixed(2);}
 function render(dir,tf,rows,errors){
  const body=$("body_"+dir+"_"+tf);$("n_"+dir+"_"+tf).textContent=rows.length+" signals";const cls=dir==="bull"?"green-result":"red-result";
- body.innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.symbol)+'</td><td>'+esc(x.price)+'</td><td>'+esc(x.age+1)+'/'+esc(x.window)+'</td><td>'+rsiBadge(x.rsi)+'</td><td>'+signedValue(x.macd)+'</td><td>'+signedValue(x.dea)+'</td><td>'+esc(x.stDisplay||"—")+'</td><td>'+pctBadge(x.priceChange)+'</td></tr>').join(""):'<tr><td colspan="8" class="compact-empty">No '+(dir==="bull"?"bullish":"bearish")+' signals for this timeframe.</td></tr>';
+ body.innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.symbol)+'</td><td>'+esc(x.price)+'</td><td>'+esc(x.age+1)+'/'+esc(x.window)+'</td><td>'+rsiBadge(x.rsi)+'</td><td>'+oiDisplay(x.oi)+'</td><td>'+signedValue(x.macd)+'</td><td>'+signedValue(x.dea)+'</td><td>'+esc(x.stDisplay||"—")+'</td><td>'+pctBadge(x.priceChange)+'</td></tr>').join(""):'<tr><td colspan="9" class="compact-empty">No '+(dir==="bull"?"bullish":"bearish")+' signals for this timeframe.</td></tr>';
  $("meta_"+dir+"_"+tf).textContent="Candle count: "+(Number($("eventBars").value)||5)+" · "+(errors?"Some requests failed.":"Updated "+new Date().toLocaleTimeString());
 }
 async function scan(){
@@ -95,7 +96,7 @@ async function scan(){
  try{
   const tickers=await universe(),htfs=[...document.querySelectorAll("#htfChecks input:checked")].map(x=>x.value),deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),stFlipDisplay=$("stFlipEnabled").checked,minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols across bullish and bearish timeframes…";
-  const oiCache=new Map(),confirmCache=new Map();
+  const oiCache=new Map(),confirmCache=new Map();let markMap=null;
   for(let si=0;si<tickers.length;si++){
    const t=tickers[si];
    for(const tf of TFS){
@@ -108,8 +109,8 @@ async function scan(){
       
       let confirm=[];
       if(htfs.length){const key=t.symbol+"|"+dir;if(!confirmCache.has(key))confirmCache.set(key,confirmAll(t.symbol,htfs,dir));const passed=await confirmCache.get(key);if(!passed)continue;confirm=passed;}
-      if(!oiCache.has(t.symbol))oiCache.set(t.symbol,await oiValue(t.symbol));const oi=oiCache.get(t.symbol);if(minOI>0&&!(oi>=minOI))continue;
-      let stDisplay="—";if(stFlipDisplay){const st=supertrendInfo(rows);stDisplay=!st?"Unavailable":(st.trend===1?"Bullish":"Bearish")+(st.flipAge>=0&&st.flipAge<window?" · reversal "+st.flipAge+" bars ago":" · no recent reversal");}const previousClose=Number(rows[rows.length-2][4]),latestClose=Number(rows[rows.length-1][4]),priceChange=previousClose?((latestClose-previousClose)/previousClose)*100:NaN;output[dir][tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,priceChange,stDisplay});
+      if(!markMap){const markRows=await request("/fapi/v1/premiumIndex");markMap=new Map(markRows.map(p=>[p.symbol,Number(p.markPrice)]));}if(!oiCache.has(t.symbol))oiCache.set(t.symbol,await oiValue(t.symbol,markMap));const oi=oiCache.get(t.symbol);if(minOI>0&&!(oi>=minOI))continue;
+      let stDisplay="—";if(stFlipDisplay){const st=supertrendInfo(rows);stDisplay=!st?"Unavailable":(st.trend===1?"Bullish":"Bearish")+(st.flipAge>=0&&st.flipAge<window?" · reversal "+st.flipAge+" bars ago":" · no recent reversal");}const previousClose=Number(rows[rows.length-2][4]),latestClose=Number(rows[rows.length-1][4]),priceChange=previousClose?((latestClose-previousClose)/previousClose)*100:NaN;output[dir][tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi,priceChange,stDisplay});
      }
     }catch(e){errors.push(t.symbol+" "+tf+": "+e.message);}
    }
