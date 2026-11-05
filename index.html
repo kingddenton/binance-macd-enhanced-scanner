@@ -91,7 +91,7 @@ function pctBadge(v){if(!Number.isFinite(v))return "—";const cls=v>0?"pct-up":
 function oiDisplay(v){if(!Number.isFinite(v))return "—";if(v>=1e9)return "$"+(v/1e9).toFixed(2)+"B";if(v>=1e6)return "$"+(v/1e6).toFixed(2)+"M";if(v>=1e3)return "$"+(v/1e3).toFixed(2)+"K";return "$"+v.toFixed(2);}
 function render(dir,tf,rows,errors){
  const body=$("body_"+dir+"_"+tf);$("n_"+dir+"_"+tf).textContent=rows.length+" signals";const cls=dir==="bull"?"green-result":"red-result";
- body.innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.symbol)+'</td><td>'+esc(x.age+1)+'/'+esc(x.window)+'</td><td>'+rsiBadge(x.rsi,dir)+'</td><td>'+oiDisplay(x.oi)+'</td><td>'+signedValue(x.macd)+'</td><td><span class="dea-confirm '+(x.dea>0?"dea-positive":x.dea<0?"dea-negative":"dea-zero")+'" title="DEA value: '+signedValue(x.dea)+'">✓</span></td><td>'+(x.stDisplay||"—")+'</td><td>'+pctBadge(x.priceChange)+'</td></tr>').join(""):'<tr><td colspan="8" class="compact-empty">No '+(dir==="bull"?"bullish":"bearish")+' signals for this timeframe.</td></tr>';
+ body.innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.symbol)+'</td><td>'+esc(x.age+1)+'/'+esc(x.window)+'</td><td>'+rsiBadge(x.rsi,dir)+'</td><td>'+oiDisplay(x.oi)+'</td><td>'+signedValue(x.macd)+'</td><td><span class="dea-confirm '+(x.dea>0?"dea-positive":x.dea<0?"dea-negative":"dea-zero")+'">✓</span></td><td>'+(x.stDisplay||"—")+'</td><td>'+pctBadge(x.priceChange)+'</td></tr>').join(""):'<tr><td colspan="8" class="compact-empty">No '+(dir==="bull"?"bullish":"bearish")+' signals for this timeframe.</td></tr>';
  $("meta_"+dir+"_"+tf).textContent="Candle count: "+(Number($("eventBars").value)||5)+" · "+(errors?"Some requests failed.":"Updated "+new Date().toLocaleTimeString());
 }
 async function scan(){
