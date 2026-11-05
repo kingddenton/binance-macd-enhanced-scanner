@@ -10,7 +10,7 @@
 .green-result td:first-child,.red-result td:first-child{border-left:0!important;}
 .compact-table th{font-weight:850!important;color:#dce8f8!important;font-size:13px!important;}
 .compact-table td{font-weight:850!important;font-size:14px!important;color:#f3f7ff!important;}
-.dea-confirm{display:inline-block;color:#19c784!important;font-size:19px;font-weight:1000;line-height:1;text-shadow:0 0 7px rgba(25,199,132,.3);}
+.dea-confirm{display:inline-block;color:#19c784!important;font-size:19px;font-weight:1000;line-height:1;text-shadow:0 0 7px rgba(25,199,132,.3);}.dea-confirm.dea-negative{color:#f6465d!important;text-shadow:0 0 7px rgba(246,70,93,.3);}.dea-confirm.dea-zero{color:#8993a4!important;text-shadow:none;}
 .rsi-value{display:inline-block;min-width:52px;text-align:center;padding:4px 8px;border-radius:6px;font-weight:950;font-variant-numeric:tabular-nums;}
 .rsi-warm{background:#8a4b08!important;color:#fff4d8!important;border:1px solid #ffc04d!important;}
 .rsi-good{background:#075b42!important;color:#ffffff!important;border:1px solid #39d99b!important;}
@@ -91,7 +91,7 @@ function pctBadge(v){if(!Number.isFinite(v))return "—";const cls=v>0?"pct-up":
 function oiDisplay(v){if(!Number.isFinite(v))return "—";if(v>=1e9)return "$"+(v/1e9).toFixed(2)+"B";if(v>=1e6)return "$"+(v/1e6).toFixed(2)+"M";if(v>=1e3)return "$"+(v/1e3).toFixed(2)+"K";return "$"+v.toFixed(2);}
 function render(dir,tf,rows,errors){
  const body=$("body_"+dir+"_"+tf);$("n_"+dir+"_"+tf).textContent=rows.length+" signals";const cls=dir==="bull"?"green-result":"red-result";
- body.innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.symbol)+'</td><td>'+esc(x.age+1)+'/'+esc(x.window)+'</td><td>'+rsiBadge(x.rsi,dir)+'</td><td>'+oiDisplay(x.oi)+'</td><td>'+signedValue(x.macd)+'</td><td><span class="dea-confirm" title="DEA confirms signal direction">✓</span></td><td>'+(x.stDisplay||"—")+'</td><td>'+pctBadge(x.priceChange)+'</td></tr>').join(""):'<tr><td colspan="8" class="compact-empty">No '+(dir==="bull"?"bullish":"bearish")+' signals for this timeframe.</td></tr>';
+ body.innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.symbol)+'</td><td>'+esc(x.age+1)+'/'+esc(x.window)+'</td><td>'+rsiBadge(x.rsi,dir)+'</td><td>'+oiDisplay(x.oi)+'</td><td>'+signedValue(x.macd)+'</td><td><span class="dea-confirm '+(x.dea>0?"dea-positive":x.dea<0?"dea-negative":"dea-zero")+'" title="DEA value: '+signedValue(x.dea)+'">✓</span></td><td>'+(x.stDisplay||"—")+'</td><td>'+pctBadge(x.priceChange)+'</td></tr>').join(""):'<tr><td colspan="8" class="compact-empty">No '+(dir==="bull"?"bullish":"bearish")+' signals for this timeframe.</td></tr>';
  $("meta_"+dir+"_"+tf).textContent="Candle count: "+(Number($("eventBars").value)||5)+" · "+(errors?"Some requests failed.":"Updated "+new Date().toLocaleTimeString());
 }
 async function scan(){
