@@ -13,7 +13,7 @@
 <div><label>Candle count</label><input id="eventBars" type="number" min="1" max="100" step="1" value="5"></div>
 <div><label>Refresh interval</label><select id="refresh"><option value="30" selected>30 seconds</option><option value="60">60 seconds</option><option value="120">2 minutes</option><option value="300">5 minutes</option><option value="0">Off</option></select></div>
 </div>
-<div style="margin-top:14px"><label>RSI filters (blank values are ignored)</label><div class="rsi-layout"><div>1m RSI <input id="rsiMin_1m" type="number" placeholder="Min"><input id="rsiMax_1m" type="number" placeholder="Max"><br>15m RSI <input id="rsiMin_15m" type="number" placeholder="Min"><input id="rsiMax_15m" type="number" placeholder="Max"></div><div>3m RSI <input id="rsiMin_3m" type="number" placeholder="Min"><input id="rsiMax_3m" type="number" placeholder="Max"><br>5m RSI <input id="rsiMin_5m" type="number" placeholder="Min"><input id="rsiMax_5m" type="number" placeholder="Max"></div></div><div class="small">Uses existing candles; no extra API calls.</div></div><div style="margin-top:14px"><label>Higher-timeframe confirmation — AND logic: every selected timeframe must confirm</label><div class="row" id="htfChecks">
+<div style="margin-top:14px"><label>RSI filters (blank values are ignored)</label><div class="rsi-layout"><div>1m RSI <input id="rsiMin_1m" type="number" placeholder="Min"><input id="rsiMax_1m" type="number" placeholder="Max"><br>15m RSI <input id="rsiMin_15m" type="number" placeholder="Min"><input id="rsiMax_15m" type="number" placeholder="Max"></div><div>3m RSI <input id="rsiMin_3m" type="number" placeholder="Min"><input id="rsiMax_3m" type="number" placeholder="Max"><br>5m RSI <input id="rsiMin_5m" type="number" placeholder="Min"><input id="rsiMax_5m" type="number" placeholder="Max"></div></div><div class="small">Uses existing candles; no extra API calls.</div></div><div style="margin-top:14px"><label>Positive DEA filter — select independently for each primary timeframe</label><div class="row" id="deaChecks"><span class="check"><input type="checkbox" value="1m"><label>1m DEA &gt; 0</label></span><span class="check"><input type="checkbox" value="3m"><label>3m DEA &gt; 0</label></span><span class="check"><input type="checkbox" value="5m"><label>5m DEA &gt; 0</label></span><span class="check"><input type="checkbox" value="15m"><label>15m DEA &gt; 0</label></span></div><div class="small">When checked, that timeframe only displays signals if its latest DEA (MACD signal line, 12/26/9) is strictly above zero. Unchecked timeframes are unaffected. Uses the existing MACD calculation; no extra API calls.</div></div><div style="margin-top:14px"><label>Higher-timeframe confirmation — AND logic: every selected timeframe must confirm</label><div class="row" id="htfChecks">
 <span class="check"><input type="checkbox" value="15m" checked><label>15m</label></span><span class="check"><input type="checkbox" value="30m" checked><label>30m</label></span><span class="check"><input type="checkbox" value="1h"><label>1h</label></span>
 </div><div class="small">A selected confirmation passes only when its MACD histogram, DIF and DEA are all positive. Unchecked timeframes are ignored.</div></div>
 <div class="row actions"><button id="scanBtn">Scan once</button><button id="autoBtn" class="secondary">Start auto-scan</button></div>
@@ -77,7 +77,7 @@ async function scan(){
  busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.outcome="Scanning";renderDiagnostics();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[];const output=Object.fromEntries(TFS.map(tf=>[tf,[]]));
  try{
-  const tickers=await universe(),htfs=[...document.querySelectorAll("#htfChecks input:checked")].map(x=>x.value),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),minOI=Math.max(0,Number($("minOI").value)||0);
+  const tickers=await universe(),htfs=[...document.querySelectorAll("#htfChecks input:checked")].map(x=>x.value),deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols across four independent primary timeframes…";
   const oiCache=new Map(),confirmCache=new Map();
   for(let si=0;si<tickers.length;si++){
@@ -86,7 +86,7 @@ async function scan(){
     try{
      const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+tf+"&limit=100"),m=macd(rows),age=eventAge(m.hist,window);
      if(age<0)continue;
-     const i=m.hist.length-1,rv=rsi(rows);if(!rsiPass(tf,rv))continue;
+     const i=m.hist.length-1;if(deaTfs.has(tf)&&!(m.dea[i]>0))continue;const rv=rsi(rows);if(!rsiPass(tf,rv))continue;
      let confirm=[];if(htfs.length){if(!confirmCache.has(t.symbol))confirmCache.set(t.symbol,confirmAll(t.symbol,htfs));const passed=await confirmCache.get(t.symbol);if(!passed)continue;confirm=passed;}
      if(!oiCache.has(t.symbol))oiCache.set(t.symbol,await oiValue(t.symbol));const oi=oiCache.get(t.symbol);if(minOI>0&&!(oi>=minOI))continue;
      output[tf].push({symbol:t.symbol,age,window,confirm,oi,rsi:rv,change:Number(t.priceChangePercent)||0});
