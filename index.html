@@ -133,7 +133,7 @@ async function universe(){
 }
 async function confirmAll(symbol,htfConfig,getMacdAnalysis){
  const failures=[];
- for(const [tf,conditions] of Object.entries(htfConfig)){if(!conditions.length)continue;diag.htfRuns++;const {macd:m}=await getMacdAnalysis(symbol,tf),i=m.hist.length-1;for(const condition of conditions){if(condition==="supertrend"){const st=supertrendInfo(rows);if(!st||st.trend!==1)failures.push(tf+" Supertrend not bullish");continue;}const value=condition==="hist"?m.hist[i]:m[condition][i];if(!(value>0))failures.push(tf+" "+condition.toUpperCase()+" not above zero (value: "+(Number.isFinite(value)?value.toPrecision(5):"unavailable")+")");}}
+ for(const [tf,conditions] of Object.entries(htfConfig)){if(!conditions.length)continue;diag.htfRuns++;const {rows,macd:m}=await getMacdAnalysis(symbol,tf),i=m.hist.length-1;for(const condition of conditions){if(condition==="supertrend"){const st=supertrendInfo(rows);if(!st||st.trend!==1)failures.push(tf+" Supertrend not bullish");continue;}const value=condition==="hist"?m.hist[i]:m[condition][i];if(!(value>0))failures.push(tf+" "+condition.toUpperCase()+" not above zero (value: "+(Number.isFinite(value)?value.toPrecision(5):"unavailable")+")");}}
  return {bull:failures.length===0,failures};
 }
 async function oiValue(symbol,markMap){diag.oiRuns++;const d=await request("/fapi/v1/openInterest?symbol="+symbol);const quantity=Number(d&&d.openInterest),mark=Number(markMap.get(symbol));const value=quantity*mark;if(!Number.isFinite(value)||value<0)throw new Error("Current OI value unavailable for "+symbol);return value;}
