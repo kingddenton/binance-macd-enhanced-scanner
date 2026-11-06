@@ -87,7 +87,7 @@ function fireFreshCrossoverAlert(symbol,tf,candleTime,histValue){
  for(const timeframe of Object.keys(alertHistory)){
   const feed=$("alertFeed_"+timeframe);if(!feed)continue;
   const panel=feed.closest(".alert-box");if(panel)panel.classList.toggle("latest-alert-panel",timeframe===latestAlertTimeframe);
-  feed.replaceChildren();historyForTimeframe=alertHistory[timeframe];
+  feed.replaceChildren();const historyForTimeframe=alertHistory[timeframe];
   historyForTimeframe.forEach((item,index)=>{const el=document.createElement("div");el.className="alert-entry"+(timeframe===latestAlertTimeframe&&index===0?" latest-alert-entry":"");el.textContent=item;feed.appendChild(el);});
  }
  playCrossoverAlert();
