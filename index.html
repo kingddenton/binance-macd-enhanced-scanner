@@ -104,7 +104,7 @@ async function scan(){
   const highNow=Date.now();for(const ticker of tickers){const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh){fresh24hHighUntil.set(ticker.symbol,highNow+300000);}previous24hHigh.set(ticker.symbol,currentHigh);}}
   for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
   const htfs=[...document.querySelectorAll("#htfChecks input:checked")].map(x=>x.value),deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),stFlipDisplay=$("stFlipEnabled").checked,minOI=Math.max(0,Number($("minOI").value)||0);
-  $("status").textContent="Scanning "+tickers.length+" symbols across bullish and bearish timeframes…";
+  $("status").textContent="Scanning "+tickers.length+" symbols for bullish signals…";
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
   const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key))candleCache.set(key,request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100"));return candleCache.get(key);};
   const getMacdAnalysis=async(symbol,tf)=>{const key=symbol+"|"+tf;if(!macdCache.has(key))macdCache.set(key,(async()=>{const rows=await getCandles(symbol,tf);return {rows,macd:macd(rows)};})());return macdCache.get(key);};
