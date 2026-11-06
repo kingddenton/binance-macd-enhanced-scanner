@@ -31,6 +31,11 @@ tr.latest-signal-row>td,tr.latest-universe-row>td{background:#ffe66d!important;b
 tr.latest-signal-row>td:first-child,tr.latest-universe-row>td:first-child{border-left:7px solid #ff5a00!important;}
 tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 .latest-alert-tag{display:inline-block!important;margin-left:7px!important;padding:4px 7px!important;border-radius:5px!important;background:#111!important;color:#ffe66d!important;border:2px solid #ff8c00!important;font-size:10px!important;font-weight:1000!important;letter-spacing:.4px!important;white-space:nowrap!important;}
+
+@keyframes timeframe-confirmed-flash{0%,100%{color:#19c784;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#19c784;text-shadow:0 0 12px #19c784}}
+@keyframes timeframe-crossover-flash{0%,100%{color:#ffb547;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#ffb547;text-shadow:0 0 12px #ffb547}}
+.alert-box h3.timeframe-flash-confirmed{animation:timeframe-confirmed-flash .8s ease-in-out 2!important}
+.alert-box h3.timeframe-flash-crossover{animation:timeframe-crossover-flash .8s ease-in-out 2!important}
 </style></head><body><main>
 <h1>MM Binance</h1><div class="sub">Binance USDⓈ-M USDT perpetual market scanner.</div><div class="tabbar"><button id="greenTabBtn" class="active" type="button">Green Tracker</button><button id="priceTabBtn" class="secondary" type="button">Price Change Tracker</button></div><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore filter setups</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Name this setup"><button id="saveProfileBtn" type="button">Save</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
@@ -102,6 +107,14 @@ function renderAlertHistory(){
   }
  }
 }
+function flashTimeframeHeading(tf,kind){
+ const feed=$( (kind==="qualified"?"confirmedFeed_":"crossoverFeed_")+tf );
+ const heading=feed?.closest(".alert-box")?.querySelector("h3");if(!heading)return;
+ heading.classList.remove("timeframe-flash-confirmed","timeframe-flash-crossover");
+ void heading.offsetWidth;
+ heading.classList.add(kind==="qualified"?"timeframe-flash-confirmed":"timeframe-flash-crossover");
+ heading.addEventListener("animationend",()=>heading.classList.remove("timeframe-flash-confirmed","timeframe-flash-crossover"),{once:true});
+}
 function addAlert(symbol,tf,candleTime,kind){
  const set=kind==="qualified"?alertedQualified:alertedCrossovers,key=symbol+"|"+tf+"|"+candleTime;
  if(set.has(key))return;
@@ -109,7 +122,7 @@ function addAlert(symbol,tf,candleTime,kind){
  const when=new Date().toLocaleTimeString(),label=kind==="qualified"?"CONFIRMED BULLISH SIGNAL":"MACD CROSSOVER — NOT YET QUALIFIED",tier=kind==="qualified"?"confirmed":"crossover";
  latestResultAlert={symbol,tf,kind};
  const history=alertHistory[tier][tf];history.unshift({text:symbol+" · "+when+" · "+label});if(history.length>5)history.pop();
- renderAlertHistory();
+ renderAlertHistory();flashTimeframeHeading(tf,kind);
  if(kind==="qualified")playQualifiedAlert();else playCrossoverAlert();
 }
 function fireFreshCrossoverAlert(symbol,tf,candleTime,histValue){addAlert(symbol,tf,candleTime,"crossover");}
