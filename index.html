@@ -47,6 +47,7 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 .alert-entry.bearish-alert-entry{color:#ff8496!important}
 .alert-box.latest-alert-panel,.alert-box.latest-amber-panel,.alert-box.latest-bear-panel{border-width:1px!important;box-shadow:none!important}
 
+.alert-entry.newest-alert-entry{font-size:13px!important;font-weight:950!important;line-height:1.5!important;}
 </style></head><body><main>
 <h1>MM Binance</h1><div class="sub">Binance USDⓈ-M USDT perpetual market scanner.</div><div class="tabbar"><button id="greenTabBtn" class="active" type="button">Green Tracker</button><button id="priceTabBtn" class="secondary" type="button">Price Change Tracker</button></div><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore filter setups</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Name this setup"><button id="saveProfileBtn" type="button">Save</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
@@ -115,7 +116,7 @@ function renderAlertHistory(){
     const feed=$(tier+"Feed_"+direction+"_"+timeframe);if(!feed)continue;
     const panel=feed.closest(".alert-box");if(panel)panel.classList.remove("latest-alert-panel","latest-amber-panel","latest-bear-panel");
     feed.replaceChildren();const history=alertHistory[tier][direction][timeframe];
-    history.forEach(item=>{const baseClass=direction==="bear"?"bearish-alert-entry":(tier==="confirmed"?"qualified-alert-entry":"crossover-alert-entry");const el=document.createElement("div");el.className="alert-entry "+baseClass;el.textContent=item.text;feed.appendChild(el);});
+    history.forEach((item,index)=>{const baseClass=direction==="bear"?"bearish-alert-entry":(tier==="confirmed"?"qualified-alert-entry":"crossover-alert-entry");const el=document.createElement("div");el.className="alert-entry "+baseClass+(index===0?" newest-alert-entry":"");el.textContent=item.text;feed.appendChild(el);});
    }
   }
  }
