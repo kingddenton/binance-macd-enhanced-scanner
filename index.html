@@ -51,7 +51,7 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 </style></head><body><main>
 <h1>MM Binance</h1><div class="sub">Binance USDⓈ-M USDT perpetual market scanner.</div><div class="tabbar"><button id="greenTabBtn" class="active" type="button">Green Tracker</button><button id="priceTabBtn" class="secondary" type="button">Price Change Tracker</button></div><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore filter setups</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Name this setup"><button id="saveProfileBtn" type="button">Save</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
-<div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (4H + 6H + 12H)</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
+<div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (4H + 6H + 12H)</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
 <div><label>Number of coins to scan</label><input id="scanCount" type="number" min="1" max="100" step="1" value="20"></div>
 <div><label>Minimum 24h quote volume (USDT)</label><input id="minVol" type="number" min="0" step="100000" value="0"></div>
 <div><label>Minimum current OI value (USDT)</label><input id="minOI" type="number" min="0" step="100000" value="0"><div class="small">0 disables OI filtering, but current OI is still displayed for each result.</div></div>
@@ -208,11 +208,11 @@ function renderUniverse(){
  $("universeMeta").textContent=diag.universe.length+" exact selected symbols · "+diag.universe.filter(x=>x.status==="Scanned").length+" scanned · "+diag.universe.filter(x=>x.status==="Pending").length+" pending";
  const breakdown=$("universeBreakdown");
  if(breakdown){
-  if(mode==="gainersMulti"){
+  if(mode==="gainersMulti"||mode==="gainersMultiPositive"){
    const counts=[4,6,12].map(h=>diag.universe.filter(x=>(x.periods||[]).includes(h)).length),overlaps=diag.universe.filter(x=>(x.periods||[]).length>1).length;
    breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">4H top performers</div><div class="diagvalue">'+counts[0]+'</div></div><div class="diagitem"><div class="diaglabel">6H top performers</div><div class="diagvalue">'+counts[1]+'</div></div><div class="diagitem"><div class="diaglabel">12H top performers</div><div class="diagvalue">'+counts[2]+'</div></div><div class="diagitem"><div class="diaglabel">Unique combined selection</div><div class="diagvalue">'+diag.universe.length+'</div></div><div class="diagitem"><div class="diaglabel">Coins ranked in 2+ periods</div><div class="diagvalue">'+overlaps+'</div></div>';
   }else{
-   const label=mode==="gainers"?"24H gainers":mode==="volume"?"24H quote-volume":mode==="all"?"All eligible (scan limit)":period+" gainers";
+   const label=mode==="gainers"?"24H gainers":mode==="gainersMultiPositive"?"Positive 24H + rolling 4H/6H/12H":mode==="volume"?"24H quote-volume":mode==="all"?"All eligible (scan limit)":period+" gainers";
    breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">Selection method</div><div class="diagvalue">'+label+'</div></div><div class="diagitem"><div class="diaglabel">Selected symbols</div><div class="diagvalue">'+diag.universe.length+'</div></div>';
   }
  }
@@ -276,13 +276,15 @@ async function universe(){
  const highNow=Date.now();for(const ticker of all){if(!eligible.has(ticker.symbol))continue;const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh)fresh24hHighUntil.set(ticker.symbol,highNow+300000);previous24hHigh.set(ticker.symbol,currentHigh);}}
  for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
  const minVol=Math.max(0,Number($("minVol").value)||0),max=Math.max(1,Math.min(100,Number($("scanCount").value)||20));
- let list=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol);diag.candidates=list.length;
+ let list=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol);
  const mode=$("universe").value,match=mode.match(/^gainers(4h|6h|12h)$/),period=match?match[1]:null;
+ if(mode==="gainersMultiPositive")list=list.filter(t=>Number(t.priceChangePercent)>0);
+ diag.candidates=list.length;
  let selected=[];
- if(mode==="gainersMulti"){
+ if(mode==="gainersMulti"||mode==="gainersMultiPositive"){
   const ttl=300000,now=Date.now(),serverData=await request("/fapi/v1/time"),serverTime=Number(serverData.serverTime);
   const targets={4:serverTime-4*3600000,6:serverTime-6*3600000,12:serverTime-12*3600000},historyStart=targets[12]-120000;
-  $("status").textContent="Ranking all "+list.length+" eligible coins independently across rolling 4H, 6H and 12H performance. Cached readings are reused for 5 minutes.";
+  $("status").textContent="Ranking "+list.length+" eligible coins with "+(mode==="gainersMultiPositive"?"positive 24H change ":"")+"across rolling 4H, 6H and 12H performance. Cached readings are reused for 5 minutes.";
   let nextUniverseIndex=0,completedUniverseCount=0;
   const processUniverseCoin=async()=>{
    while(true){
@@ -335,7 +337,7 @@ async function universe(){
   else list.sort((a,b)=>Number(b.quoteVolume)-Number(a.quoteVolume));
   selected=list.slice(0,max);
  }
- diag.selected=selected.length;diag.universeMode=mode;diag.universe=selected.map((t,index)=>({rank:index+1,symbol:t.symbol,periods:mode==="gainersMulti"?(t.universePeriods||[]):[],change:mode==="gainersMulti"?Math.max(t.rolling4h,t.rolling6h,t.rolling12h):period?Number(t.universeChange):Number(t.priceChangePercent),volume:Number(t.quoteVolume),status:"Pending",timeframes:Object.fromEntries(TFS.map(tf=>[tf,{status:"Pending",rsi:null,crossover:null,candle:null,dea:null,deaValue:null,htf:null,oi:null,oiValue:null,reason:"Not evaluated",reasons:["Not evaluated"],rsiFilter:"Not evaluated",deaStatus:"Not evaluated",htfStatus:"Not evaluated",oiStatus:"Not evaluated"}]))}));renderUniverse();return selected;
+ diag.selected=selected.length;diag.universeMode=mode;diag.universe=selected.map((t,index)=>({rank:index+1,symbol:t.symbol,periods:(mode==="gainersMulti"||mode==="gainersMultiPositive")?(t.universePeriods||[]):[],change:(mode==="gainersMulti"||mode==="gainersMultiPositive")?Math.max(t.rolling4h,t.rolling6h,t.rolling12h):period?Number(t.universeChange):Number(t.priceChangePercent),volume:Number(t.quoteVolume),status:"Pending",timeframes:Object.fromEntries(TFS.map(tf=>[tf,{status:"Pending",rsi:null,crossover:null,candle:null,dea:null,deaValue:null,htf:null,oi:null,oiValue:null,reason:"Not evaluated",reasons:["Not evaluated"],rsiFilter:"Not evaluated",deaStatus:"Not evaluated",htfStatus:"Not evaluated",oiStatus:"Not evaluated"}]))}));renderUniverse();return selected;
 }
 async function confirmAll(symbol,htfConfig,getMacdAnalysis){
  const failures=[];
