@@ -38,6 +38,15 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 .alert-box h3.timeframe-flash-confirmed{animation:timeframe-confirmed-flash .8s ease-in-out 2!important}
 .alert-box h3.timeframe-flash-crossover{animation:timeframe-crossover-flash .8s ease-in-out 2!important}
 .alert-box h3.timeframe-flash-bear{animation:timeframe-bear-flash .8s ease-in-out 2!important}
+
+/* Compact alert feed: five plain one-line entries, symbol + timestamp only. */
+.alert-items{max-height:none!important;overflow:visible!important;display:flex!important;flex-direction:column!important;gap:1px!important}
+.alert-entry{display:block!important;margin:0!important;padding:2px 3px!important;border:0!important;border-radius:3px!important;background:transparent!important;font-size:10px!important;line-height:1.35!important;font-weight:750!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.alert-entry.qualified-alert-entry{color:#70f0aa!important}
+.alert-entry.crossover-alert-entry{color:#ffd27a!important}
+.alert-entry.bearish-alert-entry{color:#ff8496!important}
+.alert-box.latest-alert-panel,.alert-box.latest-amber-panel,.alert-box.latest-bear-panel{border-width:1px!important;box-shadow:none!important}
+
 </style></head><body><main>
 <h1>MM Binance</h1><div class="sub">Binance USDⓈ-M USDT perpetual market scanner.</div><div class="tabbar"><button id="greenTabBtn" class="active" type="button">Green Tracker</button><button id="priceTabBtn" class="secondary" type="button">Price Change Tracker</button></div><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore filter setups</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Name this setup"><button id="saveProfileBtn" type="button">Save</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
@@ -107,8 +116,7 @@ function renderAlertHistory(){
     const feed=$(tier+"Feed_"+direction+"_"+timeframe);if(!feed)continue;
     const panel=feed.closest(".alert-box");if(panel)panel.classList.remove("latest-alert-panel","latest-amber-panel","latest-bear-panel");
     feed.replaceChildren();const history=alertHistory[tier][direction][timeframe];
-    history.forEach((item,index)=>{const baseClass=direction==="bear"?"bearish-alert-entry":(tier==="confirmed"?"qualified-alert-entry":"crossover-alert-entry");const latestClass=direction==="bear"?" latest-bear-entry":(tier==="confirmed"?" latest-alert-entry":" latest-amber-entry");const el=document.createElement("div");el.className="alert-entry "+baseClass+(index===0?latestClass:"");el.textContent=(index===0?"★ LATEST  ":"")+item.text;feed.appendChild(el);});
-    if(history.length&&panel)panel.classList.add(direction==="bear"?"latest-bear-panel":(tier==="confirmed"?"latest-alert-panel":"latest-amber-panel"));
+    history.forEach(item=>{const baseClass=direction==="bear"?"bearish-alert-entry":(tier==="confirmed"?"qualified-alert-entry":"crossover-alert-entry");const el=document.createElement("div");el.className="alert-entry "+baseClass;el.textContent=item.text;feed.appendChild(el);});
    }
   }
  }
@@ -124,9 +132,9 @@ function flashTimeframeHeading(tf,kind,direction="bull"){
 function addAlert(symbol,tf,candleTime,kind,direction="bull"){
  const set=kind==="qualified"?alertedQualified:alertedCrossovers,key=symbol+"|"+tf+"|"+direction+"|"+candleTime;
  if(set.has(key))return;set.add(key);
- const when=new Date().toLocaleTimeString(),side=direction==="bear"?"BEARISH":"BULLISH",label=kind==="qualified"?"CONFIRMED "+side+" SIGNAL":side+" MACD CROSSOVER — NOT YET QUALIFIED";
+ const when=new Date().toLocaleTimeString();
  const tier=kind==="qualified"?"confirmed":"crossover";latestResultAlert={symbol,tf,kind,direction};
- const history=alertHistory[tier][direction][tf];history.unshift({text:symbol+" · "+when+" · "+label});if(history.length>5)history.pop();
+ const history=alertHistory[tier][direction][tf];history.unshift({text:symbol+"  "+when});if(history.length>5)history.pop();
  renderAlertHistory();flashTimeframeHeading(tf,kind,direction);
  if(kind==="qualified")playQualifiedAlert();else playCrossoverAlert();
 }
