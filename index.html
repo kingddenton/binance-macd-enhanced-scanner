@@ -35,9 +35,9 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 @keyframes timeframe-confirmed-flash{0%,100%{color:#19c784;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#19c784;text-shadow:0 0 12px #19c784}}
 @keyframes timeframe-crossover-flash{0%,100%{color:#ffb547;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#ffb547;text-shadow:0 0 12px #ffb547}}
 @keyframes timeframe-bear-flash{0%,100%{color:#ff647c;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#ff647c;text-shadow:0 0 12px #ff647c}}
-.alert-box h3.timeframe-flash-confirmed{animation:timeframe-confirmed-flash .8s ease-in-out 2!important}
-.alert-box h3.timeframe-flash-crossover{animation:timeframe-crossover-flash .8s ease-in-out 2!important}
-.alert-box h3.timeframe-flash-bear{animation:timeframe-bear-flash .8s ease-in-out 2!important}
+.alert-box h3.timeframe-flash-confirmed{animation:timeframe-confirmed-flash .8s ease-in-out infinite!important}
+.alert-box h3.timeframe-flash-crossover{animation:timeframe-crossover-flash .8s ease-in-out infinite!important}
+.alert-box h3.timeframe-flash-bear{animation:timeframe-bear-flash .8s ease-in-out infinite!important}
 
 /* Compact alert feed: five plain one-line entries, symbol + timestamp only. */
 .alert-items{max-height:none!important;overflow:visible!important;display:flex!important;flex-direction:column!important;gap:1px!important}
@@ -122,12 +122,20 @@ function renderAlertHistory(){
  }
 }
 function flashTimeframeHeading(tf,kind,direction="bull"){
- const tier=kind==="qualified"?"confirmed":"crossover",feed=$(tier+"Feed_"+direction+"_"+tf);
- const heading=feed?.closest(".alert-box")?.querySelector("h3");if(!heading)return;
+ const tier=kind==="qualified"?"confirmed":"crossover";
  const classes=["timeframe-flash-confirmed","timeframe-flash-crossover","timeframe-flash-bear"];
- heading.classList.remove(...classes);void heading.offsetWidth;
+ // One active timeframe per alert category: a newer timeframe alert takes over.
+ for(const timeframe of ALERT_TFS){
+  for(const side of ["bull","bear"]){
+   const priorFeed=$(tier+"Feed_"+side+"_"+timeframe);
+   const priorHeading=priorFeed?.closest(".alert-box")?.querySelector("h3");
+   if(priorHeading)priorHeading.classList.remove(...classes);
+  }
+ }
+ const feed=$(tier+"Feed_"+direction+"_"+tf);
+ const heading=feed?.closest(".alert-box")?.querySelector("h3");if(!heading)return;
  const flashClass=direction==="bear"?"timeframe-flash-bear":(kind==="qualified"?"timeframe-flash-confirmed":"timeframe-flash-crossover");
- heading.classList.add(flashClass);heading.addEventListener("animationend",()=>heading.classList.remove(flashClass),{once:true});
+ heading.classList.add(flashClass);
 }
 function addAlert(symbol,tf,candleTime,kind,direction="bull"){
  const set=kind==="qualified"?alertedQualified:alertedCrossovers,key=symbol+"|"+tf+"|"+direction+"|"+candleTime;
