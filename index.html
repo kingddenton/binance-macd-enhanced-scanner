@@ -152,8 +152,13 @@ function pushReversalAlert(symbol,tf,stage,candleTime,rsiValue){
  const key=symbol+"|"+tf+"|"+stage+"|"+candleTime;if(reversalAlertKeys.has(key))return;reversalAlertKeys.add(key);
  const labels={1:"OVERBOUGHT — RSI ≥75 + MACD histogram rising",2:"REVERSAL WARNING — histogram declining 2 candles",3:"REVERSAL CONFIRMED — bearish MACD crossover"};
  const classes={1:"reversal-overbought",2:"reversal-warning",3:"reversal-confirmed"};
- const history=reversalAlertHistory[tf];history.unshift({text:symbol+" · "+labels[stage]+" · RSI "+rsiValue.toFixed(1)+" · "+new Date().toLocaleTimeString(),className:classes[stage]});if(history.length>5)history.pop();
+ const history=reversalAlertHistory[tf];history.unshift({symbol,stage,candleTime,text:symbol+" · "+labels[stage]+" · RSI "+rsiValue.toFixed(1)+" · "+new Date().toLocaleTimeString(),className:classes[stage]});if(history.length>5)history.pop();
  const feed=$("reversalFeed_"+tf),panel=feed?.closest(".alert-box");if(panel){panel.classList.remove("latest-reversal-panel");void panel.offsetWidth;panel.classList.add("latest-reversal-panel");}
+ renderReversalHistory();
+}
+function removeOverboughtAlert(symbol,tf){
+ const history=reversalAlertHistory[tf];
+ reversalAlertHistory[tf]=history.filter(item=>!(item.symbol===symbol&&item.stage===1));
  renderReversalHistory();
 }
 async function monitorReversalAlerts(symbol,getMacdAnalysis){
@@ -164,7 +169,12 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
    const closedRows=rows.slice(0,-1),rv=rsi(closedRows),hist=m.hist;
    if(!Number.isFinite(rv))continue;
    const key=symbol+"|"+tf;let state=reversalStates.get(key);
-   if(rv<70){reversalStates.delete(key);continue;}
+   if(rv<70){reversalStates.delete(key);removeOverboughtAlert(symbol,tf);continue;}
+   if(state&&state.stage===1&&hist[i]>0&&hist[i]<hist[i-1]){
+    reversalStates.delete(key);
+    removeOverboughtAlert(symbol,tf);
+    continue;
+   }
    if(!state){
     if(rv>=75&&hist[i]>0&&hist[i]>hist[i-1]){
      state={stage:1,lastStageCandle:Number(rows[i][0])};reversalStates.set(key,state);
