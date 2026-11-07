@@ -93,7 +93,8 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 "use strict";
 const $=id=>document.getElementById(id), TFS=["1m","3m","5m","15m"];
 const hosts=["https://fapi.binance.com","https://fapi1.binance.com","https://fapi2.binance.com"];
-let hostIndex=0,lastRequest=0,queue=Promise.resolve(),timer=null,busy=false,countdownTimer=null,nextAt=0,autoActive=false,exchangeInfoCache=null,exchangeInfoAt=0,exchangeInfoPromise=null;
+let hostIndex=0,lastRequest=0,activeRequests=0,pendingRequests=[],requestPumpTimer=null,timer=null,busy=false,countdownTimer=null,nextAt=0,autoActive=false,exchangeInfoCache=null,exchangeInfoAt=0,exchangeInfoPromise=null;
+const MAX_CONCURRENT_REQUESTS=5,MIN_REQUEST_START_GAP_MS=220;
 const previous24hHigh=new Map(),fresh24hHighUntil=new Map(),universePeriodCache=new Map();
 const alertedCrossovers=new Set(),alertedQualified=new Set();const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
 function playAlertTone(tier,direction){
@@ -222,10 +223,19 @@ function renderCoinTrace(){const el=$("coinTrace");if(!el)return;const coin=diag
 function renderStages(){const el=$("stageDiagnostics");if(!el)return;const labels=[["evaluated","Evaluated"],["rsiPass","RSI passed"],["rsiReject","RSI rejected"],["crossover","Fresh crossover"],["noCrossover","No crossover in lookback"],["deaReject","DEA rejected"],["htfReject","HTF rejected"],["oiReject","OI rejected"],["dataErrors","Data errors"],["results","Final results"]];el.innerHTML='<div class="diagitem"><div class="diaglabel">Eligible after volume filter</div><div class="diagvalue">'+diag.candidates+'</div></div><div class="diagitem"><div class="diaglabel">Selected for scan</div><div class="diagvalue">'+diag.selected+'</div></div>'+TFS.map(tf=>'<div class="diagitem" style="grid-column:1/-1"><div class="diagvalue">'+tf+'</div><div class="small" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:5px;margin-top:6px">'+labels.map(([key,label])=>'<span>'+label+': <b>'+diag.stages[tf][key]+'</b></span>').join("")+'</div></div>').join("");}
 function renderDiagnostics(){const set=(id,value,cls)=>{const el=$(id);if(!el)return;el.textContent=value;if(cls)el.className="diagvalue "+cls;};set("dAuto",autoActive?"Running":"Stopped",autoActive?"diaggood":"");set("dState",busy?"Scanning":"Idle",busy?"diaggood":"");set("dDuration",diag.lastDuration?((diag.lastDuration/1000).toFixed(2)+" s"):(busy?"In progress":"—"));set("dLastScan",diag.lastScanAt?new Date(diag.lastScanAt).toLocaleTimeString():"—");set("dNext",autoActive&&nextAt?Math.max(0,Math.ceil((nextAt-Date.now())/1000))+" sec":autoActive&&busy?"After current scan":"—");set("dCycles",String(diag.cycles));set("dSymbols",String(diag.symbols));set("dRequests",String(diag.requests));set("dApiTime",diag.lastApiMs?diag.lastApiMs.toFixed(0)+" ms":"—");set("dApiAvgMax",diag.requests?(diag.totalApiMs/diag.requests).toFixed(0)+" / "+diag.maxApiMs.toFixed(0)+" ms":"—");set("dApiErrors",String(diag.failures),diag.failures?"diagbad":"diaggood");set("dRateLimits",String(diag.rateLimits),diag.rateLimits?"diagbad":"");set("dWeight",diag.weight1m===null?"Header unavailable":String(diag.weight1m));set("dCache",diag.cacheHits+" / "+diag.cacheMisses);set("dCooldown",diag.cooldownUntil>Date.now()?Math.ceil((diag.cooldownUntil-Date.now())/1000)+" sec remaining":"Inactive",diag.cooldownUntil>Date.now()?"diagbad":"diaggood");set("dHttp",diag.lastHttpStatus?String(diag.lastHttpStatus):"—",diag.lastHttpStatus===418||diag.lastHttpStatus===429?"diagbad":"");set("dRetry",diag.lastRetryAfter);const ep=$("dEndpoints");if(ep)ep.textContent="Endpoint requests: "+(Object.keys(diag.endpointCounts).length?Object.entries(diag.endpointCounts).map(([k,v])=>k+" "+v).join(" · "):"none yet");set("dHost",diag.lastHost);set("dOutcome",diag.outcome,diag.outcome.startsWith("Complete")?"diaggood":diag.outcome==="Not run yet"?"":"diagbad");set("dMacd",String(diag.macdRuns));set("dRsi",String(diag.rsiRuns));set("dHtf",String(diag.htfRuns));set("dOi",String(diag.oiRuns));}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function pumpRequests(){
+ if(requestPumpTimer!==null||activeRequests>=MAX_CONCURRENT_REQUESTS||!pendingRequests.length)return;
+ const gap=Math.max(0,MIN_REQUEST_START_GAP_MS-(Date.now()-lastRequest));
+ if(gap){requestPumpTimer=setTimeout(()=>{requestPumpTimer=null;pumpRequests();},gap);return;}
+ const job=pendingRequests.shift();activeRequests++;lastRequest=Date.now();
+ Promise.resolve().then(job.run).then(job.resolve,job.reject).finally(()=>{activeRequests--;pumpRequests();});
+ pumpRequests();
+}
+function scheduleRequest(run){return new Promise((resolve,reject)=>{pendingRequests.push({run,resolve,reject});pumpRequests();});}
 function request(url){
  const run=async()=>{
   if(diag.cooldownUntil>Date.now())throw new Error("Binance cooldown active until "+new Date(diag.cooldownUntil).toLocaleTimeString()+" after HTTP "+diag.lastHttpStatus);
-  const gap=Math.max(0,220-(Date.now()-lastRequest));if(gap)await sleep(gap);lastRequest=Date.now();let last;
+  let last;
   const endpoint=(url.split("?")[0].split("/").pop()||"unknown");
   for(let n=0;n<hosts.length;n++){const base=hosts[(hostIndex+n)%hosts.length],reqAt=performance.now();diag.requests++;diag.endpointCounts[endpoint]=(diag.endpointCounts[endpoint]||0)+1;try{
    const res=await fetch(base+url,{cache:"no-store"}),elapsed=performance.now()-reqAt;
@@ -241,7 +251,7 @@ function request(url){
   }
   throw last||new Error("Binance request failed");
  };
- const p=queue.then(run,run);queue=p.catch(()=>{});return p;
+ return scheduleRequest(run);
 }
 function ema(a,p){const k=2/(p+1),o=[];let v=a[0];o.push(v);for(let i=1;i<a.length;i++){v=a[i]*k+v*(1-k);o.push(v);}return o;}
 function macd(rows){diag.macdRuns++;const c=rows.map(x=>+x[4]),e12=ema(c,12),e26=ema(c,26),dif=c.map((_,i)=>e12[i]-e26[i]),dea=ema(dif,9),hist=dif.map((v,i)=>v-dea[i]);return {dif,dea,hist};}
@@ -273,20 +283,29 @@ async function universe(){
   const ttl=300000,now=Date.now(),serverData=await request("/fapi/v1/time"),serverTime=Number(serverData.serverTime);
   const targets={4:serverTime-4*3600000,6:serverTime-6*3600000,12:serverTime-12*3600000},historyStart=targets[12]-120000;
   $("status").textContent="Ranking all "+list.length+" eligible coins independently across rolling 4H, 6H and 12H performance. Cached readings are reused for 5 minutes.";
-  for(let i=0;i<list.length;i++){
-   const t=list[i],key=t.symbol+"|rolling-4h-6h-12h",cached=universePeriodCache.get(key);
-   if(cached&&now-cached.at<ttl){diag.cacheHits++;Object.assign(t,cached.values);continue;}diag.cacheMisses++;
-   try{
-    const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval=1m&startTime="+Math.floor(historyStart)+"&limit=723");
-    const current=Number(t.lastPrice),values={};
-    for(const hours of [4,6,12]){
-     const target=targets[hours],valid=rows.filter(k=>Number(k[6])<=target),ref=valid[valid.length-1],open=Number(ref&&ref[4]);
-     values["rolling"+hours+"h"]=open>0&&Number.isFinite(current)?((current-open)/open)*100:NaN;
+  let nextUniverseIndex=0,completedUniverseCount=0;
+  const processUniverseCoin=async()=>{
+   while(true){
+    const i=nextUniverseIndex++;if(i>=list.length)return;
+    const t=list[i],key=t.symbol+"|rolling-4h-6h-12h",cached=universePeriodCache.get(key);
+    if(cached&&now-cached.at<ttl){diag.cacheHits++;Object.assign(t,cached.values);}
+    else{
+     diag.cacheMisses++;
+     try{
+      const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval=1m&startTime="+Math.floor(historyStart)+"&limit=723");
+      const current=Number(t.lastPrice),values={};
+      for(const hours of [4,6,12]){
+       const target=targets[hours],valid=rows.filter(k=>Number(k[6])<=target),ref=valid[valid.length-1],open=Number(ref&&ref[4]);
+       values["rolling"+hours+"h"]=open>0&&Number.isFinite(current)?((current-open)/open)*100:NaN;
+      }
+      Object.assign(t,values);universePeriodCache.set(key,{values,at:now});
+     }catch(e){t.rolling4h=t.rolling6h=t.rolling12h=NaN;}
     }
-    Object.assign(t,values);universePeriodCache.set(key,{values,at:now});
-   }catch(e){t.rolling4h=t.rolling6h=t.rolling12h=NaN;}
-   if(i%20===19||i===list.length-1)$("status").textContent="Rolling performance ranking: "+(i+1)+" / "+list.length+" eligible coins checked…";
-  }
+    completedUniverseCount++;
+    if(completedUniverseCount%20===0||completedUniverseCount===list.length)$("status").textContent="Rolling performance ranking: "+completedUniverseCount+" / "+list.length+" eligible coins checked…";
+   }
+  };
+  await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,list.length)},()=>processUniverseCoin()));
   const ranked={};
   for(const hours of [4,6,12]){
    const field="rolling"+hours+"h";
