@@ -432,7 +432,8 @@ function toggleAlertSound(key,label){
  $("alertSoundStatus").textContent="Confirmed bullish "+(alertSoundEnabled.confirmedBull?"ON":"OFF")+" · Confirmed bearish "+(alertSoundEnabled.confirmedBear?"ON":"OFF")+" · Bullish crossover "+(alertSoundEnabled.crossoverBull?"ON":"OFF")+" · Bearish crossover "+(alertSoundEnabled.crossoverBear?"ON":"OFF")+". Visual alerts remain active regardless of sound settings.";
  }catch(e){$("alertSoundStatus").textContent="Could not change "+label+" sound: "+e.message;}
 }
-$("toggleEarlyMomentumSound").addEventListener("click",()=>{earlyMomentumSound=!earlyMomentumSound;$("toggleEarlyMomentumSound").textContent="Early Momentum sound: "+(earlyMomentumSound?"ON":"OFF");$("toggleEarlyMomentumSound").classList.toggle("auto-running",earlyMomentumSound);});\n$("toggleConfirmedBullSound").addEventListener("click",()=>toggleAlertSound("confirmedBull","Confirmed bullish alert"));
+$("toggleEarlyMomentumSound").addEventListener("click",()=>{earlyMomentumSound=!earlyMomentumSound;$("toggleEarlyMomentumSound").textContent="Early Momentum sound: "+(earlyMomentumSound?"ON":"OFF");$("toggleEarlyMomentumSound").classList.toggle("auto-running",earlyMomentumSound);});
+$("toggleConfirmedBullSound").addEventListener("click",()=>toggleAlertSound("confirmedBull","Confirmed bullish alert"));
 $("toggleConfirmedBearSound").addEventListener("click",()=>toggleAlertSound("confirmedBear","Confirmed bearish alert"));
 $("toggleCrossoverBullSound").addEventListener("click",()=>toggleAlertSound("crossoverBull","Bullish MACD crossover"));
 $("toggleCrossoverBearSound").addEventListener("click",()=>toggleAlertSound("crossoverBear","Bearish MACD crossover"));
