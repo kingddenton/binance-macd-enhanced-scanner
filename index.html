@@ -401,7 +401,7 @@ async function scan(){
     const m1=macd(r1).hist,m5=macd(r5).hist,closes1=r1.map(x=>Number(x[4])),lastClose=closes1.at(-1),ema7=ema(closes1,7),rsi14=rsi(r1,14),cvd5=cvdStats(r5,5),lastVol=Number(r5.at(-1)[7]),priorVols=r5.slice(-6,-1).map(x=>Number(x[7])).filter(Number.isFinite),avgPrior=priorVols.length?priorVols.reduce((a,b)=>a+b,0)/priorVols.length:NaN,oiNow=Number(oiHist?.at(-1)?.sumOpenInterestValue),oiPrev=Number(oiHist?.at(-2)?.sumOpenInterestValue),oiPct=oiPrev>0?((oiNow-oiPrev)/oiPrev)*100:NaN;
     const earlyOK=m1.length>=3&&m5.length>=3&&m1.at(-1)>m1.at(-2)&&m5.at(-1)>m5.at(-2)&&lastClose>ema7.at(-1)&&ema7.at(-1)>ema7.at(-2)&&Number.isFinite(avgPrior)&&lastVol>avgPrior&&Number.isFinite(cvd5.pct)&&cvd5.pct>0&&Number.isFinite(rsi14)&&rsi14<70&&Number.isFinite(oiPct)&&oiPct>=1;
     if(earlyOK)addEarlyMomentumAlert(t.symbol,{oiPct,cvdPct:cvd5.pct,rsi:rsi14},Number(r5.at(-1)[0]));
-   }catch(e){errors.push(t.symbol+" Early Momentum: "+e.message);}
+   }catch(e){/* Early Momentum data unavailable for this symbol; existing scanner results remain unaffected. */}
    await monitorReversalAlerts(t.symbol,getMacdAnalysis);
    coinRecord.status="Scanned";diag.symbols=si+1;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+(si+1)+"/"+tickers.length+" symbols; collecting directional signals…";
   }
