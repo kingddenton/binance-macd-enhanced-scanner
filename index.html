@@ -34,6 +34,8 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 
 @keyframes timeframe-confirmed-flash{0%,100%{color:#19c784;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#19c784;text-shadow:0 0 12px #19c784}}
 @keyframes timeframe-crossover-flash{0%,100%{color:#ffb547;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#ffb547;text-shadow:0 0 12px #ffb547}}
+@keyframes timeframe-bearish-flash{0%,100%{color:#ff8792;text-shadow:0 0 0 transparent}25%,75%{color:#fff;text-shadow:0 0 12px #fff}50%{color:#ff4358;text-shadow:0 0 12px #ff4358}}
+.alert-box h3.timeframe-flash-bearish{animation:timeframe-bearish-flash .8s ease-in-out 2!important}
 .alert-box h3.timeframe-flash-confirmed{animation:timeframe-confirmed-flash .8s ease-in-out 2!important}
 .alert-box h3.timeframe-flash-crossover{animation:timeframe-crossover-flash .8s ease-in-out 2!important}
 </style></head><body><main>
@@ -155,7 +157,7 @@ function supertrendInfo(rows,p=10,mult=3){
  const last=directions.length-1,latest=directions[last];for(let age=0;age<Math.min(rows.length-1,100);age++){const i=last-age;if(i>0&&directions[i]===latest&&directions[i-1]===-latest)return {trend:latest,flipAge:age};}return {trend:latest,flipAge:-1};
 }
 function eventAge(hist,maxBars,dir){for(let age=0;age<maxBars;age++){const i=hist.length-1-age;if(i<1)break;if(dir==="bull"&&hist[i]>0&&hist[i-1]<=0)return age;if(dir==="bear"&&hist[i]<0&&hist[i-1]>=0)return age;}return -1;}
-function panel(dir,tf){return '<section class="tfpanel"><h3 style="margin:0 0 9px;font-size:16px">'+tf+' MACD</h3><div class="statusline"><span class="small" id="meta_'+dir+'_'+tf+'">No scan yet</span><span class="small" id="n_'+dir+'_'+tf+'">0 signals</span></div><div class="tablewrap"><table class="compact-table"><thead><tr><th>Coin</th><th>C. Count</th><th>RSI</th><th>OI (USDT)</th><th>MACD</th><th>DEA</th><th>CVD %</th><th>24h High</th><th>ST</th><th>Short-term %</th><th>24h % change</th></tr></thead><tbody id="body_'+dir+'_'+tf+'"><tr><td colspan="10" class="compact-empty">No scan results yet.</td></tr></tbody></table></div></section>';}
+function panel(dir,tf){return '<section class="tfpanel"><h3 style="margin:0 0 9px;font-size:16px">'+(dir==="bear"?"🔴 BEARISH · ":"🟢 BULLISH · ")+tf+' MACD</h3><div class="statusline"><span class="small" id="meta_'+dir+'_'+tf+'">No scan yet</span><span class="small" id="n_'+dir+'_'+tf+'">0 signals</span></div><div class="tablewrap"><table class="compact-table"><thead><tr><th>Coin</th><th>C. Count</th><th>RSI</th><th>OI (USDT)</th><th>MACD</th><th>DEA</th><th>CVD %</th><th>24h High</th><th>ST</th><th>Short-term %</th><th>24h % change</th></tr></thead><tbody id="body_'+dir+'_'+tf+'"><tr><td colspan="10" class="compact-empty">No scan results yet.</td></tr></tbody></table></div></section>';}
 function buildPanels(){$("tfGrid").innerHTML='<div class="tfstack">'+["1m","15m"].map(tf=>panel("bull",tf)).join("")+'</div><div class="tfstack">'+["3m","5m"].map(tf=>panel("bull",tf)).join("")+'</div><div class="tfstack">'+["1m","15m"].map(tf=>panel("bear",tf)).join("")+'</div><div class="tfstack">'+["3m","5m"].map(tf=>panel("bear",tf)).join("")+'</div>';}
 async function getExchangeInfo(){
  const now=Date.now();if(exchangeInfoCache&&now-exchangeInfoAt<600000)return exchangeInfoCache;if(exchangeInfoPromise)return exchangeInfoPromise;
