@@ -158,25 +158,43 @@ function update20PctCandleOpens(symbol,oneMinuteRows){
  const last=twentyPctLastPrices.get(symbol);if(last) evaluate20PctLivePrice(symbol,last);
 }
 function set20PctWatchUniverse(tickers){
- twentyPctWatchSymbols=new Set(tickers.map(t=>t.symbol));
+ const next=new Set(tickers.map(t=>t.symbol)),changed=next.size!==twentyPctWatchSymbols.size||[...next].some(symbol=>!twentyPctWatchSymbols.has(symbol));
+ if(!changed)return;
+ twentyPctWatchSymbols=next;
  for(const symbol of twentyPctOpenMap.keys())if(!twentyPctWatchSymbols.has(symbol))twentyPctOpenMap.delete(symbol);
  for(const symbol of twentyPctLastPrices.keys())if(!twentyPctWatchSymbols.has(symbol))twentyPctLastPrices.delete(symbol);
+ if(twentyPctSocket){const old=twentyPctSocket;twentyPctSocket=null;try{old.close();}catch(e){}}
+ if(twentyPctReconnectTimer){clearTimeout(twentyPctReconnectTimer);twentyPctReconnectTimer=null;}
  if(twentyPctWatchSymbols.size)ensure20PctTickerSocket();
 }
 function ensure20PctTickerSocket(){
  if(!twentyPctWatchSymbols.size||twentyPctSocket&&(twentyPctSocket.readyState===WebSocket.OPEN||twentyPctSocket.readyState===WebSocket.CONNECTING))return;
  try{
-  twentyPctSocket=new WebSocket("wss://fstream.binance.com/market/ws/!ticker@arr");
-  twentyPctSocket.onopen=()=>{$("twentyPctStatus").textContent="Live Binance price stream connected. Monitoring forming 15m, 30m and 1H candles.";};
-  twentyPctSocket.onmessage=event=>{
+  const socket=new WebSocket("wss://fstream.binance.com/market/stream");twentyPctSocket=socket;
+  socket.onopen=()=>{
+   const streams=[...twentyPctWatchSymbols].map(symbol=>symbol.toLowerCase()+"@kline_1m");
+   if(streams.length)socket.send(JSON.stringify({method:"SUBSCRIBE",params:streams,id:20}));
+   $("twentyPctStatus").textContent="Live Binance 1m candle stream connected. Monitoring forming 15m, 30m and 1H candles.";
+  };
+  socket.onmessage=event=>{
    try{
-    const payload=JSON.parse(event.data),rows=Array.isArray(payload)?payload:[payload];
-    for(const ticker of rows){const symbol=ticker&&ticker.s;if(!symbol||!twentyPctWatchSymbols.has(symbol))continue;const price=Number(ticker.c);if(price>0){twentyPctLastPrices.set(symbol,price);evaluate20PctLivePrice(symbol,price);}}
+    const message=JSON.parse(event.data),payload=message.data||message,k=payload&&payload.k,symbol=payload&&(payload.s||k&&k.s);
+    if(!symbol||!k||!twentyPctWatchSymbols.has(symbol))return;
+    const candleTime=Number(k.t),open=Number(k.o),price=Number(k.c),opens=twentyPctOpenMap.get(symbol)||{};
+    if(open>0&&Number.isFinite(candleTime)){
+     for(const [tf,duration] of TWENTY_PCT_TFS)if(candleTime%duration===0)opens[tf]={candleTime,open};
+     twentyPctOpenMap.set(symbol,opens);
+    }
+    if(price>0){twentyPctLastPrices.set(symbol,price);evaluate20PctLivePrice(symbol,price);}
    }catch(e){/* Ignore malformed market-stream messages. */}
   };
-  twentyPctSocket.onerror=()=>{try{twentyPctSocket.close();}catch(e){}};
-  twentyPctSocket.onclose=()=>{twentyPctSocket=null;if(twentyPctWatchSymbols.size){$("twentyPctStatus").textContent="Live price stream disconnected; reconnecting…";if(twentyPctReconnectTimer)clearTimeout(twentyPctReconnectTimer);twentyPctReconnectTimer=setTimeout(ensure20PctTickerSocket,3000);}};
- }catch(e){$("twentyPctStatus").textContent="Could not connect to Binance live price stream: "+e.message;}
+  socket.onerror=()=>{try{socket.close();}catch(e){}};
+  socket.onclose=()=>{
+   if(twentyPctSocket!==socket)return;
+   twentyPctSocket=null;
+   if(twentyPctWatchSymbols.size){$("twentyPctStatus").textContent="Live 1m candle stream disconnected; reconnecting…";if(twentyPctReconnectTimer)clearTimeout(twentyPctReconnectTimer);twentyPctReconnectTimer=setTimeout(ensure20PctTickerSocket,3000);}
+  };
+ }catch(e){twentyPctSocket=null;$("twentyPctStatus").textContent="Could not connect to Binance live 1m candle stream: "+e.message;}
 }
 
 const ALERT_TFS=["1m","3m","5m","15m"];
