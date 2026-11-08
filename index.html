@@ -51,7 +51,7 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 </style></head><body><main>
 <h1>MM Binance</h1><div class="sub">Binance USDⓈ-M USDT perpetual market scanner.</div><div class="tabbar"><button id="greenTabBtn" class="active" type="button">Green Tracker</button><button id="priceTabBtn" class="secondary" type="button">Price Change Tracker</button></div><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore filter setups</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Name this setup"><button id="saveProfileBtn" type="button">Save</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
-<div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (4H + 6H + 12H)</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
+<div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (1H + 4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (1H + 4H + 6H + 12H)</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
 <div><label>Number of coins to scan</label><input id="scanCount" type="number" min="1" max="100" step="1" value="20"></div>
 <div><label>Minimum 24h quote volume (USDT)</label><input id="minVol" type="number" min="0" step="100000" value="0"></div>
 <div><label>Minimum current OI value (USDT)</label><input id="minOI" type="number" min="0" step="100000" value="0"><div class="small">0 disables OI filtering, but current OI is still displayed for each result.</div></div>
@@ -205,16 +205,16 @@ function resetStages(){diag.stages=Object.fromEntries(TFS.map(tf=>[tf,{cvdReject
 function renderUniverse(){
  const body=$("universeRows");if(!body)return;
  const mode=diag.universeMode||$("universe").value,period=mode==="gainers4h"?"4h":mode==="gainers6h"?"6h":mode==="gainers12h"?"12h":mode==="gainers"?"24h":"";
- const heading=$("universeChangeHeading");if(heading)heading.textContent=period?period+" change":mode==="gainersMulti"?"Best rolling change":"24h change";
+ const heading=$("universeChangeHeading");if(heading)heading.textContent=period?period+" change":(mode==="gainersMulti"||mode==="gainersMultiPositive")?"Best rolling change":"24h change";
  const q=($("universeSearch")?.value||"").trim().toUpperCase(),rows=diag.universe.filter(x=>!q||x.symbol.includes(q));
  $("universeMeta").textContent=diag.universe.length+" exact selected symbols · "+diag.universe.filter(x=>x.status==="Scanned").length+" scanned · "+diag.universe.filter(x=>x.status==="Pending").length+" pending";
  const breakdown=$("universeBreakdown");
  if(breakdown){
   if(mode==="gainersMulti"||mode==="gainersMultiPositive"){
-   const counts=[4,6,12].map(h=>diag.universe.filter(x=>(x.periods||[]).includes(h)).length),overlaps=diag.universe.filter(x=>(x.periods||[]).length>1).length;
-   breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">4H top performers</div><div class="diagvalue">'+counts[0]+'</div></div><div class="diagitem"><div class="diaglabel">6H top performers</div><div class="diagvalue">'+counts[1]+'</div></div><div class="diagitem"><div class="diaglabel">12H top performers</div><div class="diagvalue">'+counts[2]+'</div></div><div class="diagitem"><div class="diaglabel">Unique combined selection</div><div class="diagvalue">'+diag.universe.length+'</div></div><div class="diagitem"><div class="diaglabel">Coins ranked in 2+ periods</div><div class="diagvalue">'+overlaps+'</div></div>';
+   const counts=[1,4,6,12].map(h=>diag.universe.filter(x=>(x.periods||[]).includes(h)).length),overlaps=diag.universe.filter(x=>(x.periods||[]).length>1).length;
+   breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">1H top performers</div><div class="diagvalue">'+counts[0]+'</div></div><div class="diagitem"><div class="diaglabel">4H top performers</div><div class="diagvalue">'+counts[1]+'</div></div><div class="diagitem"><div class="diaglabel">6H top performers</div><div class="diagvalue">'+counts[2]+'</div></div><div class="diagitem"><div class="diaglabel">12H top performers</div><div class="diagvalue">'+counts[3]+'</div></div><div class="diagitem"><div class="diaglabel">Unique combined selection</div><div class="diagvalue">'+diag.universe.length+'</div></div><div class="diagitem"><div class="diaglabel">Coins ranked in 2+ periods</div><div class="diagvalue">'+overlaps+'</div></div>';
   }else{
-   const label=mode==="gainers"?"24H gainers":mode==="gainersMultiPositive"?"Positive 24H + rolling 4H/6H/12H":mode==="volume"?"24H quote-volume":mode==="all"?"All eligible (scan limit)":period+" gainers";
+   const label=mode==="gainers"?"24H gainers":mode==="gainersMultiPositive"?"Positive 24H + rolling 1H/4H/6H/12H":mode==="volume"?"24H quote-volume":mode==="all"?"All eligible (scan limit)":period+" gainers";
    breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">Selection method</div><div class="diagvalue">'+label+'</div></div><div class="diagitem"><div class="diaglabel">Selected symbols</div><div class="diagvalue">'+diag.universe.length+'</div></div>';
   }
  }
@@ -285,25 +285,25 @@ async function universe(){
  let selected=[];
  if(mode==="gainersMulti"||mode==="gainersMultiPositive"){
   const ttl=300000,now=Date.now(),serverData=await request("/fapi/v1/time"),serverTime=Number(serverData.serverTime);
-  const targets={4:serverTime-4*3600000,6:serverTime-6*3600000,12:serverTime-12*3600000},historyStart=targets[12]-120000;
-  $("status").textContent="Ranking "+list.length+" eligible coins with "+(mode==="gainersMultiPositive"?"positive 24H change ":"")+"across rolling 4H, 6H and 12H performance. Cached readings are reused for 5 minutes.";
+  const targets={1:serverTime-3600000,4:serverTime-4*3600000,6:serverTime-6*3600000,12:serverTime-12*3600000},historyStart=targets[12]-120000;
+  $("status").textContent="Ranking "+list.length+" eligible coins with "+(mode==="gainersMultiPositive"?"positive 24H change ":"")+"across rolling 1H, 4H, 6H and 12H performance. Cached readings are reused for 5 minutes.";
   let nextUniverseIndex=0,completedUniverseCount=0;
   const processUniverseCoin=async()=>{
    while(true){
     const i=nextUniverseIndex++;if(i>=list.length)return;
-    const t=list[i],key=t.symbol+"|rolling-4h-6h-12h",cached=universePeriodCache.get(key);
+    const t=list[i],key=t.symbol+"|rolling-1h-4h-6h-12h",cached=universePeriodCache.get(key);
     if(cached&&now-cached.at<ttl){diag.cacheHits++;Object.assign(t,cached.values);}
     else{
      diag.cacheMisses++;
      try{
       const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval=1m&startTime="+Math.floor(historyStart)+"&limit=723");
       const current=Number(t.lastPrice),values={};
-      for(const hours of [4,6,12]){
+      for(const hours of [1,4,6,12]){
        const target=targets[hours],valid=rows.filter(k=>Number(k[6])<=target),ref=valid[valid.length-1],open=Number(ref&&ref[4]);
        values["rolling"+hours+"h"]=open>0&&Number.isFinite(current)?((current-open)/open)*100:NaN;
       }
       Object.assign(t,values);universePeriodCache.set(key,{values,at:now});
-     }catch(e){t.rolling4h=t.rolling6h=t.rolling12h=NaN;}
+     }catch(e){t.rolling1h=t.rolling4h=t.rolling6h=t.rolling12h=NaN;}
     }
     completedUniverseCount++;
     if(completedUniverseCount%20===0||completedUniverseCount===list.length)$("status").textContent="Rolling performance ranking: "+completedUniverseCount+" / "+list.length+" eligible coins checked…";
@@ -311,13 +311,13 @@ async function universe(){
   };
   await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,list.length)},()=>processUniverseCoin()));
   const ranked={};
-  for(const hours of [4,6,12]){
+  for(const hours of [1,4,6,12]){
    const field="rolling"+hours+"h";
    ranked[hours]=list.filter(t=>Number.isFinite(t[field])).sort((a,b)=>b[field]-a[field]).slice(0,max);
   }
   const union=new Map();
-  for(const hours of [4,6,12])for(const t of ranked[hours]){if(!union.has(t.symbol))union.set(t.symbol,t);t.universePeriods=t.universePeriods||[];if(!t.universePeriods.includes(hours))t.universePeriods.push(hours);}
-  selected=[...union.values()].sort((a,b)=>Math.max(b.rolling4h,b.rolling6h,b.rolling12h)-Math.max(a.rolling4h,a.rolling6h,a.rolling12h));
+  for(const hours of [1,4,6,12])for(const t of ranked[hours]){if(!union.has(t.symbol))union.set(t.symbol,t);t.universePeriods=t.universePeriods||[];if(!t.universePeriods.includes(hours))t.universePeriods.push(hours);}
+  selected=[...union.values()].sort((a,b)=>Math.max(b.rolling1h,b.rolling4h,b.rolling6h,b.rolling12h)-Math.max(a.rolling1h,a.rolling4h,a.rolling6h,a.rolling12h));
  }else{
   if(period){
    const ttl=300000;
@@ -339,7 +339,7 @@ async function universe(){
   else list.sort((a,b)=>Number(b.quoteVolume)-Number(a.quoteVolume));
   selected=list.slice(0,max);
  }
- diag.selected=selected.length;diag.universeMode=mode;diag.universe=selected.map((t,index)=>({rank:index+1,symbol:t.symbol,periods:(mode==="gainersMulti"||mode==="gainersMultiPositive")?(t.universePeriods||[]):[],change:(mode==="gainersMulti"||mode==="gainersMultiPositive")?Math.max(t.rolling4h,t.rolling6h,t.rolling12h):period?Number(t.universeChange):Number(t.priceChangePercent),volume:Number(t.quoteVolume),status:"Pending",timeframes:Object.fromEntries(TFS.map(tf=>[tf,{status:"Pending",rsi:null,crossover:null,candle:null,dea:null,deaValue:null,htf:null,oi:null,oiValue:null,reason:"Not evaluated",reasons:["Not evaluated"],rsiFilter:"Not evaluated",deaStatus:"Not evaluated",htfStatus:"Not evaluated",oiStatus:"Not evaluated"}]))}));renderUniverse();return selected;
+ diag.selected=selected.length;diag.universeMode=mode;diag.universe=selected.map((t,index)=>({rank:index+1,symbol:t.symbol,periods:(mode==="gainersMulti"||mode==="gainersMultiPositive")?(t.universePeriods||[]):[],change:(mode==="gainersMulti"||mode==="gainersMultiPositive")?Math.max(t.rolling1h,t.rolling4h,t.rolling6h,t.rolling12h):period?Number(t.universeChange):Number(t.priceChangePercent),volume:Number(t.quoteVolume),status:"Pending",timeframes:Object.fromEntries(TFS.map(tf=>[tf,{status:"Pending",rsi:null,crossover:null,candle:null,dea:null,deaValue:null,htf:null,oi:null,oiValue:null,reason:"Not evaluated",reasons:["Not evaluated"],rsiFilter:"Not evaluated",deaStatus:"Not evaluated",htfStatus:"Not evaluated",oiStatus:"Not evaluated"}]))}));renderUniverse();return selected;
 }
 async function confirmAll(symbol,htfConfig,getMacdAnalysis){
  const failures=[];
