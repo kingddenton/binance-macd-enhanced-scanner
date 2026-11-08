@@ -173,7 +173,6 @@ function removeOverboughtAlert(symbol,tf){
 async function monitorReversalAlerts(symbol,getMacdAnalysis){
  let fiveMinNegative=false;
  try{const fiveMin=await getMacdAnalysis(symbol,"5m"),fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;}catch(e){fiveMinNegative=false;}
- if(!fiveMinNegative)return;
  for(const tf of REVERSAL_TFS){
   try{
    const analysis=await getMacdAnalysis(symbol,tf),rows=analysis.rows,m=analysis.macd,i=m.hist.length-2;
@@ -188,15 +187,15 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
     continue;
    }
    if(!state){
-    if(rv>=75&&hist[i]>0&&hist[i]>hist[i-1]){
+    if(fiveMinNegative&&rv>=75&&hist[i]>0&&hist[i]>hist[i-1]){
      state={stage:1,lastStageCandle:Number(rows[i][0])};reversalStates.set(key,state);
      pushReversalAlert(symbol,tf,1,Number(rows[i][0]),rv);
     }
     continue;
    }
-   if(state.stage===1&&hist[i]>0&&hist[i]<hist[i-1]&&hist[i-1]<hist[i-2]){
+   if(fiveMinNegative&&state.stage===1&&hist[i]>0&&hist[i]<hist[i-1]&&hist[i-1]<hist[i-2]){
     state.stage=2;state.lastStageCandle=Number(rows[i][0]);pushReversalAlert(symbol,tf,2,Number(rows[i][0]),rv);
-   }else if(state.stage===2&&hist[i]<0&&hist[i-1]>=0){
+   }else if(fiveMinNegative&&state.stage===2&&hist[i]<0&&hist[i-1]>=0){
     state.stage=3;state.lastStageCandle=Number(rows[i][0]);pushReversalAlert(symbol,tf,3,Number(rows[i][0]),rv);
    }
   }catch(e){/* Reversal monitoring is isolated; the main scan continues. */}
