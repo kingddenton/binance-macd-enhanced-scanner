@@ -157,11 +157,11 @@ function renderReversalHistory(){
   reversalAlertHistory[tf].forEach(item=>{const el=document.createElement("div");el.className="alert-entry "+item.className;el.textContent=item.text;feed.appendChild(el);});
  }
 }
-function pushReversalAlert(symbol,tf,stage,candleTime,rsiValue){
+function pushReversalAlert(symbol,tf,stage,candleTime,rsiValue,fiveMinCandleTime){
  const key=symbol+"|"+tf+"|"+stage+"|"+candleTime;if(reversalAlertKeys.has(key))return;reversalAlertKeys.add(key);
  const labels={1:"OVERBOUGHT — RSI ≥75 + MACD histogram rising",2:"REVERSAL WARNING — histogram declining 2 candles",3:"REVERSAL CONFIRMED — bearish MACD crossover"};
  const classes={1:"reversal-overbought",2:"reversal-warning",3:"reversal-confirmed"};
- const history=reversalAlertHistory[tf];history.unshift({symbol,stage,candleTime,text:symbol+" · "+labels[stage]+" · RSI "+rsiValue.toFixed(1)+" · "+new Date().toLocaleTimeString(),className:classes[stage]});if(history.length>5)history.pop();
+ const history=reversalAlertHistory[tf];history.unshift({symbol,stage,candleTime,fiveMinCandleTime,text:symbol+" · "+labels[stage]+" · RSI "+rsiValue.toFixed(1)+" · "+new Date().toLocaleTimeString(),className:classes[stage]});if(history.length>5)history.pop();
  const feed=$("reversalFeed_"+tf),panel=feed?.closest(".alert-box");if(panel){panel.classList.remove("latest-reversal-panel");void panel.offsetWidth;panel.classList.add("latest-reversal-panel");}
  renderReversalHistory();
 }
@@ -170,9 +170,18 @@ function removeOverboughtAlert(symbol,tf){
  reversalAlertHistory[tf]=history.filter(item=>!(item.symbol===symbol&&item.stage===1));
  renderReversalHistory();
 }
+function removeAllReversalAlerts(symbol,tf){
+ reversalAlertHistory[tf]=reversalAlertHistory[tf].filter(item=>item.symbol!==symbol);
+ renderReversalHistory();
+}
+function expireReversalAlerts(symbol,tf,currentFiveMinCandle){
+ const cutoff=5*5*60*1000;
+ reversalAlertHistory[tf]=reversalAlertHistory[tf].filter(item=>item.symbol!==symbol||!Number.isFinite(item.fiveMinCandleTime)||currentFiveMinCandle-item.fiveMinCandleTime<cutoff);
+ renderReversalHistory();
+}
 async function monitorReversalAlerts(symbol,getMacdAnalysis){
- let fiveMinNegative=false;
- try{const fiveMin=await getMacdAnalysis(symbol,"5m"),fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;}catch(e){fiveMinNegative=false;}
+ let fiveMinNegative=false,fiveMinCandleTime=null;
+ try{const fiveMin=await getMacdAnalysis(symbol,"5m"),fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;if(fiveMinIndex>=0)fiveMinCandleTime=Number(fiveMin.rows[fiveMinIndex][0]);}catch(e){fiveMinNegative=false;}
  for(const tf of REVERSAL_TFS){
   try{
    const analysis=await getMacdAnalysis(symbol,tf),rows=analysis.rows,m=analysis.macd,i=m.hist.length-2;
@@ -180,6 +189,8 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
    const closedRows=rows.slice(0,-1),rv=rsi(closedRows),hist=m.hist;
    if(!Number.isFinite(rv))continue;
    const key=symbol+"|"+tf;let state=reversalStates.get(key);
+   if(fiveMinNegative&&Number.isFinite(fiveMinCandleTime))expireReversalAlerts(symbol,tf,fiveMinCandleTime);
+   if(!fiveMinNegative){reversalStates.delete(key);removeAllReversalAlerts(symbol,tf);continue;}
    if(rv<70){reversalStates.delete(key);removeOverboughtAlert(symbol,tf);continue;}
    if(state&&state.stage===1&&hist[i]>0&&hist[i]<hist[i-1]){
     reversalStates.delete(key);
@@ -189,14 +200,14 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
    if(!state){
     if(fiveMinNegative&&rv>=75&&hist[i]>0&&hist[i]>hist[i-1]){
      state={stage:1,lastStageCandle:Number(rows[i][0])};reversalStates.set(key,state);
-     pushReversalAlert(symbol,tf,1,Number(rows[i][0]),rv);
+     pushReversalAlert(symbol,tf,1,Number(rows[i][0]),rv,fiveMinCandleTime);
     }
     continue;
    }
    if(fiveMinNegative&&state.stage===1&&hist[i]>0&&hist[i]<hist[i-1]&&hist[i-1]<hist[i-2]){
-    state.stage=2;state.lastStageCandle=Number(rows[i][0]);pushReversalAlert(symbol,tf,2,Number(rows[i][0]),rv);
+    state.stage=2;state.lastStageCandle=Number(rows[i][0]);pushReversalAlert(symbol,tf,2,Number(rows[i][0]),rv,fiveMinCandleTime);
    }else if(fiveMinNegative&&state.stage===2&&hist[i]<0&&hist[i-1]>=0){
-    state.stage=3;state.lastStageCandle=Number(rows[i][0]);pushReversalAlert(symbol,tf,3,Number(rows[i][0]),rv);
+    state.stage=3;state.lastStageCandle=Number(rows[i][0]);pushReversalAlert(symbol,tf,3,Number(rows[i][0]),rv,fiveMinCandleTime);
    }
   }catch(e){/* Reversal monitoring is isolated; the main scan continues. */}
  }
