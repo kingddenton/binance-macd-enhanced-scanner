@@ -332,8 +332,8 @@ async function universe(){
   for(const hours of [1,4,6,12])for(const t of ranked[hours]){if(!union.has(t.symbol))union.set(t.symbol,t);t.universePeriods=t.universePeriods||[];if(!t.universePeriods.includes(hours))t.universePeriods.push(hours);}
   selected=[...union.values()].sort((a,b)=>Math.max(b.rolling1h,b.rolling4h,b.rolling6h,b.rolling12h)-Math.max(a.rolling1h,a.rolling4h,a.rolling6h,a.rolling12h));
  }else if(mode==="gainers24h1plus"){
-  selected=list.filter(t=>Number(t.priceChangePercent)>=1).sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));
-  $("status").textContent="Selecting all eligible USDT perpetual coins with 24H price change ≥ +1%; scan-count limit is not applied.";
+  selected=list.filter(t=>Number(t.priceChangePercent)>=1).sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent)).slice(0,max);
+  $("status").textContent="Selecting the top "+max+" eligible USDT perpetual coins with 24H price change ≥ +1%, ranked by 24H price performance.";
  }else{
   if(period){
    const ttl=300000;
