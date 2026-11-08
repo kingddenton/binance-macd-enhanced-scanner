@@ -120,10 +120,10 @@ function playVeryLoud20PctAlarm(){
   if(alertAudioContext.state==="suspended")alertAudioContext.resume();
   const ctx=alertAudioContext,base=ctx.currentTime;
   for(let burst=0;burst<3;burst++){
-   [1046,784,1046,1318,1046].forEach((frequency,index)=>{
+   [988,740,988,1244,988].forEach((frequency,index)=>{
     const start=base+burst*0.95+index*0.14,osc=ctx.createOscillator(),gain=ctx.createGain();
     osc.type="square";osc.frequency.setValueAtTime(frequency,start);
-    gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.9,start+0.015);gain.gain.setValueAtTime(0.9,start+0.09);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.13);
+    gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.72,start+0.015);gain.gain.setValueAtTime(0.72,start+0.09);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.13);
     osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.14);
    });
   }
