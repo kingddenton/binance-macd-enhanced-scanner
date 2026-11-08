@@ -62,8 +62,8 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 <div class="row actions"><button id="autoBtn" class="secondary">Start auto-scan</button><button id="scanBtn">Scan once</button><button id="clearDisplayBtn" class="secondary" type="button">Clear display</button></div>
 <div class="statusline"><div id="status" class="status">Ready. Select your filters and scan.</div><div id="countdown" class="status"></div></div>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#241b0d">
- <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE +20% BULLISH CANDLE ALERT</b><div class="small">Monitors the live forming 15m, 30m and 1H candles across the selected coin universe. Triggers when live price reaches +20% from that candle's open.</div></div><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">20% alert sound: OFF</button></div>
- <div id="twentyPctFeed" class="alert-items" style="margin-top:8px">No +20% bullish candle alerts yet.</div>
+ <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE ALERT</b><div class="small">15m triggers at +15%; 30m and 1H trigger at +20% from the live forming candle open.</div></div><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">20% alert sound: OFF</button></div>
+ <div id="twentyPctFeed" class="alert-items" style="margin-top:8px">No bullish candle threshold alerts yet.</div>
  <div id="twentyPctStatus" class="small" style="margin-top:6px">Visual monitoring starts with each scan. Turn the sound ON to enable the loud alarm.</div>
 </div>
 <div class="panel" style="margin-top:12px;border-color:#276b55;background:#0d1c27">
@@ -141,10 +141,10 @@ function evaluate20PctLivePrice(symbol,price){
  for(const [tf,duration] of TWENTY_PCT_TFS){
   const item=opens[tf],currentCandle=Math.floor(now/duration)*duration;
   if(!item||item.candleTime!==currentCandle||!(item.open>0))continue;
-  const pct=((price/item.open)-1)*100,key=symbol+"|"+tf+"|"+currentCandle;
-  if(pct<20||alerted20PctCandles.has(key))continue;
-  alerted20PctCandles.add(key);twentyPctHistory.unshift({symbol,tf,pct,at:now});if(twentyPctHistory.length>50)twentyPctHistory.pop();
-  render20PctHistory();$("twentyPctStatus").textContent="LIVE TRIGGER: "+symbol+" reached +"+pct.toFixed(2)+"% on its forming "+tf+" candle.";
+  const threshold=tf==="15m"?15:20,pct=((price/item.open)-1)*100,key=symbol+"|"+tf+"|"+currentCandle;
+  if(pct<threshold||alerted20PctCandles.has(key))continue;
+  alerted20PctCandles.add(key);twentyPctHistory.unshift({symbol,tf,pct,threshold,at:now});if(twentyPctHistory.length>50)twentyPctHistory.pop();
+  render20PctHistory();$("twentyPctStatus").textContent="LIVE TRIGGER: "+symbol+" reached +"+pct.toFixed(2)+"% (+"+threshold+"% threshold) on its forming "+tf+" candle.";
   playVeryLoud20PctAlarm();
  }
 }
@@ -541,7 +541,7 @@ function toggleAlertSound(key,label){
  $("alertSoundStatus").textContent="Confirmed bullish "+(alertSoundEnabled.confirmedBull?"ON":"OFF")+" · Confirmed bearish "+(alertSoundEnabled.confirmedBear?"ON":"OFF")+" · Bullish crossover "+(alertSoundEnabled.crossoverBull?"ON":"OFF")+" · Bearish crossover "+(alertSoundEnabled.crossoverBear?"ON":"OFF")+". Visual alerts remain active regardless of sound settings.";
  }catch(e){$("alertSoundStatus").textContent="Could not change "+label+" sound: "+e.message;}
 }
-$("toggle20PctSound").addEventListener("click",()=>{twentyPctSoundEnabled=!twentyPctSoundEnabled;try{if(twentyPctSoundEnabled){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("toggle20PctSound").textContent="20% alert sound: "+(twentyPctSoundEnabled?"ON":"OFF");$("toggle20PctSound").classList.toggle("auto-running",twentyPctSoundEnabled);$("twentyPctStatus").textContent=twentyPctSoundEnabled?"Loud alarm enabled. Live candle checks run during each scan.":"Sound OFF; visual +20% alerts remain active."; }catch(e){twentyPctSoundEnabled=false;$("twentyPctStatus").textContent="Could not enable alarm: "+e.message;}});
+$("toggle20PctSound").addEventListener("click",()=>{twentyPctSoundEnabled=!twentyPctSoundEnabled;try{if(twentyPctSoundEnabled){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("toggle20PctSound").textContent="20% alert sound: "+(twentyPctSoundEnabled?"ON":"OFF");$("toggle20PctSound").classList.toggle("auto-running",twentyPctSoundEnabled);$("twentyPctStatus").textContent=twentyPctSoundEnabled?"Loud alarm enabled. Live candle checks are active.":"Sound OFF; visual threshold alerts remain active."; }catch(e){twentyPctSoundEnabled=false;$("twentyPctStatus").textContent="Could not enable alarm: "+e.message;}});
 $("toggleEarlyMomentumSound").addEventListener("click",()=>{earlyMomentumSound=!earlyMomentumSound;$("toggleEarlyMomentumSound").textContent="Early Momentum sound: "+(earlyMomentumSound?"ON":"OFF");$("toggleEarlyMomentumSound").classList.toggle("auto-running",earlyMomentumSound);});
 $("toggleConfirmedBullSound").addEventListener("click",()=>toggleAlertSound("confirmedBull","Confirmed bullish alert"));
 $("toggleConfirmedBearSound").addEventListener("click",()=>toggleAlertSound("confirmedBear","Confirmed bearish alert"));
