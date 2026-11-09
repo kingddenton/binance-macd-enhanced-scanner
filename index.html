@@ -131,6 +131,17 @@ main{max-width:1800px;width:100%}
 @media(min-width:761px) and (max-width:1150px){body{padding:8px}.v2-header{align-items:flex-start;flex-direction:column}.v2-nav{justify-content:flex-start;width:100%}.v2-dashboard{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:start}#v2TopDashboard>#diagnosticsPanel{grid-column:1/-1;max-height:none}#diagnosticsPanel .diaggrid{grid-template-columns:repeat(4,minmax(0,1fr))}.controls{grid-template-columns:repeat(3,minmax(0,1fr))}.tfgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){body{padding:6px}.v2-header{padding:8px;gap:8px}.v2-brand{min-width:0}.v2-nav{gap:4px}.v2-nav button{font-size:10px;padding:6px 7px}.v2-dashboard{grid-template-columns:1fr}#v2TopDashboard>#diagnosticsPanel{max-height:none}#diagnosticsPanel .diaggrid{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.tfgrid{grid-template-columns:1fr}.v2-alert-center .alert-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+
+/* Status strip and timeframe selector in the V2 dashboard */
+.v2-statusbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0 10px;padding:8px 12px;border:1px solid #28516a;border-radius:10px;background:linear-gradient(90deg,#081a27,#0c2030);color:#d9e8f2;font-size:11px}
+.v2-statusbar span:first-child{color:#20ed73}.v2-statusbar b{letter-spacing:.4px}
+.v2-timeframes{display:flex;gap:7px;overflow-x:auto;padding:8px;margin:10px 0;background:#071522;border:1px solid #25465b;border-radius:11px;scrollbar-width:thin}
+.v2-timeframes button{flex:1 0 76px;width:auto;min-height:36px;padding:7px 12px;border:1px solid #426176;background:linear-gradient(180deg,#1a3548,#0c1d2b);color:#e7f2fa;border-radius:8px;font-weight:900}
+.v2-timeframes button.active{background:linear-gradient(180deg,#20ed73,#078a4c);color:#03140b;border-color:#6dffab;box-shadow:0 0 12px #20ed7355}
+.v2-results-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;color:#dceaf4;font-weight:900}
+.v2-results-heading small{color:#9eb4c5;font-weight:500}
+@media(max-width:760px){.v2-statusbar{font-size:10px;gap:5px}.v2-timeframes{gap:5px;padding:6px}.v2-timeframes button{flex-basis:65px;font-size:11px}}
+
 </style></head><body><main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥20%)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
@@ -840,12 +851,17 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
  const alertNodes=[$("earlyMomentumFeed")?.closest(".alert-tier"),document.querySelector(".alert-tier.confirmed-tier"),document.querySelector(".alert-tier.crossover-tier"),document.querySelector(".alert-tier.reversal-tier")];
  alertNodes.filter(Boolean).forEach(node=>alertCenter.appendChild(node));
  const nav=(id,fn)=>$(id)?.addEventListener("click",fn),scrollTo=id=>$(id)?.scrollIntoView({behavior:"smooth",block:"start"});
- nav("earlyNav",()=>scrollTo("earlyMomentumFeed"));nav("reversalNav",()=>scrollTo("reversalFeed_15m"));nav("diagnosticsNav",()=>scrollTo("diagnosticsPanel"));
+ nav("earlyNav",()=>scrollTo("earlyMomentumFeed"));nav("reversalNav",()=>scrollTo("specialHeading_3m"));nav("diagnosticsNav",()=>scrollTo("diagnosticsPanel"));
  nav("settingsNav",()=>{const x=$("filtersContent");if(x){x.hidden=false;scrollTo("filtersContent");}});
  nav("priceGainersNav",()=>{$("priceTabBtn")?.click();setTimeout(()=>scrollTo("pcRows"),50);});
  nav("fullscreenNav",()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();});
  const bar=document.createElement("div");bar.className="v2-statusbar";bar.innerHTML='<span>● <b id="v2ScanStatus">SCANNER READY</b></span><span id="v2ScanProgress">Select Scan once or Start auto-scan</span><span>Binance API · existing request schedule</span>';
  const first=$("greenTrackerView")?.querySelector(":scope > section.panel");if(first)first.insertAdjacentElement("afterend",bar);
+ const tf=document.createElement("nav");tf.className="v2-timeframes";tf.setAttribute("aria-label","Results timeframe");tf.innerHTML=["1m","3m","5m","15m"].map((v,i)=>'<button type="button" data-v2-tf="'+v+'" class="'+(i===0?"active":"")+'">'+v+'</button>').join("");
+ const grid=$("tfGrid");if(grid){grid.insertAdjacentElement("beforebegin",tf);const heading=document.createElement("div");heading.className="v2-results-heading";heading.innerHTML='<span>MARKET RESULTS</span><small>Bullish and bearish signals · select timeframe</small>';tf.insertAdjacentElement("beforebegin",heading);}
+ const applyTf=value=>{document.querySelectorAll("#tfGrid .tfpanel").forEach(card=>{const h=card.querySelector("h3")?.textContent.trim()||"";card.hidden=!h.startsWith(value+" ");});tf.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.v2Tf===value));};
+ tf.addEventListener("click",e=>{const b=e.target.closest("button[data-v2-tf]");if(b)applyTf(b.dataset.v2Tf);});
+ applyTf("1m");
  const sync=()=>{const s=$("status"),d=$("dState");$("v2ScanStatus").textContent=(d?.textContent||"SCANNER").toUpperCase();$("v2ScanProgress").textContent=s?.textContent||"Ready";};setInterval(sync,1200);sync();
 })();
 </script>
