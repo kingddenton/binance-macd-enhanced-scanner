@@ -167,14 +167,15 @@ function render20PctHistory(){
  });
 }
 const TWENTY_PCT_TFS=[["5m",300000],["15m",900000],["30m",1800000],["1h",3600000]];
-function evaluate20PctLivePrice(symbol,price){
+function evaluate20PctLivePrice(symbol,price,activeTf,activeCandleTime){
  if(!(price>0)||!twentyPctWatchSymbols.has(symbol))return;
  const opens=twentyPctOpenMap.get(symbol);if(!opens)return;const now=Date.now();
  for(const [tf,duration] of TWENTY_PCT_TFS){
-  const item=opens[tf],currentCandle=Math.floor(now/duration)*duration;
-  if(!item||item.candleTime!==currentCandle||!(item.open>0))continue;
-  const pct=((price/item.open)-1)*100,stronger= tf==="5m"||tf==="15m"?15:20,thresholds=[10,stronger,40];
-  for(const threshold of thresholds){const key=symbol+"|"+tf+"|"+currentCandle+"|"+threshold;
+  if(activeTf&&tf!==activeTf)continue;
+  const item=opens[tf],candleTime=activeTf?activeCandleTime:item&&item.candleTime;
+  if(!item||!Number.isFinite(candleTime)||item.candleTime!==candleTime||candleTime!==Math.floor(candleTime/duration)*duration||!(item.open>0))continue;
+  const pct=((price/item.open)-1)*100,stronger=tf==="5m"||tf==="15m"?15:20,thresholds=[10,stronger,40];
+  for(const threshold of thresholds){const key=symbol+"|"+tf+"|"+candleTime+"|"+threshold;
    if(pct<threshold||alerted20PctCandles.has(key))continue;
    alerted20PctCandles.add(key);twentyPctHistory.unshift({symbol,tf,pct,threshold,at:now});if(twentyPctHistory.length>50)twentyPctHistory.pop();
    render20PctHistory();$("twentyPctStatus").textContent="LIVE TRIGGER: "+symbol+" reached +"+pct.toFixed(2)+"% (+"+threshold+"% trigger) on its forming "+tf+" candle.";
@@ -183,13 +184,16 @@ function evaluate20PctLivePrice(symbol,price){
  }
 }
 function update20PctCandleOpens(symbol,oneMinuteRows){
- if(!Array.isArray(oneMinuteRows))return;const now=Date.now(),opens={};
+ if(!Array.isArray(oneMinuteRows)||!oneMinuteRows.length)return;
+ const latestMinute=oneMinuteRows.reduce((latest,row)=>Math.max(latest,Number(row&&row[0])||0),0);if(!latestMinute)return;
+ const opens=twentyPctOpenMap.get(symbol)||{};
  for(const [tf,duration] of TWENTY_PCT_TFS){
-  const candleTime=Math.floor(now/duration)*duration,row=oneMinuteRows.find(k=>Number(k[0])===candleTime),open=Number(row&&row[1]);
+  const candleTime=Math.floor(latestMinute/duration)*duration,row=oneMinuteRows.find(k=>Number(k[0])===candleTime),open=Number(row&&row[1]);
   if(open>0)opens[tf]={candleTime,open};
  }
  twentyPctOpenMap.set(symbol,opens);
- const last=twentyPctLastPrices.get(symbol);if(last) evaluate20PctLivePrice(symbol,last);
+ const last=twentyPctLastPrices.get(symbol);
+ if(last)for(const [tf,duration] of TWENTY_PCT_TFS){const item=opens[tf];if(item&&item.candleTime===Math.floor(latestMinute/duration)*duration)evaluate20PctLivePrice(symbol,last,tf,item.candleTime);}
 }
 function set20PctWatchUniverse(tickers){
  const next=new Set(tickers.map(t=>t.symbol)),changed=next.size!==twentyPctWatchSymbols.size||[...next].some(symbol=>!twentyPctWatchSymbols.has(symbol));
@@ -251,7 +255,7 @@ function openTwentyPctBatch(batch,batchId,retryAttempt=0){
   const status=$("twentyPctStatus");if(status)status.textContent="Live Binance candle streams active: "+twentyPctSockets.length+" independent connection(s), monitoring "+twentyPctWatchSymbols.size+" eligible USDT perpetuals (5m, 15m, 30m, 1h).";
  };
  socket.onmessage=event=>{
-  try{const message=JSON.parse(event.data);socket._lastMessageAt=Date.now();if(message.id!==undefined){recordWsDiagnostic(message.code?"SUBSCRIBE ERROR":"SUBSCRIBE ACK",socket,message.msg||("request id "+message.id));return;}const payload=message.data||message,k=payload&&payload.k,symbol=payload&&(payload.s||k&&k.s);if(!symbol||!k||!twentyPctWatchSymbols.has(symbol))return;twentyPctLastMessageAt=Date.now();const candleTime=Number(k.t),open=Number(k.o),price=Number(k.c),interval=k.i,opens=twentyPctOpenMap.get(symbol)||{},tf=interval==="5m"?"5m":interval==="15m"?"15m":interval==="30m"?"30m":interval==="1h"?"1h":null;if(tf&&open>0&&Number.isFinite(candleTime))opens[tf]={candleTime,open};if(tf&&price>0){twentyPctOpenMap.set(symbol,opens);twentyPctLastPrices.set(symbol,price);evaluate20PctLivePrice(symbol,price);if(interval==="5m"&&specialMacdCandidates.has(symbol))processSpecialMacdKline(symbol,"5m",k);}}catch(e){/* Ignore malformed market-stream messages. */}
+  try{const message=JSON.parse(event.data);socket._lastMessageAt=Date.now();if(message.id!==undefined){recordWsDiagnostic(message.code?"SUBSCRIBE ERROR":"SUBSCRIBE ACK",socket,message.msg||("request id "+message.id));return;}const payload=message.data||message,k=payload&&payload.k,symbol=payload&&(payload.s||k&&k.s);if(!symbol||!k||!twentyPctWatchSymbols.has(symbol))return;twentyPctLastMessageAt=Date.now();const candleTime=Number(k.t),open=Number(k.o),price=Number(k.c),interval=k.i,opens=twentyPctOpenMap.get(symbol)||{},tf=interval==="5m"?"5m":interval==="15m"?"15m":interval==="30m"?"30m":interval==="1h"?"1h":null;if(tf&&open>0&&Number.isFinite(candleTime))opens[tf]={candleTime,open};if(tf&&price>0){twentyPctOpenMap.set(symbol,opens);twentyPctLastPrices.set(symbol,price);evaluate20PctLivePrice(symbol,price,tf,candleTime);if(interval==="5m"&&specialMacdCandidates.has(symbol))processSpecialMacdKline(symbol,"5m",k);}}catch(e){/* Ignore malformed market-stream messages. */}
  };
  socket.onerror=()=>{recordWsDiagnostic("ERROR EVENT",socket,"Browser WebSocket error; browser does not expose the underlying network cause");try{socket.close();}catch(e){} };
  socket.onclose=event=>{
