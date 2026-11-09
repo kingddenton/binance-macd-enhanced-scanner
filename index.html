@@ -363,10 +363,12 @@ function expireReversalAlerts(symbol,tf,currentFiveMinCandle){
 }
 async function monitorReversalAlerts(symbol,getMacdAnalysis){
  let fiveMinNegative=false,fiveMinCandleTime=null;
- try{const fiveMin=await getMacdAnalysis(symbol,"5m"),fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;if(fiveMinIndex>=0)fiveMinCandleTime=Number(fiveMin.rows[fiveMinIndex][0]);}catch(e){fiveMinNegative=false;}
+ const analyses=await Promise.all(["5m",...REVERSAL_TFS].map(tf=>getMacdAnalysis(symbol,tf).then(analysis=>({tf,analysis})).catch(()=>({tf,analysis:null}))));
+ const byTf=new Map(analyses.map(item=>[item.tf,item.analysis]));
+ try{const fiveMin=byTf.get("5m");if(fiveMin){const fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;if(fiveMinIndex>=0)fiveMinCandleTime=Number(fiveMin.rows[fiveMinIndex][0]);}}catch(e){fiveMinNegative=false;}
  for(const tf of REVERSAL_TFS){
   try{
-   const analysis=await getMacdAnalysis(symbol,tf),rows=analysis.rows,m=analysis.macd,i=m.hist.length-2;
+   const analysis=byTf.get(tf);if(!analysis)continue;const rows=analysis.rows,m=analysis.macd,i=m.hist.length-2;
    if(i<2||rows.length<20)continue;
    const closedRows=rows.slice(0,-1),rv=rsi(closedRows),hist=m.hist;
    if(!Number.isFinite(rv))continue;
