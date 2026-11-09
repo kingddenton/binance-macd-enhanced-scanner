@@ -142,6 +142,32 @@ main{max-width:1800px;width:100%}
 .v2-results-heading small{color:#9eb4c5;font-weight:500}
 @media(max-width:760px){.v2-statusbar{font-size:10px;gap:5px}.v2-timeframes{gap:5px;padding:6px}.v2-timeframes button{flex-basis:65px;font-size:11px}}
 
+
+/* Layout refinement: momentum and live monitor become compact horizontal strips;
+   diagnostics move below results. UI-only: no scanner or API logic changes. */
+#topMomentumPanel.momentum-strip{display:block!important;margin:8px 0!important;padding:8px 10px!important}
+#topMomentumPanel.momentum-strip .momentum-head{margin:0 0 5px!important;align-items:center!important}
+#topMomentumPanel.momentum-strip .momentum-head h2{font-size:14px!important}
+#topMomentumPanel.momentum-strip .momentum-head .small{font-size:10px!important}
+#topMomentumPanel.momentum-strip .momentum-table-wrap{overflow-x:auto!important}
+#topMomentumPanel.momentum-strip table{width:100%!important;min-width:0!important;table-layout:auto}
+#topMomentumPanel.momentum-strip th,#topMomentumPanel.momentum-strip td{padding:4px 7px!important;font-size:11px!important;white-space:nowrap}
+#mmLiveMonitorStrip{margin:8px 0 12px!important;padding:9px!important}
+#mmLiveMonitorStrip .live-candle-columns{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px!important;min-width:0!important}
+#mmLiveMonitorStrip .live-candle-column{min-width:0!important;padding:7px!important;min-height:90px!important}
+#mmLiveMonitorStrip .live-candle-column h3{font-size:12px!important}
+#mmLiveMonitorStrip .live-candle-card{font-size:11px!important}
+#mmLiveMonitorStrip .live-candle-card strong{font-size:12px!important}
+#diagnosticsPanel{margin-top:14px!important}
+@media(min-width:761px) and (max-width:1150px){
+ #mmLiveMonitorStrip .live-candle-columns{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+ #topMomentumPanel.momentum-strip .momentum-head{flex-wrap:wrap}
+ #topMomentumPanel.momentum-strip th,#topMomentumPanel.momentum-strip td{font-size:10px!important;padding:4px 5px!important}
+ #mmLiveMonitorStrip .live-candle-columns{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
 </style></head><body><main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥20%)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
@@ -865,4 +891,51 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
  const sync=()=>{const s=$("status"),d=$("dState");$("v2ScanStatus").textContent=(d?.textContent||"SCANNER").toUpperCase();$("v2ScanProgress").textContent=s?.textContent||"Ready";};setInterval(sync,1200);sync();
 })();
 </script>
+
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const main=document.querySelector("main");
+ if(!main)return;
+ const momentum=$("topMomentumPanel");
+ const dashboard=$("v2TopDashboard");
+ const alertCenter=$("v2AlertCenter");
+ const grid=$("tfGrid");
+ const diagnostics=$("diagnosticsPanel");
+ const liveColumns=document.querySelector(".live-candle-columns");
+ const livePanel=liveColumns?.closest(".panel")||liveColumns?.closest("section");
+ // Put the compact momentum ranking directly below the navigation/header.
+ const nav=document.querySelector(".tabbar");
+ if(momentum){
+   momentum.classList.add("momentum-strip");
+   if(nav)nav.insertAdjacentElement("afterend",momentum);
+   else main.insertAdjacentElement("afterbegin",momentum);
+ }
+ // Keep the live candle monitor as its own full-width strip directly below momentum.
+ if(livePanel){
+   livePanel.id="mmLiveMonitorStrip";
+   if(momentum)momentum.insertAdjacentElement("afterend",livePanel);
+   else if(nav)nav.insertAdjacentElement("afterend",livePanel);
+ }
+ // Keep the fresh bullish/bearish crossover and MACD alert feed near the top,
+ // immediately after the live monitor rather than burying it in the overview.
+ if(alertCenter){
+   if(livePanel)livePanel.insertAdjacentElement("afterend",alertCenter);
+   else if(momentum)momentum.insertAdjacentElement("afterend",alertCenter);
+ }
+ // The overview row follows the priority alert areas.
+ if(dashboard){
+   const anchor=alertCenter||livePanel||momentum||nav;
+   if(anchor)anchor.insertAdjacentElement("afterend",dashboard);
+ }
+ // Diagnostics are useful for troubleshooting, but not needed during routine
+ // price monitoring; move them below the market result display.
+ if(diagnostics&&grid){
+   diagnostics.style.maxHeight="none";
+   diagnostics.style.overflow="visible";
+   grid.insertAdjacentElement("afterend",diagnostics);
+ }
+})();
+</script>
+
 </body></html>
