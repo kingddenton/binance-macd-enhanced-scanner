@@ -848,7 +848,7 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
  if(!dashboard||!alertCenter)return;
  const momentum=$("topMomentumPanel"),liveFeed=$("twentyPctFeed"),livePanel=liveFeed?.closest(".panel"),diagnostics=$("diagnosticsPanel");
  [momentum,livePanel,diagnostics].forEach(node=>{if(node)dashboard.appendChild(node);});
- const alertNodes=[$("earlyMomentumFeed")?.closest(".alert-tier"),document.querySelector(".alert-tier.confirmed-tier"),document.querySelector(".alert-tier.crossover-tier"),document.querySelector(".alert-tier.reversal-tier")];
+ const alertNodes=[document.querySelector(".alert-tier.confirmed-tier")?.closest(".panel"),$("earlyMomentumFeed")?.closest(".alert-tier"),document.querySelector(".alert-tier.reversal-tier")];
  alertNodes.filter(Boolean).forEach(node=>alertCenter.appendChild(node));
  const nav=(id,fn)=>$(id)?.addEventListener("click",fn),scrollTo=id=>$(id)?.scrollIntoView({behavior:"smooth",block:"start"});
  nav("earlyNav",()=>scrollTo("earlyMomentumFeed"));nav("reversalNav",()=>scrollTo("specialHeading_3m"));nav("diagnosticsNav",()=>scrollTo("diagnosticsPanel"));
