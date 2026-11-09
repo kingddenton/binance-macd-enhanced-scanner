@@ -420,6 +420,8 @@ function renderCoinTrace(){const el=$("coinTrace");if(!el)return;const coin=diag
 function renderStages(){const el=$("stageDiagnostics");if(!el)return;const labels=[["evaluated","Evaluated"],["rsiPass","RSI passed"],["rsiReject","RSI rejected"],["stochReject","Stoch RSI rejected"],["crossover","Fresh crossover"],["noCrossover","No crossover in lookback"],["deaReject","DEA rejected"],["htfReject","HTF rejected"],["oiReject","OI rejected"],["dataErrors","Data errors"],["results","Final results"]];el.innerHTML='<div class="diagitem"><div class="diaglabel">Eligible after volume filter</div><div class="diagvalue">'+diag.candidates+'</div></div><div class="diagitem"><div class="diaglabel">Selected for scan</div><div class="diagvalue">'+diag.selected+'</div></div>'+TFS.map(tf=>'<div class="diagitem" style="grid-column:1/-1"><div class="diagvalue">'+tf+'</div><div class="small" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:5px;margin-top:6px">'+labels.map(([key,label])=>'<span>'+label+': <b>'+diag.stages[tf][key]+'</b></span>').join("")+'</div></div>').join("");}
 function renderDiagnostics(){const set=(id,value,cls)=>{const el=$(id);if(!el)return;el.textContent=value;if(cls)el.className="diagvalue "+cls;};set("dAuto",autoActive?"Running":"Stopped",autoActive?"diaggood":"");set("dState",busy?"Scanning":"Idle",busy?"diaggood":"");set("dDuration",diag.lastDuration?((diag.lastDuration/1000).toFixed(2)+" s"):(busy?"In progress":"—"));set("dLastScan",diag.lastScanAt?new Date(diag.lastScanAt).toLocaleTimeString():"—");set("dNext",autoActive&&nextAt?Math.max(0,Math.ceil((nextAt-Date.now())/1000))+" sec":autoActive&&busy?"After current scan":"—");set("dCycles",String(diag.cycles));set("dSymbols",String(diag.symbols));set("dRequests",String(diag.requests));set("dApiTime",diag.lastApiMs?diag.lastApiMs.toFixed(0)+" ms":"—");set("dApiAvgMax",diag.requests?(diag.totalApiMs/diag.requests).toFixed(0)+" / "+diag.maxApiMs.toFixed(0)+" ms":"—");set("dApiErrors",String(diag.failures),diag.failures?"diagbad":"diaggood");set("dRateLimits",String(diag.rateLimits),diag.rateLimits?"diagbad":"");set("dWeight",diag.weight1m===null?"Header unavailable":String(diag.weight1m));set("dCache",diag.cacheHits+" / "+diag.cacheMisses);set("dCooldown",diag.cooldownUntil>Date.now()?Math.ceil((diag.cooldownUntil-Date.now())/1000)+" sec remaining":"Inactive",diag.cooldownUntil>Date.now()?"diagbad":"diaggood");set("dHttp",diag.lastHttpStatus?String(diag.lastHttpStatus):"—",diag.lastHttpStatus===418||diag.lastHttpStatus===429?"diagbad":"");set("dRetry",diag.lastRetryAfter);const ep=$("dEndpoints");if(ep)ep.textContent="Endpoint requests: "+(Object.keys(diag.endpointCounts).length?Object.entries(diag.endpointCounts).map(([k,v])=>k+" "+v).join(" · "):"none yet");set("dHost",diag.lastHost);set("dOutcome",diag.outcome,diag.outcome.startsWith("Complete")?"diaggood":diag.outcome==="Not run yet"?"":"diagbad");set("dMacd",String(diag.macdRuns));set("dRsi",String(diag.rsiRuns));set("dHtf",String(diag.htfRuns));set("dOi",String(diag.oiRuns));}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let diagnosticsRenderPending=false;
+function queueDiagnosticsRender(){if(diagnosticsRenderPending)return;diagnosticsRenderPending=true;setTimeout(()=>{diagnosticsRenderPending=false;renderDiagnostics();},150);}
 function pumpRequests(){
  if(requestPumpTimer!==null||activeRequests>=MAX_CONCURRENT_REQUESTS||!pendingRequests.length)return;
  const gap=Math.max(0,MIN_REQUEST_START_GAP_MS-(Date.now()-lastRequest));
@@ -441,10 +443,10 @@ function request(url){
    if(res.status===418||res.status===429){
     diag.rateLimits++;diag.failures++;const retry=res.headers.get("Retry-After"),secs=retry&&Number(retry),date=retry&&!Number.isFinite(secs)?Date.parse(retry):NaN;
     const waitMs=Number.isFinite(secs)?Math.max(1000,secs*1000):Number.isFinite(date)?Math.max(1000,date-Date.now()):(res.status===418?120000:60000);
-    diag.lastRetryAfter=retry||Math.ceil(waitMs/1000)+"s default";diag.cooldownUntil=Math.max(diag.cooldownUntil,Date.now()+waitMs);last=new Error("Binance HTTP "+res.status+" rate limit. Requests paused until "+new Date(diag.cooldownUntil).toLocaleTimeString()+".");renderDiagnostics();throw last;
+    diag.lastRetryAfter=retry||Math.ceil(waitMs/1000)+"s default";diag.cooldownUntil=Math.max(diag.cooldownUntil,Date.now()+waitMs);last=new Error("Binance HTTP "+res.status+" rate limit. Requests paused until "+new Date(diag.cooldownUntil).toLocaleTimeString()+".");queueDiagnosticsRender();throw last;
    }
-   if(!res.ok)throw new Error("HTTP "+res.status);hostIndex=(hostIndex+n)%hosts.length;renderDiagnostics();return await res.json();
-  }catch(e){if(!(e&&String(e.message).includes("Binance HTTP")))diag.failures++;last=e;renderDiagnostics();if(diag.cooldownUntil>Date.now())throw e;}
+   if(!res.ok)throw new Error("HTTP "+res.status);hostIndex=(hostIndex+n)%hosts.length;queueDiagnosticsRender();return await res.json();
+  }catch(e){if(!(e&&String(e.message).includes("Binance HTTP")))diag.failures++;last=e;queueDiagnosticsRender();if(diag.cooldownUntil>Date.now())throw e;}
   }
   throw last||new Error("Binance request failed");
  };
@@ -522,17 +524,26 @@ async function universe(){
   if(period){
    const ttl=300000;
    $("status").textContent="Ranking all "+list.length+" eligible coins by "+period+" price gainers. Cached values are reused for 5 minutes.";
-   for(let i=0;i<list.length;i++){
-    const t=list[i],key=t.symbol+"|"+period,cached=universePeriodCache.get(key);
-    if(cached&&Date.now()-cached.at<ttl){diag.cacheHits++;t.universeChange=cached.change;continue;}diag.cacheMisses++;
-    try{
-     const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+period+"&limit=1");
-     const open=Number(rows&&rows[0]&&rows[0][1]),last=Number(t.lastPrice);
-     const change=open>0&&Number.isFinite(last)?((last-open)/open)*100:NaN;
-     t.universeChange=change;if(Number.isFinite(change))universePeriodCache.set(key,{change,at:Date.now()});
-    }catch(e){t.universeChange=NaN;}
-    if(i%25===24||i===list.length-1)$("status").textContent="Ranking "+period+" gainers: "+(i+1)+" / "+list.length+" eligible coins checked…";
-   }
+   let nextPeriodIndex=0,completedPeriodCount=0;
+   const processPeriodCoin=async()=>{
+    while(true){
+     const i=nextPeriodIndex++;if(i>=list.length)return;
+     const t=list[i],key=t.symbol+"|"+period,cached=universePeriodCache.get(key);
+     if(cached&&Date.now()-cached.at<ttl){diag.cacheHits++;t.universeChange=cached.change;}
+     else{
+      diag.cacheMisses++;
+      try{
+       const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+period+"&limit=1");
+       const open=Number(rows&&rows[0]&&rows[0][1]),last=Number(t.lastPrice);
+       const change=open>0&&Number.isFinite(last)?((last-open)/open)*100:NaN;
+       t.universeChange=change;if(Number.isFinite(change))universePeriodCache.set(key,{change,at:Date.now()});
+      }catch(e){t.universeChange=NaN;}
+     }
+     completedPeriodCount++;
+     if(completedPeriodCount%25===0||completedPeriodCount===list.length)$("status").textContent="Ranking "+period+" gainers: "+completedPeriodCount+" / "+list.length+" eligible coins checked…";
+    }
+   };
+   await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,list.length)},()=>processPeriodCoin()));
    list.sort((a,b)=>(Number.isFinite(b.universeChange)?b.universeChange:-Infinity)-(Number.isFinite(a.universeChange)?a.universeChange:-Infinity));
   }else if(mode==="gainers")list.sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));
   else if(mode==="volume")list.sort((a,b)=>Number(b.quoteVolume)-Number(a.quoteVolume));
@@ -576,6 +587,7 @@ async function scan(){
   const getMacdAnalysis=async(symbol,tf)=>{const key=symbol+"|"+tf;if(!macdCache.has(key))macdCache.set(key,(async()=>{const rows=await getCandles(symbol,tf);return {rows,macd:macd(rows)};})());return macdCache.get(key);};
   for(let si=0;si<tickers.length;si++){
    const t=tickers[si],coinRecord=diag.universe[si];
+   await Promise.all(TFS.map(tf=>getMacdAnalysis(t.symbol,tf).catch(()=>null)));
    for(const tf of TFS){
     try{
      diag.stages[tf].evaluated++;const analysis=await getMacdAnalysis(t.symbol,tf),rows=analysis.rows,m=analysis.macd,i=m.hist.length-1,rv=rsi(rows),trace=coinRecord.timeframes[tf],age=eventAge(m.hist,window,"bull"),bearAge=eventAge(m.hist,window,"bear");if($("alert"+tf).checked){if(i>0&&m.hist[i]>0&&m.hist[i-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bull",cvdStats(rows.slice(0,i+1),cvdBars).pct);if(i>0&&m.hist[i]<0&&m.hist[i-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bear",cvdStats(rows.slice(0,i+1),cvdBars).pct);}if(bearAge>=0){const prev=Number(rows[rows.length-2][4]),last=Number(rows[rows.length-1][4]),change=prev?((last-prev)/prev)*100:NaN;output.bear[tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age:bearAge,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi:NaN,priceChange:change,priceChange24h:Number(t.priceChangePercent),cvdPct:cvdStats(rows,cvdBars).pct,cvdDelta:cvdStats(rows,cvdBars).delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay:"—"});}trace.rsi=rv;const cvd=cvdStats(rows,cvdBars);trace.cvdDelta=cvd.delta;trace.cvdPct=cvd.pct;trace.cvdBars=cvdBars;trace.crossover=age>=0;trace.candle=age>=0?age+1:null;
@@ -703,7 +715,8 @@ async function pcRun(){
  let list=tickers.filter(x=>eligible.has(x.symbol)&&Number(x.quoteVolume)>=(Number($("pcMinVol").value)||0));
  const u=$("pcUniverse").value;if(u==="gainers")list.sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));else if(u==="losers")list.sort((a,b)=>Number(a.priceChangePercent)-Number(b.priceChangePercent));else list.sort((a,b)=>Number(b.quoteVolume)-Number(a.quoteVolume));
  list=list.slice(0,Math.max(1,Math.min(100,Number($("pcCount").value)||20)));const markMap=new Map(marks.map(x=>[x.symbol,Number(x.markPrice)])),mode=$("pcMode").value,now=Date.now();
- for(let j=0;j<list.length;j++){const t=list[j];try{
+ const results=new Array(list.length);let nextPcIndex=0,completedPcCount=0;
+ const processPcCoin=async()=>{while(true){const j=nextPcIndex++;if(j>=list.length)return;const t=list[j];try{
  const vals=await Promise.all([request("/fapi/v1/openInterest?symbol="+t.symbol),...PC_TFS.map(tf=>request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+tf+"&limit=100"))]);
  const oi=Number(vals[0].openInterest)*markMap.get(t.symbol);if(!Number.isFinite(oi))throw new Error("OI unavailable");
  const oiCh=pcOiDelta(t.symbol,now,oi),changes={};PC_TFS.forEach((tf,i)=>changes[tf]=pcChange(vals[i+1],mode));changes["24h"]=Number(t.priceChangePercent);
@@ -714,10 +727,11 @@ async function pcRun(){
  if($("pcOiMinOn").checked&&oi<(Number($("pcOiMin").value)||0))pass=false;
  for(const n of [5,10,15])if($("pcOi"+n+"On").checked&&!pcRange(oiCh[n],"pcOi"+n+"Min","pcOi"+n+"Max",n+"m OI"))pass=false;
  const dir=$("pcOiDirection").value;if(dir==="up"&&![5,10,15].some(n=>oiCh[n]>0))pass=false;if(dir==="down"&&![5,10,15].some(n=>oiCh[n]<0))pass=false;
- if(pass)out.push({symbol:t.symbol,price:Number(t.lastPrice),changes,oi,oiCh,rv});
+ if(pass)results[j]={symbol:t.symbol,price:Number(t.lastPrice),changes,oi,oiCh,rv};
  }catch(e){errors.push(t.symbol+": "+e.message);}
- $("pcStatus").textContent="Scanned "+(j+1)+"/"+list.length+"; "+out.length+" matches…";
- }
+ completedPcCount++;if(completedPcCount%5===0||completedPcCount===list.length)$("pcStatus").textContent="Scanned "+completedPcCount+"/"+list.length+"; "+results.filter(Boolean).length+" matches…";
+ }};
+ await Promise.all(Array.from({length:Math.min(3,list.length)},()=>processPcCoin()));out.push(...results.filter(Boolean));
  $("pcRows").innerHTML=out.length?out.map(x=>'<tr><td><b>'+esc(x.symbol)+'</b></td><td>'+x.price.toPrecision(8)+'</td>'+[...PC_TFS,"24h"].map(tf=>'<td class="'+pcClass(x.changes[tf])+'">'+pcPct(x.changes[tf])+'</td>').join("")+'<td>'+pcMoney(x.oi)+'</td>'+[5,10,15].map(n=>'<td class="'+pcClass(x.oiCh[n])+'">'+pcPct(x.oiCh[n])+'</td>').join("")+PC_RSI.map(tf=>'<td>'+(Number.isFinite(x.rv[tf])?x.rv[tf].toFixed(1):"—")+'</td>').join("")+'</tr>').join(""):'<tr><td colspan="20" class="empty">No coins passed the selected filters. OI change filters need snapshot history.</td></tr>';
  $("pcMeta").textContent=out.length+" matches · "+list.length+" scanned · "+new Date().toLocaleTimeString()+" · "+mode+" candles";
  $("pcStatus").className=errors.length?"status error":"status ok";$("pcStatus").textContent="Complete: "+out.length+" matches."+(errors.length?" "+errors.length+" data errors; first: "+errors[0]:"");
