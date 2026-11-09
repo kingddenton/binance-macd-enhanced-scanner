@@ -156,7 +156,7 @@ function playVeryLoud20PctAlarm(){
 function render20PctHistory(){
  const feed=$("twentyPctFeed");if(!feed)return;
  feed.querySelectorAll("[data-live-tf]").forEach(column=>{
-  const tf=column.dataset.liveTf,items=twentyPctHistory.filter(item=>item.tf===tf).slice(0,10);column.replaceChildren();
+  const tf=column.dataset.liveTf,items=twentyPctHistory.filter(item=>item.tf===tf).slice(0,5);column.replaceChildren();
   if(!items.length){const empty=document.createElement("div");empty.className="live-candle-empty";empty.textContent="No alerts yet.";column.appendChild(empty);return;}
   items.forEach(item=>{
    const card=document.createElement("div"),level=item.threshold>=40?"red":item.threshold===10?"yellow":"green";
