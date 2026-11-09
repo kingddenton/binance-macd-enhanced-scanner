@@ -938,4 +938,75 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
 })();
 </script>
 
+<style>
+/* Final V2 hierarchy: controls first, compact monitor strips, diagnostics last. */
+.v2-header{margin-bottom:10px}
+#greenTrackerView>.sub{margin:0 0 10px}
+#greenTrackerView>.panel:has(#toggleFiltersBtn){margin:0 0 8px}
+#toggleFiltersBtn{display:none!important}
+#filtersContent{display:block!important}
+#filtersContent[hidden]{display:none!important}
+#greenTrackerView>.panel:has(#toggleFiltersBtn) .row.actions{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px;margin-top:10px}
+#greenTrackerView>.panel:has(#toggleFiltersBtn) .row.actions button{min-height:42px}
+#greenTrackerView>.panel:has(#toggleFiltersBtn) .statusline{margin-top:8px}
+#topMomentumPanel.momentum-strip{display:block!important;margin:8px 0!important;padding:8px 10px!important}
+#topMomentumPanel.momentum-strip .momentum-head{margin:0 0 6px;align-items:center}
+#topMomentumPanel.momentum-strip .momentum-head h2{font-size:14px}
+#topMomentumPanel.momentum-strip .tablewrap{overflow-x:auto}
+#topMomentumPanel.momentum-strip table{min-width:0!important;width:100%!important;table-layout:fixed}
+#topMomentumPanel.momentum-strip th,#topMomentumPanel.momentum-strip td{padding:5px 4px!important;font-size:11px!important;white-space:nowrap}
+#mmLiveMonitorStrip{margin:8px 0!important}
+#v2AlertCenter{margin:8px 0!important}
+#v2TopDashboard{margin:8px 0!important}
+#diagnosticsPanel{margin:12px 0 0!important;max-height:none!important;overflow:visible!important}
+@media(max-width:600px){
+ #greenTrackerView>.panel:has(#toggleFiltersBtn) .row.actions{grid-template-columns:1.15fr 1fr 1fr;gap:5px}
+ #greenTrackerView>.panel:has(#toggleFiltersBtn) .row.actions button{font-size:11px;padding:8px 5px}
+ #topMomentumPanel.momentum-strip th,#topMomentumPanel.momentum-strip td{font-size:10px!important;padding:4px 2px!important}
+}
+</style><script>
+/* Enforce the agreed page hierarchy after legacy V2 layout helpers have run. */
+(function(){
+ const $=id=>document.getElementById(id);
+ const root=$("greenTrackerView"),main=document.querySelector("main");
+ if(!root||!main)return;
+ const header=main.querySelector(".v2-header");
+ const intro=root.querySelector(":scope > .sub");
+ const filterPanel=$("toggleFiltersBtn")?.closest("section.panel");
+ const actionRow=$("autoBtn")?.closest(".row.actions");
+ const statusRow=$("status")?.closest(".statusline");
+ const momentum=$("topMomentumPanel");
+ const liveFeed=$("twentyPctFeed");
+ const livePanel=liveFeed?.closest(".panel");
+ const alertCenter=$("v2AlertCenter");
+ const dashboard=$("v2TopDashboard");
+ const results=$("tfGrid");
+ const diagnostics=$("diagnosticsPanel");
+ // Keep header, then every filter, then the three primary scan actions.
+ if(header&&intro)header.insertAdjacentElement("afterend",intro);
+ if(intro&&filterPanel)intro.insertAdjacentElement("afterend",filterPanel);
+ if(filterPanel&&actionRow)filterPanel.insertAdjacentElement("afterend",actionRow);
+ if(actionRow&&statusRow)actionRow.insertAdjacentElement("afterend",statusRow);
+ // The actions retain their original handlers and IDs; only their order is normalized.
+ if(actionRow){
+   const auto=$("autoBtn"),once=$("scanBtn"),clear=$("clearDisplayBtn");
+   [auto,once,clear].forEach(n=>{if(n)actionRow.appendChild(n);});
+ }
+ // Top 5 is a narrow ranking strip, followed by the six-column live candle/reversal monitor.
+ const anchor=statusRow||actionRow||filterPanel||intro||header;
+ if(anchor&&momentum){momentum.classList.add("momentum-strip");anchor.insertAdjacentElement("afterend",momentum);}
+ if(momentum&&livePanel)momentum.insertAdjacentElement("afterend",livePanel);
+ else if(anchor&&livePanel)anchor.insertAdjacentElement("afterend",livePanel);
+ // Bullish/bearish crossover, confirmed and reversal alert feeds follow the live monitor.
+ if(livePanel&&alertCenter)livePanel.insertAdjacentElement("afterend",alertCenter);
+ // Overview follows priority alerts; timeframe results follow overview.
+ const alertAnchor=alertCenter||livePanel||momentum||anchor;
+ if(alertAnchor&&dashboard)alertAnchor.insertAdjacentElement("afterend",dashboard);
+ const overview=dashboard||alertAnchor;
+ if(overview&&results)overview.insertAdjacentElement("afterend",results);
+ // Diagnostics remains at the very bottom, after all market result panels.
+ if(results&&diagnostics)results.insertAdjacentElement("afterend",diagnostics);
+ if(diagnostics){diagnostics.style.maxHeight="none";diagnostics.style.overflow="visible";}
+})();
+</script>
 </body></html>
