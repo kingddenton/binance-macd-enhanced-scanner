@@ -615,7 +615,8 @@ function renderTopMomentum(rows){
  const eligible=rows.filter(x=>Number.isFinite(x.change)&&Number.isFinite(x.rsi1)&&Number.isFinite(x.rsi3)&&Number.isFinite(x.rsi5)&&x.rsi1>=60&&x.rsi3>=60&&x.rsi5>=60).sort((a,b)=>b.change-a.change).slice(0,limit);
  body.innerHTML=eligible.length?eligible.map((x,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(x.symbol)+'</b></td><td>'+pctBadge(x.change)+'</td><td>'+x.rsi1.toFixed(1)+'</td><td>'+x.rsi3.toFixed(1)+'</td><td>'+x.rsi5.toFixed(1)+'</td></tr>').join(""):'<tr><td colspan="6" class="compact-empty">No qualifying coins in this scan.</td></tr>';
 }
-\nasync function scan(){
+
+async function scan(){
  if(busy){$("status").textContent="Previous scan is still running; this cycle will be skipped to avoid overlapping Binance requests.";return;}
  busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[],momentumData=[],output={bull:Object.fromEntries(TFS.map(tf=>[tf,[]])),bear:Object.fromEntries(TFS.map(tf=>[tf,[]]))};
