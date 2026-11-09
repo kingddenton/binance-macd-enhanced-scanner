@@ -62,8 +62,8 @@ tr.latest-signal-row>td *,tr.latest-universe-row>td *{color:#111!important;}
 <div class="row actions"><button id="autoBtn" class="secondary">Start auto-scan</button><button id="scanBtn">Scan once</button><button id="clearDisplayBtn" class="secondary" type="button">Clear display</button></div>
 <div class="statusline"><div id="status" class="status">Ready. Select your filters and scan.</div><div id="countdown" class="status"></div></div>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#241b0d">
- <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE ALERT</b><div class="small">15m triggers at +15%; 30m and 1H trigger at +20% from the live forming candle open.</div></div><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">20% alert sound: OFF</button></div>
- <div id="twentyPctFeed" class="alert-items" style="margin-top:8px">No bullish candle threshold alerts yet.</div>
+ <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE ALERT</b><div class="small">Market-wide: 24h quote volume ≥ $2M. Early warning +10% on 15m, 30m and 1H; stronger alerts at +15% (15m) and +20% (30m/1H), measured from each live candle open.</div></div><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button></div>
+ <div id="twentyPctFeed" class="alert-items" style="margin-top:8px">No live bullish candle threshold alerts yet.</div>
  <div id="twentyPctStatus" class="small" style="margin-top:6px">Visual monitoring starts with each scan. Turn the sound ON to enable the loud alarm.</div>
 </div>
 <div class="panel" style="margin-top:12px;border-color:#276b55;background:#0d1c27">
@@ -108,7 +108,7 @@ function playAlertTone(tier,direction,tf){
   if(!alertAudioContext)alertAudioContext=new Ctx();
   if(alertAudioContext.state==="suspended")alertAudioContext.resume();
   const now=alertAudioContext.currentTime,notes=direction==="bull"?[880,660]:[440,330];
-  notes.forEach((frequency,index)=>{const offset=index*0.22,duration=0.16,volume=0.2,osc=alertAudioContext.createOscillator(),gain=alertAudioContext.createGain();osc.type="sine";osc.frequency.setValueAtTime(frequency,now+offset);gain.gain.setValueAtTime(0.0001,now+offset);gain.gain.exponentialRampToValueAtTime(volume,now+offset+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+duration);osc.connect(gain);gain.connect(alertAudioContext.destination);osc.start(now+offset);osc.stop(now+offset+duration+0.01);});
+  notes.forEach((frequency,index)=>{const offset=index*0.22,duration=0.16,volume=tier==="confirmed"?0.25:0.2,osc=alertAudioContext.createOscillator(),gain=alertAudioContext.createGain();osc.type="sine";osc.frequency.setValueAtTime(frequency,now+offset);gain.gain.setValueAtTime(0.0001,now+offset);gain.gain.exponentialRampToValueAtTime(volume,now+offset+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+duration);osc.connect(gain);gain.connect(alertAudioContext.destination);osc.start(now+offset);osc.stop(now+offset+duration+0.01);});
  }catch(e){$("alertSoundStatus").textContent="Sound unavailable in this browser; visual alerts remain active.";}
 }
 function playAlertSound(tier,direction="bull",tf){playAlertTone(tier,direction,tf);}
@@ -123,7 +123,7 @@ function playVeryLoud20PctAlarm(){
    [988,740,988,1244,988].forEach((frequency,index)=>{
     const start=base+burst*0.95+index*0.14,osc=ctx.createOscillator(),gain=ctx.createGain();
     osc.type="square";osc.frequency.setValueAtTime(frequency,start);
-    gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.72,start+0.015);gain.gain.setValueAtTime(0.72,start+0.09);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.13);
+    gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.36,start+0.015);gain.gain.setValueAtTime(0.36,start+0.09);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.13);
     osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.14);
    });
   }
@@ -131,8 +131,8 @@ function playVeryLoud20PctAlarm(){
 }
 function render20PctHistory(){
  const feed=$("twentyPctFeed");if(!feed)return;feed.replaceChildren();
- if(!twentyPctHistory.length){feed.textContent="No +20% bullish candle alerts yet.";return;}
- twentyPctHistory.slice(0,15).forEach(item=>{const el=document.createElement("div");el.className="alert-entry newest-alert-entry";el.style.borderColor="#ffd166";el.style.background="#493513";el.style.color="#fff1cf";el.textContent="🚨 "+item.symbol+" · "+item.tf+" · +"+item.pct.toFixed(2)+"% from candle open · "+new Date(item.at).toLocaleTimeString();feed.appendChild(el);});
+ if(!twentyPctHistory.length){feed.textContent="No live bullish candle threshold alerts yet.";return;}
+ twentyPctHistory.slice(0,15).forEach(item=>{const el=document.createElement("div");el.className="alert-entry newest-alert-entry";el.style.borderColor="#ffd166";el.style.background="#493513";el.style.color="#fff1cf";el.textContent="🚨 "+item.symbol+" · "+item.tf+" · +"+item.pct.toFixed(2)+"% (+"+item.threshold+"% trigger) from candle open · "+new Date(item.at).toLocaleTimeString();feed.appendChild(el);});
 }
 const TWENTY_PCT_TFS=[["15m",900000],["30m",1800000],["1h",3600000]];
 function evaluate20PctLivePrice(symbol,price){
@@ -141,11 +141,13 @@ function evaluate20PctLivePrice(symbol,price){
  for(const [tf,duration] of TWENTY_PCT_TFS){
   const item=opens[tf],currentCandle=Math.floor(now/duration)*duration;
   if(!item||item.candleTime!==currentCandle||!(item.open>0))continue;
-  const threshold=tf==="15m"?15:20,pct=((price/item.open)-1)*100,key=symbol+"|"+tf+"|"+currentCandle;
-  if(pct<threshold||alerted20PctCandles.has(key))continue;
-  alerted20PctCandles.add(key);twentyPctHistory.unshift({symbol,tf,pct,threshold,at:now});if(twentyPctHistory.length>50)twentyPctHistory.pop();
-  render20PctHistory();$("twentyPctStatus").textContent="LIVE TRIGGER: "+symbol+" reached +"+pct.toFixed(2)+"% (+"+threshold+"% threshold) on its forming "+tf+" candle.";
-  playVeryLoud20PctAlarm();
+  const pct=((price/item.open)-1)*100,thresholds=[10,tf==="15m"?15:20];
+  for(const threshold of thresholds){const key=symbol+"|"+tf+"|"+currentCandle+"|"+threshold;
+   if(pct<threshold||alerted20PctCandles.has(key))continue;
+   alerted20PctCandles.add(key);twentyPctHistory.unshift({symbol,tf,pct,threshold,at:now});if(twentyPctHistory.length>50)twentyPctHistory.pop();
+   render20PctHistory();$("twentyPctStatus").textContent="LIVE TRIGGER: "+symbol+" reached +"+pct.toFixed(2)+"% (+"+threshold+"% trigger) on its forming "+tf+" candle.";
+   playVeryLoud20PctAlarm();
+  }
  }
 }
 function update20PctCandleOpens(symbol,oneMinuteRows){
@@ -174,7 +176,7 @@ function ensure20PctTickerSocket(){
   socket.onopen=()=>{
    const streams=[...twentyPctWatchSymbols].map(symbol=>symbol.toLowerCase()+"@kline_1m");
    if(streams.length)socket.send(JSON.stringify({method:"SUBSCRIBE",params:streams,id:20}));
-   $("twentyPctStatus").textContent="Live Binance 1m candle stream connected. Monitoring forming 15m, 30m and 1H candles.";
+   $("twentyPctStatus").textContent="Live Binance 1m stream connected. Monitoring "+twentyPctWatchSymbols.size+" eligible USDT perpetuals with 24h quote volume ≥ $2M across 15m, 30m and 1H candles.";
   };
   socket.onmessage=event=>{
    try{
@@ -379,6 +381,7 @@ async function getExchangeInfo(){
 async function universe(){
  const [all,ex]=await Promise.all([request("/fapi/v1/ticker/24hr"),getExchangeInfo()]);
  const eligible=new Set(ex.symbols.filter(s=>s.status==="TRADING"&&s.contractType==="PERPETUAL"&&s.quoteAsset==="USDT").map(s=>s.symbol));
+ const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);
  const highNow=Date.now();for(const ticker of all){if(!eligible.has(ticker.symbol))continue;const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh)fresh24hHighUntil.set(ticker.symbol,highNow+300000);previous24hHigh.set(ticker.symbol,currentHigh);}}
  for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
  const minVol=Math.max(0,Number($("minVol").value)||0),max=Math.max(1,Math.min(100,Number($("scanCount").value)||20));
@@ -473,7 +476,7 @@ async function scan(){
  busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[],output={bull:Object.fromEntries(TFS.map(tf=>[tf,[]])),bear:Object.fromEntries(TFS.map(tf=>[tf,[]]))};
  try{
-  const tickers=await universe();set20PctWatchUniverse(tickers);
+  const tickers=await universe();
   const cvdTfs=new Set([...document.querySelectorAll("#cvdChecks input:checked")].map(x=>x.id.replace("cvdConfirm_",""))),cvdBars=Math.max(1,Math.min(50,Number($("cvdBars").value)||5)),cvdMin=Number($("cvdMin").value)||0,cvdMaxRaw=$("cvdMax").value.trim(),cvdMax=cvdMaxRaw===""?null:Number(cvdMaxRaw);const htfConfig={};for(const row of document.querySelectorAll("#htfChecks .htf-row")){const enabled=row.querySelector(".htf-enable");if(!enabled||!enabled.checked)continue;const conditions=[...row.querySelectorAll("[data-condition]:checked")].map(x=>x.dataset.condition);if(conditions.length)htfConfig[enabled.value]=conditions;}const deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),stFlipDisplay=$("stFlipEnabled").checked,minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols for bullish signals…";
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
@@ -542,7 +545,7 @@ function toggleAlertSound(key,label){
  $("alertSoundStatus").textContent="Confirmed bullish "+(alertSoundEnabled.confirmedBull?"ON":"OFF")+" · Confirmed bearish "+(alertSoundEnabled.confirmedBear?"ON":"OFF")+" · Bullish crossover "+(alertSoundEnabled.crossoverBull?"ON":"OFF")+" · Bearish crossover "+(alertSoundEnabled.crossoverBear?"ON":"OFF")+". Visual alerts remain active regardless of sound settings.";
  }catch(e){$("alertSoundStatus").textContent="Could not change "+label+" sound: "+e.message;}
 }
-$("toggle20PctSound").addEventListener("click",()=>{twentyPctSoundEnabled=!twentyPctSoundEnabled;try{if(twentyPctSoundEnabled){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("toggle20PctSound").textContent="20% alert sound: "+(twentyPctSoundEnabled?"ON":"OFF");$("toggle20PctSound").classList.toggle("auto-running",twentyPctSoundEnabled);$("twentyPctStatus").textContent=twentyPctSoundEnabled?"Loud alarm enabled. Live candle checks are active.":"Sound OFF; visual threshold alerts remain active."; }catch(e){twentyPctSoundEnabled=false;$("twentyPctStatus").textContent="Could not enable alarm: "+e.message;}});
+$("toggle20PctSound").addEventListener("click",()=>{twentyPctSoundEnabled=!twentyPctSoundEnabled;try{if(twentyPctSoundEnabled){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("toggle20PctSound").textContent="Live candle alert sound: "+(twentyPctSoundEnabled?"ON":"OFF");$("toggle20PctSound").classList.toggle("auto-running",twentyPctSoundEnabled);$("twentyPctStatus").textContent=twentyPctSoundEnabled?"Loud alarm enabled. Live candle checks are active.":"Sound OFF; visual threshold alerts remain active."; }catch(e){twentyPctSoundEnabled=false;$("twentyPctStatus").textContent="Could not enable alarm: "+e.message;}});
 $("toggleEarlyMomentumSound").addEventListener("click",()=>{earlyMomentumSound=!earlyMomentumSound;$("toggleEarlyMomentumSound").textContent="Early Momentum sound: "+(earlyMomentumSound?"ON":"OFF");$("toggleEarlyMomentumSound").classList.toggle("auto-running",earlyMomentumSound);});
 $("toggleConfirmedBullSound").addEventListener("click",()=>toggleAlertSound("confirmedBull","Confirmed bullish alert"));
 $("toggleConfirmedBearSound").addEventListener("click",()=>toggleAlertSound("confirmedBear","Confirmed bearish alert"));
