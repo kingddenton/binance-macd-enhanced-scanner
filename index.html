@@ -606,7 +606,10 @@ function render(dir,tf,rows,errors){
  if(meta)meta.textContent="Candle count: "+(Number(eventBars&&eventBars.value)||5)+" · "+(errors?"Some requests failed.":"Updated "+new Date().toLocaleTimeString());
 }
 
+let lastMomentumData=[];
+$("momentumLimit")?.addEventListener("change",()=>renderTopMomentum(lastMomentumData));
 function renderTopMomentum(rows){
+ lastMomentumData=rows;
  const body=$("topMomentumRows"),limit=Math.max(1,Math.min(5,Number($("momentumLimit")?.value)||5));
  if(!body)return;
  const eligible=rows.filter(x=>Number.isFinite(x.change)&&Number.isFinite(x.rsi1)&&Number.isFinite(x.rsi3)&&Number.isFinite(x.rsi5)&&x.rsi1>=60&&x.rsi3>=60&&x.rsi5>=60).sort((a,b)=>b.change-a.change).slice(0,limit);
