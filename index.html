@@ -244,7 +244,7 @@ function playAlertTone(tier,direction,tf){
   if(!alertAudioContext)alertAudioContext=new Ctx();
   if(alertAudioContext.state==="suspended")alertAudioContext.resume();
   const now=alertAudioContext.currentTime,notes=direction==="bull"?[880,660]:[440,330];
-  notes.forEach((frequency,index)=>{const offset=index*0.22,duration=0.16,volume=tier==="confirmed"?0.25:0.2,osc=alertAudioContext.createOscillator(),gain=alertAudioContext.createGain();osc.type="sine";osc.frequency.setValueAtTime(frequency,now+offset);gain.gain.setValueAtTime(0.0001,now+offset);gain.gain.exponentialRampToValueAtTime(volume,now+offset+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+duration);osc.connect(gain);gain.connect(alertAudioContext.destination);osc.start(now+offset);osc.stop(now+offset+duration+0.01);});
+  notes.forEach((frequency,index)=>{const offset=index*0.22,duration=0.16,volume=(tier==="confirmed"?0.25:0.2)*(direction==="bull"?0.5:1),osc=alertAudioContext.createOscillator(),gain=alertAudioContext.createGain();osc.type="sine";osc.frequency.setValueAtTime(frequency,now+offset);gain.gain.setValueAtTime(0.0001,now+offset);gain.gain.exponentialRampToValueAtTime(volume,now+offset+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+duration);osc.connect(gain);gain.connect(alertAudioContext.destination);osc.start(now+offset);osc.stop(now+offset+duration+0.01);});
  }catch(e){$("alertSoundStatus").textContent="Sound unavailable in this browser; visual alerts remain active.";}
 }
 function playAlertSound(tier,direction="bull",tf){playAlertTone(tier,direction,tf);}
