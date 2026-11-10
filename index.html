@@ -909,7 +909,7 @@ function applySettings(settings){
  const snd=settings.__sounds||{};if("twentyPctSoundEnabled" in snd)twentyPctSoundEnabled=Boolean(snd.twentyPctSoundEnabled);if("specialMacdSoundEnabled" in snd)specialMacdSoundEnabled=Boolean(snd.specialMacdSoundEnabled);if("earlyMomentumSound" in snd)earlyMomentumSound=Boolean(snd.earlyMomentumSound);if("marketwide5mSoundOn" in snd)marketwide5mSoundOn=Boolean(snd.marketwide5mSoundOn);
  if(snd.alertSoundEnabled)Object.keys(alertSoundEnabled).forEach(k=>{if(k in snd.alertSoundEnabled)alertSoundEnabled[k]=Boolean(snd.alertSoundEnabled[k]);});
  const ui=settings.__ui||{};if(ui.activeTab)pcTab(ui.activeTab);if(typeof ui.filtersHidden==="boolean"){$("filtersContent").hidden=ui.filtersHidden;$("toggleFiltersBtn").textContent=ui.filtersHidden?"Show filters ▼":"Hide filters ▲";$("toggleFiltersBtn").setAttribute("aria-expanded",String(!ui.filtersHidden));}
- syncSavedSoundUi();
+ syncSavedSoundUi();if(marketwide5mExchangeSymbols.length)startMarketwide5m(marketwide5mExchangeSymbols,marketwide5mTickers);
 }
 function syncSavedSoundUi(){
  const items=[["toggle20PctSound","Live candle alert sound: ",twentyPctSoundEnabled],["toggleSpecialMacdSound","Special reversal alarm: ",specialMacdSoundEnabled],["toggleEarlyMomentumSound","Early Momentum sound: ",earlyMomentumSound],["marketwide5mSound","Sound: ",marketwide5mSoundOn],["toggleConfirmedBullSound","Confirmed bullish alert: ",alertSoundEnabled.confirmedBull],["toggleConfirmedBearSound","Confirmed bearish alert: ",alertSoundEnabled.confirmedBear],["toggleCrossoverBullSound","Bullish MACD crossover: ",alertSoundEnabled.crossoverBull],["toggleCrossoverBearSound","Bearish MACD crossover: ",alertSoundEnabled.crossoverBear]];
