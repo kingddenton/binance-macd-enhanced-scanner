@@ -219,7 +219,7 @@ main{max-width:1800px;width:100%}
  <div class="row" style="margin-top:8px"><button id="marketwide5mExpand" class="secondary" type="button" style="width:auto">Show all</button><span id="marketwide5mStatus" class="small">Market-wide coverage will initialize after the next market scan.</span></div>
 </section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
- <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +10%; green stronger alert (+15% on 5m/15m, +20% on 30m/1H); red +40% extreme alert. Reversal columns: coins up >10% in 24h with live 3m/5m MACD turning red.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
+ <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +15% minimum trigger on all timeframes; green stronger alert (+20% on 30m/1H); red +40% extreme alert. Reversal columns: coins up >10% in 24h with live 3m/5m MACD turning red.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
  <div class="live-candle-scroll" style="overflow-x:auto;margin-top:10px"><div class="live-candle-columns" id="twentyPctFeed">
   <section class="live-candle-column"><h3>5M</h3><div class="live-candle-items" data-live-tf="5m">No alerts yet.</div></section>
   <section class="live-candle-column"><h3>15M</h3><div class="live-candle-items" data-live-tf="15m">No alerts yet.</div></section>
@@ -308,7 +308,7 @@ function render20PctHistory(){
   const tf=column.dataset.liveTf,items=twentyPctHistory.filter(item=>item.tf===tf).slice(0,5);column.replaceChildren();
   if(!items.length){const empty=document.createElement("div");empty.className="live-candle-empty";empty.textContent="No alerts yet.";column.appendChild(empty);return;}
   items.forEach(item=>{
-   const card=document.createElement("div"),level=item.threshold>=40?"red":item.threshold===10?"yellow":"green";
+   const card=document.createElement("div"),level=item.threshold>=40?"red":item.threshold===15?"yellow":"green";
    card.className="live-candle-card live-candle-"+level;
    const title=document.createElement("strong");title.textContent=item.symbol+"  +"+item.pct.toFixed(2)+"%";
    card.appendChild(title);column.appendChild(card);
@@ -323,7 +323,7 @@ function evaluate20PctLivePrice(symbol,price,activeTf,activeCandleTime){
   if(activeTf&&tf!==activeTf)continue;
   const item=opens[tf],candleTime=activeTf?activeCandleTime:item&&item.candleTime;
   if(!item||!Number.isFinite(candleTime)||item.candleTime!==candleTime||candleTime!==Math.floor(candleTime/duration)*duration||!(item.open>0))continue;
-  const pct=((price/item.open)-1)*100,stronger=tf==="5m"||tf==="15m"?15:20,thresholds=[10,stronger,40];
+  const pct=((price/item.open)-1)*100,stronger=tf==="5m"||tf==="15m"?15:20,thresholds=[...new Set([15,stronger,40])];
   for(const threshold of thresholds){const key=symbol+"|"+tf+"|"+candleTime+"|"+threshold;
    if(pct<threshold||alerted20PctCandles.has(key))continue;
    alerted20PctCandles.add(key);twentyPctHistory.unshift({symbol,tf,pct,threshold,at:now});if(twentyPctHistory.length>50)twentyPctHistory.pop();
