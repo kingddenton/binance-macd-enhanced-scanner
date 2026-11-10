@@ -27,6 +27,7 @@
 
 .live-candle-items{display:flex;flex-direction:column;gap:7px}
 .live-candle-card{padding:8px 7px;border-radius:7px;border:1px solid;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.live-candle-column .live-candle-card{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .live-candle-card strong{display:block;font-size:13px}
 .live-candle-yellow{background:#493a12;border-color:#ffd166;color:#fff0bd}
 .live-candle-green{background:#075b42;border-color:#39d99b;color:#eafff5}
@@ -310,8 +311,7 @@ function render20PctHistory(){
    const card=document.createElement("div"),level=item.threshold>=40?"red":item.threshold===10?"yellow":"green";
    card.className="live-candle-card live-candle-"+level;
    const title=document.createElement("strong");title.textContent=item.symbol+"  +"+item.pct.toFixed(2)+"%";
-   const detail=document.createElement("span");detail.textContent=(level==="red"?"🔴 EXTREME +40%":level==="green"?"🟢 STRONG +"+item.threshold+"%":"🟡 EARLY +10%")+" · "+new Date(item.at).toLocaleTimeString();
-   card.append(title,detail);column.appendChild(card);
+   card.appendChild(title);column.appendChild(card);
   });
  });
 }
