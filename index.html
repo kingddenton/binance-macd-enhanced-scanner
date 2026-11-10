@@ -178,7 +178,7 @@ main{max-width:1800px;width:100%}
 @media(max-width:600px){#marketwide5mPanel .row{flex-wrap:wrap}#marketwide5mPanel .statusline>div:last-child{width:100%}}
 </style></head><body><main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥20%)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
-<section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button><div id="marketwide5mVolumeSetting" class="saved-settings-volume"><label for="marketwide5mMinVolume">Market-wide 5m min 24h volume (USDT)</label><input id="marketwide5mMinVolume" type="number" min="0" step="100000" value="2000000" style="width:120px"></div></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
+<section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button><div id="marketwide5mVolumeSetting" class="saved-settings-volume"><label for="marketwide5mMinVolume">Market-wide 3m min 24h volume (USDT)</label><input id="marketwide5mMinVolume" type="number" min="0" step="100000" value="2000000" style="width:120px"></div></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
 <div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (1H + 4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (1H + 4H + 6H + 12H)</option><option value="gainers24h1plus">All coins with 24H change ≥ +1%</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
 <div><label>Number of coins to scan</label><input id="scanCount" type="number" min="1" max="100" step="1" value="20"></div>
 <div><label>Minimum 24h quote volume (USDT)</label><input id="minVol" type="number" min="0" step="100000" value="0"></div>
@@ -196,7 +196,7 @@ main{max-width:1800px;width:100%}
 <div class="statusline"><div id="status" class="status">Ready. Select your filters and scan.</div><div id="countdown" class="status"></div></div>
 <section id="marketwide5mPanel" class="panel" style="margin:8px 0;border:2px solid #238b5a;background:#0d1c27">
  <div class="statusline" style="align-items:center">
-  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 5M BULLISH ALERT</b><div class="small">Independent of Top N · Positive 5m MACD crossover · Adjustable RSI, live 5m change and crossover age · Optional 5m, 15m and 1h bullish confirmations. Uses the editable 24h quote-volume threshold in Saved Settings.</div></div>
+  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 3M BULLISH ALERT</b><div class="small">Independent of Top N · Positive 3m MACD crossover · Adjustable RSI, live 3m change and crossover age · Optional 3m, 15m and 1h bullish confirmations. Uses the editable 24h quote-volume threshold in Saved Settings.</div></div>
   <div class="row" style="margin:0;gap:7px;align-items:center">
    <button id="marketwide5mSound" class="secondary" type="button" style="width:auto">Sound: OFF</button>
    <label for="marketwide5mVolume" style="margin:0;white-space:nowrap">Volume</label>
@@ -206,16 +206,16 @@ main{max-width:1800px;width:100%}
  </div>
  <div class="controls" style="margin-top:9px;gap:8px;align-items:end">
   <label for="marketwide5mCandleLimit">Candle limit (1–20)<input id="marketwide5mCandleLimit" type="number" min="1" max="20" step="1" value="10" style="width:76px"></label>
-  <label for="marketwide5mMinPct">Min live 5m change (%)<input id="marketwide5mMinPct" type="number" min="0" max="100" step="0.1" value="0.5" style="width:90px"></label>
+  <label for="marketwide5mMinPct">Min live 3m change (%)<input id="marketwide5mMinPct" type="number" min="0" max="100" step="0.1" value="0.5" style="width:90px"></label>
   <label for="marketwide5mMinRsi">Min RSI (14)<input id="marketwide5mMinRsi" type="number" min="0" max="100" step="1" value="60" style="width:76px"></label>
-  <label class="check"><input id="marketwide5mRequireST" type="checkbox"> Require 5m Supertrend positive</label>
+  <label class="check"><input id="marketwide5mRequireST" type="checkbox"> Require 3m Supertrend positive</label>
   <label class="check"><input id="marketwide5mRequire15mST" type="checkbox"> Require 15m Supertrend positive</label>
   <label class="check"><input id="marketwide5mRequire15mMACD" type="checkbox"> Require 15m MACD histogram positive</label>
   <label class="check"><input id="marketwide5mRequire1hST" type="checkbox"> Require 1h Supertrend positive</label>
   <label class="check"><input id="marketwide5mRequire1hMACD" type="checkbox"> Require 1h MACD histogram positive</label>
  </div>
- <div style="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.48fr) minmax(0,.78fr) minmax(0,.48fr);gap:3px;margin-top:8px;padding:0 5px;color:#9eb4c5;font-size:10px;font-weight:800"><span>SYMBOL</span><span>RSI</span><span>5M CHANGE</span><span>CANDLE</span></div>
- <div id="marketwide5mRows" style="display:grid;gap:4px;margin-top:4px"><div class="small">Waiting for market-wide 5m data…</div></div>
+ <div style="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.48fr) minmax(0,.78fr) minmax(0,.48fr);gap:3px;margin-top:8px;padding:0 5px;color:#9eb4c5;font-size:10px;font-weight:800"><span>SYMBOL</span><span>RSI</span><span>3M CHANGE</span><span>CANDLE</span></div>
+ <div id="marketwide5mRows" style="display:grid;gap:4px;margin-top:4px"><div class="small">Waiting for market-wide 3m data…</div></div>
  <div class="row" style="margin-top:8px"><button id="marketwide5mExpand" class="secondary" type="button" style="width:auto">Show all</button><span id="marketwide5mStatus" class="small">Market-wide coverage will initialize after the next market scan.</span></div>
 </section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
@@ -823,7 +823,7 @@ async function scan(){
  finally{busy=false;diag.cycles++;diag.lastScanAt=Date.now();diag.lastDuration=Date.now()-diag.scanStartedAt;renderDiagnostics();renderStages();$("scanBtn").disabled=false;}
 }
 
-/* Independent market-wide 5m bullish crossover monitor.
+/* Independent market-wide 3m bullish crossover monitor.
    Uses the existing MACD/RSI functions and shared rate-limited Binance request queue. */
 let marketwide5mSymbols=[],marketwide5mInventoryKey="",marketwide5mExchangeSymbols=[],marketwide5mTickers=[],marketwide5mSockets=[],marketwide5mSocketGeneration=0,marketwide5mStates=new Map(),marketwide5mSignals=new Map(),marketwide5mSeedBusy=false,marketwide5mSeedTimer=null,marketwide5mSoundOn=false,marketwide5mExpanded=false,marketwide5mLastBeepAt=0;
 const MARKETWIDE_5M_BATCH=40,MARKETWIDE_5M_SOCKET_BATCH=50;
@@ -921,7 +921,7 @@ function scheduleMarketwide5mEvaluation(symbol,state){
  const delay=Math.max(0,500-elapsed);state.evalTimer=setTimeout(()=>{state.evalTimer=null;state.lastEvalAt=Date.now();if(marketwide5mStates.get(symbol)===state)evaluateMarketwide5m(symbol,false);},delay);
 }
 function processMarketwide5mKline(symbol,k){
- const state=marketwide5mStates.get(symbol);if(!state||!k||k.i!=="5m")return;
+ const state=marketwide5mStates.get(symbol);if(!state||!k||k.i!=="3m")return;
  const row=[Number(k.t),k.o,k.h,k.l,k.c,k.v,Number(k.T),k.q,Number(k.n),k.V,k.Q,k.B],last=state.rows[state.rows.length-1];
  if(last&&Number(last[0])===Number(k.t))state.rows[state.rows.length-1]=row;else{state.rows.push(row);if(state.rows.length>100)state.rows.shift();}
  scheduleMarketwide5mEvaluation(symbol,state);
@@ -944,7 +944,7 @@ async function seedMarketwide5mBatch(){
  const pending=marketwide5mSymbols.filter(s=>!marketwide5mStates.has(s)&&(marketwide5mSeedFailures.get(s)||0)<3).slice(0,MARKETWIDE_5M_BATCH);
  if(!pending.length){renderMarketwide5m();return;}
  marketwide5mSeedBusy=true;renderMarketwide5m();let next=0,done=0;
- const worker=async()=>{while(true){const i=next++;if(i>=pending.length)return;const symbol=pending[i];try{const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval=5m&limit=100");if(marketwide5mSymbols.includes(symbol)&&Array.isArray(rows)&&rows.length>=35){marketwide5mStates.set(symbol,{rows});evaluateMarketwide5m(symbol,true);}else marketwide5mSeedFailures.set(symbol,(marketwide5mSeedFailures.get(symbol)||0)+1);}catch(e){marketwide5mSeedFailures.set(symbol,(marketwide5mSeedFailures.get(symbol)||0)+1);}done++;if(done%10===0||done===pending.length)renderMarketwide5m();}};
+ const worker=async()=>{while(true){const i=next++;if(i>=pending.length)return;const symbol=pending[i];try{const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval=3m&limit=100");if(marketwide5mSymbols.includes(symbol)&&Array.isArray(rows)&&rows.length>=35){marketwide5mStates.set(symbol,{rows});evaluateMarketwide5m(symbol,true);}else marketwide5mSeedFailures.set(symbol,(marketwide5mSeedFailures.get(symbol)||0)+1);}catch(e){marketwide5mSeedFailures.set(symbol,(marketwide5mSeedFailures.get(symbol)||0)+1);}done++;if(done%10===0||done===pending.length)renderMarketwide5m();}};
  await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,pending.length)},worker));
  marketwide5mSeedBusy=false;renderMarketwide5m();
  if(marketwide5mSymbols.some(s=>!marketwide5mStates.has(s)&&(marketwide5mSeedFailures.get(s)||0)<3))marketwide5mSeedTimer=setTimeout(seedMarketwide5mBatch,8000);
