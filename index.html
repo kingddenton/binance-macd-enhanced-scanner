@@ -888,7 +888,7 @@ $("marketwide5mSound").addEventListener("click",()=>{marketwide5mSoundOn=!market
 $("marketwide5mVolume").addEventListener("input",()=>{$("marketwide5mVolumeLabel").textContent=$("marketwide5mVolume").value+"%";});
 $("marketwide5mExpand").addEventListener("click",()=>{marketwide5mExpanded=!marketwide5mExpanded;renderMarketwide5m();});
 /* Move the existing minimum-volume control into one compact Volume tab without changing its ID or value. */
-const minVolControl=$("minVol");if(minVolControl&&$("volumeControlsBody"))$("volumeControlsBody").appendChild(minVolControl.parentElement);
+const minVolControl=$("minVol"),pcMinVolControl=$("pcMinVol");if(minVolControl&&$("volumeControlsBody")){const label=minVolControl.parentElement.querySelector("label");if(label)label.textContent="Green Tracker — minimum 24h quote volume (USDT)";$("volumeControlsBody").appendChild(minVolControl.parentElement);}if(pcMinVolControl&&$("volumeControlsBody")){const label=pcMinVolControl.parentElement.querySelector("label");if(label)label.textContent="Price Change — minimum 24h quote volume (USDT)";$("volumeControlsBody").appendChild(pcMinVolControl.parentElement);}
 
 const PROFILE_STORAGE_KEY="mmGreenTrackerSettingsV1";
 function readProfiles(){try{const value=JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY)||"{}");return value&&typeof value==="object"&&!Array.isArray(value)?value:{};}catch(e){return {};}}
