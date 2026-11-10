@@ -168,6 +168,12 @@ main{max-width:1800px;width:100%}
  #mmLiveMonitorStrip .live-candle-columns{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 
+
+#volumeControlsTab summary{list-style:none}#volumeControlsTab summary::-webkit-details-marker{display:none}
+#volumeControlsTab summary:before{content:"＋ ";color:#70f0aa}#volumeControlsTab[open] summary:before{content:"－ "}
+#volumeControlsBody>div{min-width:190px}
+#marketwide5mPanel{min-width:0}#marketwide5mPanel .statusline{flex-wrap:wrap}
+@media(max-width:600px){#marketwide5mPanel .row{flex-wrap:wrap}#marketwide5mPanel .statusline>div:last-child{width:100%}}
 </style></head><body><main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥20%)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
@@ -181,6 +187,25 @@ main{max-width:1800px;width:100%}
 <div style="margin-top:14px"><label>Bullish-only RSI filters (blank values are ignored)</label><div class="rsi-layout"><div>1m RSI <input id="rsiMin_1m" type="number" placeholder="Min"><input id="rsiMax_1m" type="number" placeholder="Max"><br>15m RSI <input id="rsiMin_15m" type="number" placeholder="Min"><input id="rsiMax_15m" type="number" placeholder="Max"></div><div>3m RSI <input id="rsiMin_3m" type="number" placeholder="Min"><input id="rsiMax_3m" type="number" placeholder="Max"><br>5m RSI <input id="rsiMin_5m" type="number" placeholder="Min"><input id="rsiMax_5m" type="number" placeholder="Max"></div></div><div class="small">Uses existing candles; no extra API calls.</div></div><div style="margin-top:12px;padding:9px;border:1px solid #263b55;border-radius:8px"><b>Stoch RSI overbought filters (14,14,3,3)</b><div class="row" style="margin-top:8px;align-items:center"><span class="check"><input id="stochKFilter" type="checkbox"><label for="stochKFilter">Enable K% filter</label></span><label for="stochKThreshold" style="margin:0">K% threshold</label><input id="stochKThreshold" type="number" min="1" max="100" step="1" value="80" style="max-width:76px"></div><div class="row" style="margin-top:8px;align-items:center"><span class="check"><input id="stochDFilter" type="checkbox"><label for="stochDFilter">Enable D% filter</label></span><label for="stochDThreshold" style="margin:0">D% threshold</label><input id="stochDThreshold" type="number" min="1" max="100" step="1" value="80" style="max-width:76px"></div><div class="small">Each filter is optional and independent. Selected filters reject bullish signals only when their own line is above its threshold. If both are enabled, both must pass. OFF by default; no extra API calls.</div></div><div style="margin-top:14px"><label>CVD confirmation — optional, independently per timeframe</label><div class="row" id="cvdChecks"><span class="check"><input type="checkbox" id="cvdConfirm_1m"><label for="cvdConfirm_1m">1m</label></span><span class="check"><input type="checkbox" id="cvdConfirm_3m"><label for="cvdConfirm_3m">3m</label></span><span class="check"><input type="checkbox" id="cvdConfirm_5m"><label for="cvdConfirm_5m">5m</label></span><span class="check"><input type="checkbox" id="cvdConfirm_15m"><label for="cvdConfirm_15m">15m</label></span><label for="cvdBars">Lookback candles</label><input id="cvdBars" type="number" min="1" max="50" value="5" style="width:72px"><label for="cvdMin">Minimum CVD %</label><input id="cvdMin" type="number" step="0.1" value="0" style="width:85px"><label for="cvdMax">Maximum CVD %</label><input id="cvdMax" type="number" step="0.1" placeholder="No limit" style="width:85px"></div><div class="small">CVD uses existing Binance Futures kline data: (2 × taker-buy quote volume − total quote volume), normalized by total quote volume. Positive indicates aggressive buying; negative indicates aggressive selling. No additional API requests.</div></div><div style="margin-top:14px"><label>Primary MACD Supertrend confirmation — independently per primary timeframe</label><div class="row"><span class="check"><input type="checkbox" id="stConfirm_1m"><label for="stConfirm_1m">1m</label></span><span class="check"><input type="checkbox" id="stConfirm_3m"><label for="stConfirm_3m">3m</label></span><span class="check"><input type="checkbox" id="stConfirm_5m"><label for="stConfirm_5m">5m</label></span><span class="check"><input type="checkbox" id="stConfirm_15m"><label for="stConfirm_15m">15m</label></span></div><div class="small">Only checked timeframes require bullish Supertrend, calculated from the same candle rows as MACD.</div></div><div style="margin-top:14px"><label>Supertrend reversal display</label><div class="row"><span class="check"><input type="checkbox" id="stFlipEnabled"><label for="stFlipEnabled">Show compact Supertrend direction and reversal marker</label></span></div><div class="small">Display-only: shows BULL or BEAR, with an arrow when a recent reversal occurred. It never filters, rejects, or changes bullish/bearish MACD results. Uses the already fetched candles; no extra Binance API requests.</div></div><div style="margin-top:14px"><label>Bullish-only positive DEA filter — select independently for each primary timeframe</label><div class="row" id="deaChecks"><span class="check"><input type="checkbox" value="1m"><label>1m DEA &gt; 0</label></span><span class="check"><input type="checkbox" value="3m"><label>3m DEA &gt; 0</label></span><span class="check"><input type="checkbox" value="5m"><label>5m DEA &gt; 0</label></span><span class="check"><input type="checkbox" value="15m"><label>15m DEA &gt; 0</label></span></div><div class="small">Applies to bullish signals only: when checked, that timeframe only displays bullish signals if its latest DEA (MACD signal line, 12/26/9) is strictly above zero. Bearish signals are never filtered by this setting. Unchecked timeframes are unaffected. Uses the existing MACD calculation; no extra API calls.</div></div><div style="margin-top:14px"><label>Bullish higher-timeframe confirmation — select each timeframe and its conditions</label><div id="htfChecks" style="display:grid;gap:8px;max-width:760px"><div class="htf-row" style="display:grid;grid-template-columns:75px repeat(3,minmax(100px,1fr));gap:10px;align-items:center"><span class="check"><input id="htfEnable_15m" class="htf-enable" type="checkbox" value="15m" checked><label>15m</label></span><span class="check"><input id="htf_15m_hist" type="checkbox" data-tf="15m" data-condition="hist" checked><label>Histogram &gt; 0</label></span><span class="check"><input id="htf_15m_dif" type="checkbox" data-tf="15m" data-condition="dif" checked><label>DIF &gt; 0</label></span><span class="check"><input id="htf_15m_dea" type="checkbox" data-tf="15m" data-condition="dea" checked><label>DEA &gt; 0</label></span><span class="check"><input id="htf_15m_supertrend" type="checkbox" data-tf="15m" data-condition="supertrend"><label>Bullish Supertrend</label></span></div><div class="htf-row" style="display:grid;grid-template-columns:75px repeat(3,minmax(100px,1fr));gap:10px;align-items:center"><span class="check"><input id="htfEnable_30m" class="htf-enable" type="checkbox" value="30m" checked><label>30m</label></span><span class="check"><input id="htf_30m_hist" type="checkbox" data-tf="30m" data-condition="hist" checked><label>Histogram &gt; 0</label></span><span class="check"><input id="htf_30m_dif" type="checkbox" data-tf="30m" data-condition="dif" checked><label>DIF &gt; 0</label></span><span class="check"><input id="htf_30m_dea" type="checkbox" data-tf="30m" data-condition="dea" checked><label>DEA &gt; 0</label></span><span class="check"><input id="htf_30m_supertrend" type="checkbox" data-tf="30m" data-condition="supertrend"><label>Bullish Supertrend</label></span></div><div class="htf-row" style="display:grid;grid-template-columns:75px repeat(3,minmax(100px,1fr));gap:10px;align-items:center"><span class="check"><input id="htfEnable_1h" class="htf-enable" type="checkbox" value="1h"><label>1h</label></span><span class="check"><input id="htf_1h_hist" type="checkbox" data-tf="1h" data-condition="hist" checked><label>Histogram &gt; 0</label></span><span class="check"><input id="htf_1h_dif" type="checkbox" data-tf="1h" data-condition="dif" checked><label>DIF &gt; 0</label></span><span class="check"><input id="htf_1h_dea" type="checkbox" data-tf="1h" data-condition="dea" checked><label>DEA &gt; 0</label></span><span class="check"><input id="htf_1h_supertrend" type="checkbox" data-tf="1h" data-condition="supertrend"><label>Bullish Supertrend</label></span></div></div><div class="small">Only checked conditions on enabled timeframes are required. Selected conditions and selected timeframes use AND logic. A timeframe with no condition selected is ignored. These confirmations apply to bullish signals only.</div></div>
 <div class="row actions"><button id="autoBtn" class="secondary">Start auto-scan</button><button id="scanBtn">Scan once</button><button id="clearDisplayBtn" class="secondary" type="button">Clear display</button></div>
 <div class="statusline"><div id="status" class="status">Ready. Select your filters and scan.</div><div id="countdown" class="status"></div></div>
+<details id="volumeControlsTab" class="panel" style="margin:8px 0;padding:10px;background:#101b2c">
+ <summary style="cursor:pointer;font-weight:850;color:#dce8f8">▾ Volume controls</summary>
+ <div id="volumeControlsBody" class="controls" style="margin-top:10px"></div>
+ <div class="small" style="margin-top:6px">Volume filters are grouped here; existing values and scanner behavior are unchanged.</div>
+</details>
+
+<section id="marketwide5mPanel" class="panel" style="margin:8px 0;border:2px solid #238b5a;background:#0d1c27">
+ <div class="statusline" style="align-items:center">
+  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 5M BULLISH ALERT</b><div class="small">Independent of Top N. USDⓈ-M trading instruments · MACD histogram crosses above zero within its first 5 five-minute candles · RSI ≥60. Shows the live 5m candle change.</div></div>
+  <div class="row" style="margin:0;gap:7px;align-items:center">
+   <button id="marketwide5mSound" class="secondary" type="button" style="width:auto">Sound: OFF</button>
+   <label for="marketwide5mVolume" style="margin:0;white-space:nowrap">Volume</label>
+   <input id="marketwide5mVolume" type="range" min="0" max="50" value="15" style="width:90px;padding:0">
+   <span id="marketwide5mVolumeLabel" class="small">15%</span>
+  </div>
+ </div>
+ <div id="marketwide5mRows" style="display:grid;gap:5px;margin-top:10px"><div class="small">Waiting for market-wide 5m data…</div></div>
+ <div class="row" style="margin-top:8px"><button id="marketwide5mExpand" class="secondary" type="button" style="width:auto">Show all</button><span id="marketwide5mStatus" class="small">Market-wide coverage will initialize after the next market scan.</span></div>
+</section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
  <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +10%; green stronger alert (+15% on 5m/15m, +20% on 30m/1H); red +40% extreme alert. Reversal columns: coins up >10% in 24h with live 3m/5m MACD turning red.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
  <div class="live-candle-scroll" style="overflow-x:auto;margin-top:10px"><div class="live-candle-columns" id="twentyPctFeed">
@@ -601,7 +626,7 @@ async function universe(){
  const countTypes=arr=>{const m=new Map();for(const x of arr){const k=x.contractType||"UNSPECIFIED";m.set(k,(m.get(k)||0)+1);}return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0]));};
  const usdTypes=countTypes(activeUsd);
  diag.marketInventorySummary=[{label:"USDⓈ-M trading instruments",value:activeUsd.length},{label:"USDⓈ-M contract types",value:usdTypes.map(x=>x[0]+" ("+x[1]+")").join(" · ")||"None"},{label:"Total USDⓈ-M inventory records",value:inventory.length},{label:"Eligible for scanner (all quote assets / all contract types)",value:eligible.size}];
- const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);setSpecialMacdCandidates(alertWatchlist);
+ const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);setSpecialMacdCandidates(alertWatchlist);startMarketwide5m(ex.symbols);
  const highNow=Date.now();for(const ticker of all){if(!eligible.has(ticker.symbol))continue;const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh)fresh24hHighUntil.set(ticker.symbol,highNow+300000);previous24hHigh.set(ticker.symbol,currentHigh);}}
  for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
  const minVol=Math.max(0,Number($("minVol").value)||0),max=Math.max(1,Math.min(100,Number($("scanCount").value)||20));
@@ -786,6 +811,86 @@ async function scan(){
  }catch(e){diag.outcome="Failed: "+e.message;$("status").className="status error";$("status").textContent="Scan stopped: "+e.message;}
  finally{busy=false;diag.cycles++;diag.lastScanAt=Date.now();diag.lastDuration=Date.now()-diag.scanStartedAt;renderDiagnostics();renderStages();$("scanBtn").disabled=false;}
 }
+
+/* Independent market-wide 5m bullish crossover monitor.
+   Uses the existing MACD/RSI functions and shared rate-limited Binance request queue. */
+let marketwide5mSymbols=[],marketwide5mInventoryKey="",marketwide5mSockets=[],marketwide5mStates=new Map(),marketwide5mSignals=new Map(),marketwide5mSeedBusy=false,marketwide5mSeedTimer=null,marketwide5mSoundOn=false,marketwide5mExpanded=false,marketwide5mLastBeepAt=0;
+const MARKETWIDE_5M_BATCH=40,MARKETWIDE_5M_SOCKET_BATCH=50;
+function marketwide5mPct(rows){const row=rows&&rows[rows.length-1],open=Number(row&&row[1]),close=Number(row&&row[4]);return open>0&&Number.isFinite(close)?(close/open-1)*100:NaN;}
+function renderMarketwide5m(){
+ const root=$("marketwide5mRows");if(!root)return;
+ const now=Date.now(),items=[...marketwide5mSignals.values()].sort((a,b)=>b.pct-a.pct),shown=marketwide5mExpanded?items:items.slice(0,5);
+ root.replaceChildren();
+ if(!shown.length){const empty=document.createElement("div");empty.className="small";empty.textContent="No qualifying market-wide 5m bullish alerts yet.";root.appendChild(empty);}
+ for(const item of shown){const row=document.createElement("div");row.style.cssText="display:flex;justify-content:space-between;gap:12px;padding:7px 9px;border:1px solid #276b55;border-radius:7px;background:#10352d;font-weight:850";const coin=document.createElement("span");coin.textContent=item.symbol;const pct=document.createElement("span");pct.textContent=(item.pct>0?"+":"")+item.pct.toFixed(2)+"%";pct.style.color=item.pct>=0?"#70f0aa":"#ff9aa8";row.append(coin,pct);root.appendChild(row);}
+ const btn=$("marketwide5mExpand");if(btn){btn.hidden=items.length<=5;btn.textContent=marketwide5mExpanded?"Show fewer":"Show all ("+items.length+")";}
+ const ready=marketwide5mStates.size,total=marketwide5mSymbols.length,failed=[...marketwide5mSeedFailures.values()].filter(n=>n>=3).length;
+ const status=$("marketwide5mStatus");if(status)status.textContent=ready+"/"+total+" instruments seeded · "+items.length+" active alerts"+(failed?" · "+failed+" seed failures":"")+(marketwide5mSeedBusy?" · loading next batch":"");
+}
+const marketwide5mSeedFailures=new Map();
+function marketwide5mPlayBoop(){
+ if(!marketwide5mSoundOn||Date.now()-marketwide5mLastBeepAt<1800)return;
+ marketwide5mLastBeepAt=Date.now();
+ try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime,level=(Number($("marketwide5mVolume").value)||0)/100*.16;if(level<=0)return;[660,880].forEach((hz,i)=>{const start=base+i*.19,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.setValueAtTime(hz,start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(level,start+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+.14);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.15);});}catch(e){const s=$("marketwide5mStatus");if(s)s.textContent="Alert detected; browser audio is unavailable or blocked. Visual alerts remain active.";}
+}
+function evaluateMarketwide5m(symbol,initial=false){
+ const state=marketwide5mStates.get(symbol);if(!state||!Array.isArray(state.rows)||state.rows.length<35)return;
+ const rows=state.rows,m=macd(rows),hist=m.hist,age=eventAge(hist,5,"bull"),rv=rsi(rows,14),pct=marketwide5mPct(rows);
+ if(age<0||age>4||!(Number.isFinite(rv)&&rv>=60)){
+  const prior=marketwide5mSignals.get(symbol);
+  if(prior&&(age<0||age>4||hist.at(-1)<=0)){marketwide5mSignals.delete(symbol);renderMarketwide5m();}
+  return;
+ }
+ const crossIndex=hist.length-1-age,candleTime=Number(rows[crossIndex][0]),key=symbol+"|"+candleTime,prior=marketwide5mSignals.get(symbol);
+ if(prior&&prior.key===key){prior.pct=pct;prior.age=age;prior.rsi=rv;renderMarketwide5m();return;}
+ const item={key,symbol,pct,age,rsi:rv,candleTime,at:Date.now()};marketwide5mSignals.set(symbol,item);
+ if(marketwide5mSignals.size>250){const oldest=[...marketwide5mSignals.values()].sort((a,b)=>a.at-b.at).slice(0,marketwide5mSignals.size-250);oldest.forEach(x=>marketwide5mSignals.delete(x.symbol));}
+ renderMarketwide5m();if(!initial)marketwide5mPlayBoop();
+}
+function processMarketwide5mKline(symbol,k){
+ const state=marketwide5mStates.get(symbol);if(!state||!k||k.i!=="5m")return;
+ const row=[Number(k.t),k.o,k.h,k.l,k.c,k.v,Number(k.T),k.q,Number(k.n),k.V,k.Q,k.B],last=state.rows[state.rows.length-1];
+ if(last&&Number(last[0])===Number(k.t))state.rows[state.rows.length-1]=row;else{state.rows.push(row);if(state.rows.length>100)state.rows.shift();}
+ evaluateMarketwide5m(symbol,false);
+}
+function openMarketwide5mSocket(batch,batchId,attempt=0){
+ if(!batch.length)return;let socket;
+ try{socket=new WebSocket("wss://fstream.binance.com/market/stream");}catch(e){setTimeout(()=>openMarketwide5mSocket(batch,batchId,attempt+1),Math.min(60000,3000*Math.pow(2,Math.min(attempt,4))));return;}
+ socket._marketwideBatch=batch;socket._marketwideId=batchId;marketwide5mSockets.push(socket);
+ socket.onopen=()=>{const streams=batch.map(s=>s.toLowerCase()+"@kline_5m");socket.send(JSON.stringify({method:"SUBSCRIBE",params:streams,id:500+batchId}));};
+ socket.onmessage=event=>{try{const msg=JSON.parse(event.data);if(msg.id!==undefined)return;const p=msg.data||msg,k=p&&p.k,symbol=p&&(p.s||k&&k.s);if(symbol&&k&&marketwide5mSymbols.includes(symbol))processMarketwide5mKline(symbol,k);}catch(e){}};
+ socket.onerror=()=>{try{socket.close();}catch(e){}};
+ socket.onclose=()=>{const i=marketwide5mSockets.indexOf(socket);if(i>=0)marketwide5mSockets.splice(i,1);if(marketwide5mSymbols.length&&batch.some(s=>marketwide5mSymbols.includes(s)))setTimeout(()=>openMarketwide5mSocket(batch,batchId,attempt+1),Math.min(60000,3000*Math.pow(2,Math.min(attempt,4))));};
+}
+function ensureMarketwide5mSockets(){
+ const batches=[];for(let i=0;i<marketwide5mSymbols.length;i+=MARKETWIDE_5M_SOCKET_BATCH)batches.push(marketwide5mSymbols.slice(i,i+MARKETWIDE_5M_SOCKET_BATCH));
+ batches.forEach((batch,i)=>openMarketwide5mSocket(batch,i));
+}
+async function seedMarketwide5mBatch(){
+ if(marketwide5mSeedBusy||!marketwide5mSymbols.length)return;
+ const pending=marketwide5mSymbols.filter(s=>!marketwide5mStates.has(s)&&(marketwide5mSeedFailures.get(s)||0)<3).slice(0,MARKETWIDE_5M_BATCH);
+ if(!pending.length){renderMarketwide5m();return;}
+ marketwide5mSeedBusy=true;renderMarketwide5m();let next=0,done=0;
+ const worker=async()=>{while(true){const i=next++;if(i>=pending.length)return;const symbol=pending[i];try{const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval=5m&limit=100");if(Array.isArray(rows)&&rows.length>=35){marketwide5mStates.set(symbol,{rows});evaluateMarketwide5m(symbol,true);}else marketwide5mSeedFailures.set(symbol,(marketwide5mSeedFailures.get(symbol)||0)+1);}catch(e){marketwide5mSeedFailures.set(symbol,(marketwide5mSeedFailures.get(symbol)||0)+1);}done++;if(done%10===0||done===pending.length)renderMarketwide5m();}};
+ await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,pending.length)},worker));
+ marketwide5mSeedBusy=false;renderMarketwide5m();
+ if(marketwide5mSymbols.some(s=>!marketwide5mStates.has(s)&&(marketwide5mSeedFailures.get(s)||0)<3))marketwide5mSeedTimer=setTimeout(seedMarketwide5mBatch,8000);
+}
+function startMarketwide5m(exchangeSymbols){
+ const symbols=(exchangeSymbols||[]).filter(x=>x&&x.status==="TRADING").map(x=>x.symbol).filter(Boolean).sort(),key=symbols.join("|");
+ if(!symbols.length||key===marketwide5mInventoryKey)return;
+ marketwide5mInventoryKey=key;marketwide5mSymbols=symbols;
+ for(const socket of marketwide5mSockets){try{socket.close();}catch(e){}}marketwide5mSockets=[];
+ for(const symbol of [...marketwide5mStates.keys()])if(!symbols.includes(symbol))marketwide5mStates.delete(symbol);
+ for(const symbol of [...marketwide5mSignals.keys()])if(!symbols.includes(symbol))marketwide5mSignals.delete(symbol);
+ ensureMarketwide5mSockets();if(marketwide5mSeedTimer)clearTimeout(marketwide5mSeedTimer);marketwide5mSeedTimer=setTimeout(seedMarketwide5mBatch,1500);renderMarketwide5m();
+}
+$("marketwide5mSound").addEventListener("click",()=>{marketwide5mSoundOn=!marketwide5mSoundOn;try{if(marketwide5mSoundOn){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio is unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("marketwide5mSound").textContent="Sound: "+(marketwide5mSoundOn?"ON":"OFF");$("marketwide5mSound").classList.toggle("auto-running",marketwide5mSoundOn);}catch(e){marketwide5mSoundOn=false;$("marketwide5mStatus").textContent="Could not enable sound: "+e.message;}});
+$("marketwide5mVolume").addEventListener("input",()=>{$("marketwide5mVolumeLabel").textContent=$("marketwide5mVolume").value+"%";});
+$("marketwide5mExpand").addEventListener("click",()=>{marketwide5mExpanded=!marketwide5mExpanded;renderMarketwide5m();});
+/* Move the existing minimum-volume control into one compact Volume tab without changing its ID or value. */
+const minVolControl=$("minVol");if(minVolControl&&$("volumeControlsBody"))$("volumeControlsBody").appendChild(minVolControl.parentElement);
+
 const PROFILE_STORAGE_KEY="mmGreenTrackerSettingsV1";
 function readProfiles(){try{const value=JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY)||"{}");return value&&typeof value==="object"&&!Array.isArray(value)?value:{};}catch(e){return {};}}
 function refreshProfileList(selected=""){const select=$("savedProfiles"),profiles=readProfiles();select.innerHTML='<option value="">Select saved settings</option>';Object.keys(profiles).sort((a,b)=>a.localeCompare(b)).forEach(name=>{const option=document.createElement("option");option.value=name;option.textContent=name;select.appendChild(option);});if(selected&&profiles[selected])select.value=selected;}
