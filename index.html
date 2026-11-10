@@ -195,7 +195,7 @@ main{max-width:1800px;width:100%}
 <div class="statusline"><div id="status" class="status">Ready. Select your filters and scan.</div><div id="countdown" class="status"></div></div>
 <section id="marketwide5mPanel" class="panel" style="margin:8px 0;border:2px solid #238b5a;background:#0d1c27">
  <div class="statusline" style="align-items:center">
-  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 5M BULLISH ALERT</b><div class="small">Independent of Top N. USDⓈ-M trading instruments meeting the editable 24h quote-volume threshold · MACD histogram crosses above zero within its first 5 five-minute candles · RSI ≥60. Shows the live 5m candle change.</div></div>
+  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 5M BULLISH ALERT</b><div class="small">Independent of Top N · Positive 5m MACD crossover · Adjustable RSI, live 5m change and crossover age · Optional 5m, 15m and 1h bullish confirmations. Uses the editable 24h quote-volume threshold in Saved Settings.</div></div>
   <div class="row" style="margin:0;gap:7px;align-items:center">
    <button id="marketwide5mSound" class="secondary" type="button" style="width:auto">Sound: OFF</button>
    <label for="marketwide5mVolume" style="margin:0;white-space:nowrap">Volume</label>
@@ -203,7 +203,18 @@ main{max-width:1800px;width:100%}
    <span id="marketwide5mVolumeLabel" class="small">15%</span>
   </div>
  </div>
- <div id="marketwide5mRows" style="display:grid;gap:5px;margin-top:10px"><div class="small">Waiting for market-wide 5m data…</div></div>
+ <div class="controls" style="margin-top:9px;gap:8px;align-items:end">
+  <label for="marketwide5mCandleLimit">Candle limit (1–20)<input id="marketwide5mCandleLimit" type="number" min="1" max="20" step="1" value="10" style="width:76px"></label>
+  <label for="marketwide5mMinPct">Min live 5m change (%)<input id="marketwide5mMinPct" type="number" min="0" max="100" step="0.1" value="0.5" style="width:90px"></label>
+  <label for="marketwide5mMinRsi">Min RSI (14)<input id="marketwide5mMinRsi" type="number" min="0" max="100" step="1" value="60" style="width:76px"></label>
+  <label class="check"><input id="marketwide5mRequireST" type="checkbox"> Require 5m Supertrend positive</label>
+  <label class="check"><input id="marketwide5mRequire15mST" type="checkbox"> Require 15m Supertrend positive</label>
+  <label class="check"><input id="marketwide5mRequire15mMACD" type="checkbox"> Require 15m MACD histogram positive</label>
+  <label class="check"><input id="marketwide5mRequire1hST" type="checkbox"> Require 1h Supertrend positive</label>
+  <label class="check"><input id="marketwide5mRequire1hMACD" type="checkbox"> Require 1h MACD histogram positive</label>
+ </div>
+ <div style="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.48fr) minmax(0,.78fr) minmax(0,.48fr);gap:3px;margin-top:8px;padding:0 5px;color:#9eb4c5;font-size:10px;font-weight:800"><span>SYMBOL</span><span>RSI</span><span>5M CHANGE</span><span>CANDLE</span></div>
+ <div id="marketwide5mRows" style="display:grid;gap:4px;margin-top:4px"><div class="small">Waiting for market-wide 5m data…</div></div>
  <div class="row" style="margin-top:8px"><button id="marketwide5mExpand" class="secondary" type="button" style="width:auto">Show all</button><span id="marketwide5mStatus" class="small">Market-wide coverage will initialize after the next market scan.</span></div>
 </section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
@@ -817,14 +828,17 @@ async function scan(){
 let marketwide5mSymbols=[],marketwide5mInventoryKey="",marketwide5mExchangeSymbols=[],marketwide5mTickers=[],marketwide5mSockets=[],marketwide5mSocketGeneration=0,marketwide5mStates=new Map(),marketwide5mSignals=new Map(),marketwide5mSeedBusy=false,marketwide5mSeedTimer=null,marketwide5mSoundOn=false,marketwide5mExpanded=false,marketwide5mLastBeepAt=0;
 const MARKETWIDE_5M_BATCH=40,MARKETWIDE_5M_SOCKET_BATCH=50;
 function marketwide5mMinVolume(){const el=$("marketwide5mMinVolume"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,n):2000000;}
+function marketwide5mCandleLimit(){const el=$("marketwide5mCandleLimit"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(1,Math.min(20,Math.floor(n))):10;}
+function marketwide5mMinChange(){const el=$("marketwide5mMinPct"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.5;}
+function marketwide5mMinRsi(){const el=$("marketwide5mMinRsi"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):60;}
 function marketwide5mPct(rows){const row=rows&&rows[rows.length-1],open=Number(row&&row[1]),close=Number(row&&row[4]);return open>0&&Number.isFinite(close)?(close/open-1)*100:NaN;}
 function renderMarketwide5m(){
  const root=$("marketwide5mRows");if(!root)return;
- const now=Date.now(),items=[...marketwide5mSignals.values()].sort((a,b)=>b.pct-a.pct),shown=marketwide5mExpanded?items:items.slice(0,5);
+ const items=[...marketwide5mSignals.values()].filter(x=>Number.isFinite(x.pct)&&x.pct>=marketwide5mMinChange()).sort((a,b)=>b.pct-a.pct),shown=marketwide5mExpanded?items:items.slice(0,5);
  root.replaceChildren();
- if(!shown.length){const empty=document.createElement("div");empty.className="small";empty.textContent="No qualifying market-wide 5m bullish alerts yet.";root.appendChild(empty);}
- for(const item of shown){const row=document.createElement("div");row.style.cssText="display:flex;justify-content:space-between;gap:12px;padding:7px 9px;border:1px solid #276b55;border-radius:7px;background:#10352d;font-weight:850";const coin=document.createElement("span");coin.textContent=item.symbol;const pct=document.createElement("span");pct.textContent=(item.pct>0?"+":"")+item.pct.toFixed(2)+"%";pct.style.color=item.pct>=0?"#70f0aa":"#ff9aa8";row.append(coin,pct);root.appendChild(row);}
- const btn=$("marketwide5mExpand");if(btn){btn.hidden=items.length<=5;btn.textContent=marketwide5mExpanded?"Show fewer":"Show all ("+items.length+")";}
+ if(!shown.length){const empty=document.createElement("div");empty.className="small";empty.textContent="No positive 5m bullish alerts meet the selected change threshold.";root.appendChild(empty);}
+ for(const item of shown){const row=document.createElement("div");row.style.cssText="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.48fr) minmax(0,.78fr) minmax(0,.48fr);gap:3px;align-items:center;padding:3px 5px;border:1px solid #276b55;border-radius:6px;background:#10352d;font-size:12px;line-height:1.25;font-weight:850";const coin=document.createElement("span");coin.textContent=item.symbol;const candle=document.createElement("span");candle.textContent=(item.age+1)+"/"+marketwide5mCandleLimit();candle.style.color="#c7d7e5";const pct=document.createElement("span");pct.textContent=(item.pct>0?"+":"")+item.pct.toFixed(2)+"%";pct.style.color="#70f0aa";const rsiCell=document.createElement("span");rsiCell.textContent=Number.isFinite(item.rsi)?item.rsi.toFixed(1):"—";rsiCell.style.color="#70f0aa";row.append(coin,rsiCell,pct,candle);root.appendChild(row);}
+ const btn=$("marketwide5mExpand");if(btn){btn.hidden=false;btn.textContent=marketwide5mExpanded?"Show fewer":"Show all ("+items.length+")";}
  const ready=marketwide5mStates.size,total=marketwide5mSymbols.length,failed=[...marketwide5mSeedFailures.values()].filter(n=>n>=3).length;
  const status=$("marketwide5mStatus");if(status)status.textContent=ready+"/"+total+" instruments seeded · "+items.length+" active alerts"+(failed?" · "+failed+" seed failures":"")+(marketwide5mSeedBusy?" · loading next batch":"");
 }
@@ -834,13 +848,67 @@ function marketwide5mPlayBoop(){
  marketwide5mLastBeepAt=Date.now();
  try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime,level=(Number($("marketwide5mVolume").value)||0)/100*.16;if(level<=0)return;[660,880].forEach((hz,i)=>{const start=base+i*.19,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.setValueAtTime(hz,start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(level,start+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+.14);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.15);});}catch(e){const s=$("marketwide5mStatus");if(s)s.textContent="Alert detected; browser audio is unavailable or blocked. Visual alerts remain active.";}
 }
-function evaluateMarketwide5m(symbol,initial=false){
+async function marketwide5mGet1hConfirmation(symbol,state){
+ const now=Date.now();
+ if(state.htf1hCache&&state.htf1hCache.expiresAt>now)return state.htf1hCache;
+ if(state.htf1hPromise)return state.htf1hPromise;
+ state.htf1hPromise=(async()=>{
+  const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval=1h&limit=99");
+  if(!Array.isArray(rows)||rows.length<35)throw new Error("Insufficient 1h candles");
+  const st=supertrendInfo(rows,10,3),m=macd(rows),hist=m&&m.hist;
+  const result={stPositive:!!(st&&st.trend===1),macdPositive:!!(hist&&Number.isFinite(hist[hist.length-1])&&hist[hist.length-1]>0),expiresAt:Date.now()+60000};
+  state.htf1hCache=result;return result;
+ })().finally(()=>{state.htf1hPromise=null;});
+ return state.htf1hPromise;
+}
+async function marketwide5mGet15mConfirmation(symbol,state){
+ const now=Date.now();
+ if(state.htf15mCache&&state.htf15mCache.expiresAt>now)return state.htf15mCache;
+ if(state.htf15mPromise)return state.htf15mPromise;
+ state.htf15mPromise=(async()=>{
+  const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval=15m&limit=99");
+  if(!Array.isArray(rows)||rows.length<35)throw new Error("Insufficient 15m candles");
+  const st=supertrendInfo(rows,10,3),m=macd(rows),hist=m&&m.hist;
+  const result={stPositive:!!(st&&st.trend===1),macdPositive:!!(hist&&Number.isFinite(hist[hist.length-1])&&hist[hist.length-1]>0),expiresAt:Date.now()+60000};
+  state.htf15mCache=result;return result;
+ })().finally(()=>{state.htf15mPromise=null;});
+ return state.htf15mPromise;
+}
+async function evaluateMarketwide5m(symbol,initial=false){
  const state=marketwide5mStates.get(symbol);if(!state||!Array.isArray(state.rows)||state.rows.length<35)return;
- const rows=state.rows,m=macd(rows),hist=m.hist,age=eventAge(hist,5,"bull"),rv=rsi(rows,14),pct=marketwide5mPct(rows);
- if(age<0||age>4||!(Number.isFinite(rv)&&rv>=60)){
+ const rows=state.rows,m=macd(rows),hist=m.hist,candleLimit=marketwide5mCandleLimit(),age=eventAge(hist,candleLimit,"bull"),rv=rsi(rows,14),pct=marketwide5mPct(rows),requireST=$("marketwide5mRequireST")?.checked===true,st5m=requireST?supertrendInfo(rows,10,3):null;
+ if(age<0||age>=candleLimit||!(Number.isFinite(rv)&&rv>=marketwide5mMinRsi())||!Number.isFinite(pct)||pct<marketwide5mMinChange()||(requireST&&(!st5m||st5m.trend!==1))){
   const prior=marketwide5mSignals.get(symbol);
-  if(prior&&(age<0||age>4||hist.at(-1)<=0)){marketwide5mSignals.delete(symbol);renderMarketwide5m();}
+  if(prior){marketwide5mSignals.delete(symbol);renderMarketwide5m();}
   return;
+ }
+ const require1hST=$("marketwide5mRequire1hST")?.checked===true,require1hMACD=$("marketwide5mRequire1hMACD")?.checked===true;
+ if(require1hST||require1hMACD){
+  const token=(state.htfEvalToken||0)+1;state.htfEvalToken=token;
+  try{
+   const htf=await marketwide5mGet1hConfirmation(symbol,state);
+   if(marketwide5mStates.get(symbol)!==state||state.htfEvalToken!==token)return;
+   if((require1hST&&!htf.stPositive)||(require1hMACD&&!htf.macdPositive)){
+    const prior=marketwide5mSignals.get(symbol);if(prior){marketwide5mSignals.delete(symbol);renderMarketwide5m();}return;
+   }
+  }catch(e){
+   if(marketwide5mStates.get(symbol)!==state||state.htfEvalToken!==token)return;
+   const prior=marketwide5mSignals.get(symbol);if(prior){marketwide5mSignals.delete(symbol);renderMarketwide5m();}return;
+  }
+ }
+ const require15mST=$("marketwide5mRequire15mST")?.checked===true,require15mMACD=$("marketwide5mRequire15mMACD")?.checked===true;
+ if(require15mST||require15mMACD){
+  const token=(state.htf15mEvalToken||0)+1;state.htf15mEvalToken=token;
+  try{
+   const htf=await marketwide5mGet15mConfirmation(symbol,state);
+   if(marketwide5mStates.get(symbol)!==state||state.htf15mEvalToken!==token)return;
+   if((require15mST&&!htf.stPositive)||(require15mMACD&&!htf.macdPositive)){
+    const prior=marketwide5mSignals.get(symbol);if(prior){marketwide5mSignals.delete(symbol);renderMarketwide5m();}return;
+   }
+  }catch(e){
+   if(marketwide5mStates.get(symbol)!==state||state.htf15mEvalToken!==token)return;
+   const prior=marketwide5mSignals.get(symbol);if(prior){marketwide5mSignals.delete(symbol);renderMarketwide5m();}return;
+  }
  }
  const crossIndex=hist.length-1-age,candleTime=Number(rows[crossIndex][0]),key=symbol+"|"+candleTime,prior=marketwide5mSignals.get(symbol);
  if(prior&&prior.key===key){prior.pct=pct;prior.age=age;prior.rsi=rv;renderMarketwide5m();return;}
@@ -848,11 +916,15 @@ function evaluateMarketwide5m(symbol,initial=false){
  if(marketwide5mSignals.size>250){const oldest=[...marketwide5mSignals.values()].sort((a,b)=>a.at-b.at).slice(0,marketwide5mSignals.size-250);oldest.forEach(x=>marketwide5mSignals.delete(x.symbol));}
  renderMarketwide5m();if(!initial)marketwide5mPlayBoop();
 }
+function scheduleMarketwide5mEvaluation(symbol,state){
+ const now=Date.now(),elapsed=now-(state.lastEvalAt||0);if(state.evalTimer)return;
+ const delay=Math.max(0,500-elapsed);state.evalTimer=setTimeout(()=>{state.evalTimer=null;state.lastEvalAt=Date.now();if(marketwide5mStates.get(symbol)===state)evaluateMarketwide5m(symbol,false);},delay);
+}
 function processMarketwide5mKline(symbol,k){
  const state=marketwide5mStates.get(symbol);if(!state||!k||k.i!=="5m")return;
  const row=[Number(k.t),k.o,k.h,k.l,k.c,k.v,Number(k.T),k.q,Number(k.n),k.V,k.Q,k.B],last=state.rows[state.rows.length-1];
  if(last&&Number(last[0])===Number(k.t))state.rows[state.rows.length-1]=row;else{state.rows.push(row);if(state.rows.length>100)state.rows.shift();}
- evaluateMarketwide5m(symbol,false);
+ scheduleMarketwide5mEvaluation(symbol,state);
 }
 function openMarketwide5mSocket(batch,batchId,attempt=0,generation=marketwide5mSocketGeneration){
  if(!batch.length)return;let socket;
@@ -889,6 +961,8 @@ function startMarketwide5m(exchangeSymbols,tickers){
  ensureMarketwide5mSockets();if(marketwide5mSeedTimer)clearTimeout(marketwide5mSeedTimer);marketwide5mSeedTimer=setTimeout(seedMarketwide5mBatch,1500);renderMarketwide5m();
 }
 $("marketwide5mMinVolume").addEventListener("change",()=>{const value=marketwide5mMinVolume();$("marketwide5mMinVolume").value=String(value);startMarketwide5m(marketwide5mExchangeSymbols,marketwide5mTickers);});
+["marketwide5mCandleLimit","marketwide5mMinPct","marketwide5mMinRsi"].forEach(id=>$(id).addEventListener("change",()=>{const el=$(id);if(id==="marketwide5mCandleLimit")el.value=String(marketwide5mCandleLimit());if(id==="marketwide5mMinPct")el.value=String(marketwide5mMinChange());if(id==="marketwide5mMinRsi")el.value=String(marketwide5mMinRsi());for(const symbol of marketwide5mStates.keys())evaluateMarketwide5m(symbol,true);renderMarketwide5m();}));
+["marketwide5mRequireST","marketwide5mRequire1hST","marketwide5mRequire1hMACD","marketwide5mRequire15mST","marketwide5mRequire15mMACD"].forEach(id=>$(id).addEventListener("change",()=>{for(const symbol of marketwide5mStates.keys())evaluateMarketwide5m(symbol,true);renderMarketwide5m();}));
 $("marketwide5mSound").addEventListener("click",()=>{marketwide5mSoundOn=!marketwide5mSoundOn;try{if(marketwide5mSoundOn){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio is unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("marketwide5mSound").textContent="Sound: "+(marketwide5mSoundOn?"ON":"OFF");$("marketwide5mSound").classList.toggle("auto-running",marketwide5mSoundOn);}catch(e){marketwide5mSoundOn=false;$("marketwide5mStatus").textContent="Could not enable sound: "+e.message;}});
 $("marketwide5mVolume").addEventListener("input",()=>{$("marketwide5mVolumeLabel").textContent=$("marketwide5mVolume").value+"%";});
 $("marketwide5mExpand").addEventListener("click",()=>{marketwide5mExpanded=!marketwide5mExpanded;renderMarketwide5m();});
