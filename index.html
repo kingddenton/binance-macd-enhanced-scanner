@@ -169,6 +169,7 @@ main{max-width:1800px;width:100%}
 }
 
 
+.saved-settings-volume{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;margin-left:6px;padding-left:10px;border-left:1px solid #34445c}.saved-settings-volume label{white-space:nowrap;font-size:11px}.saved-settings-volume input{width:120px;max-width:32vw;min-height:30px;padding:5px 7px;font-size:11px}
 #volumeControlsTab summary{list-style:none}#volumeControlsTab summary::-webkit-details-marker{display:none}
 #volumeControlsTab summary:before{content:"＋ ";color:#70f0aa}#volumeControlsTab[open] summary:before{content:"－ "}
 #volumeControlsBody>div{min-width:190px}
@@ -176,7 +177,7 @@ main{max-width:1800px;width:100%}
 @media(max-width:600px){#marketwide5mPanel .row{flex-wrap:wrap}#marketwide5mPanel .statusline>div:last-child{width:100%}}
 </style></head><body><main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥20%)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
-<section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
+<section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button><div id="marketwide5mVolumeSetting" class="saved-settings-volume"><label for="marketwide5mMinVolume">Market-wide 5m min 24h volume (USDT)</label><input id="marketwide5mMinVolume" type="number" min="0" step="100000" value="2000000" style="width:120px"></div></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
 <div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (1H + 4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (1H + 4H + 6H + 12H)</option><option value="gainers24h1plus">All coins with 24H change ≥ +1%</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
 <div><label>Number of coins to scan</label><input id="scanCount" type="number" min="1" max="100" step="1" value="20"></div>
 <div><label>Minimum 24h quote volume (USDT)</label><input id="minVol" type="number" min="0" step="100000" value="0"></div>
@@ -194,7 +195,7 @@ main{max-width:1800px;width:100%}
 <div class="statusline"><div id="status" class="status">Ready. Select your filters and scan.</div><div id="countdown" class="status"></div></div>
 <section id="marketwide5mPanel" class="panel" style="margin:8px 0;border:2px solid #238b5a;background:#0d1c27">
  <div class="statusline" style="align-items:center">
-  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 5M BULLISH ALERT</b><div class="small">Independent of Top N. USDⓈ-M trading instruments with 24h quote volume ≥ $2M · MACD histogram crosses above zero within its first 5 five-minute candles · RSI ≥60. Shows the live 5m candle change.</div></div>
+  <div><b style="color:#70f0aa">🌐 MARKET-WIDE 5M BULLISH ALERT</b><div class="small">Independent of Top N. USDⓈ-M trading instruments meeting the editable 24h quote-volume threshold · MACD histogram crosses above zero within its first 5 five-minute candles · RSI ≥60. Shows the live 5m candle change.</div></div>
   <div class="row" style="margin:0;gap:7px;align-items:center">
    <button id="marketwide5mSound" class="secondary" type="button" style="width:auto">Sound: OFF</button>
    <label for="marketwide5mVolume" style="margin:0;white-space:nowrap">Volume</label>
@@ -813,8 +814,9 @@ async function scan(){
 
 /* Independent market-wide 5m bullish crossover monitor.
    Uses the existing MACD/RSI functions and shared rate-limited Binance request queue. */
-let marketwide5mSymbols=[],marketwide5mInventoryKey="",marketwide5mSockets=[],marketwide5mSocketGeneration=0,marketwide5mStates=new Map(),marketwide5mSignals=new Map(),marketwide5mSeedBusy=false,marketwide5mSeedTimer=null,marketwide5mSoundOn=false,marketwide5mExpanded=false,marketwide5mLastBeepAt=0;
+let marketwide5mSymbols=[],marketwide5mInventoryKey="",marketwide5mExchangeSymbols=[],marketwide5mTickers=[],marketwide5mSockets=[],marketwide5mSocketGeneration=0,marketwide5mStates=new Map(),marketwide5mSignals=new Map(),marketwide5mSeedBusy=false,marketwide5mSeedTimer=null,marketwide5mSoundOn=false,marketwide5mExpanded=false,marketwide5mLastBeepAt=0;
 const MARKETWIDE_5M_BATCH=40,MARKETWIDE_5M_SOCKET_BATCH=50;
+function marketwide5mMinVolume(){const el=$("marketwide5mMinVolume"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,n):2000000;}
 function marketwide5mPct(rows){const row=rows&&rows[rows.length-1],open=Number(row&&row[1]),close=Number(row&&row[4]);return open>0&&Number.isFinite(close)?(close/open-1)*100:NaN;}
 function renderMarketwide5m(){
  const root=$("marketwide5mRows");if(!root)return;
@@ -876,15 +878,17 @@ async function seedMarketwide5mBatch(){
  if(marketwide5mSymbols.some(s=>!marketwide5mStates.has(s)&&(marketwide5mSeedFailures.get(s)||0)<3))marketwide5mSeedTimer=setTimeout(seedMarketwide5mBatch,8000);
 }
 function startMarketwide5m(exchangeSymbols,tickers){
- const quoteVolumeBySymbol=new Map((tickers||[]).map(t=>[t.symbol,Number(t.quoteVolume)]));
- const symbols=(exchangeSymbols||[]).filter(x=>x&&x.status==="TRADING"&&Number(quoteVolumeBySymbol.get(x.symbol))>=2000000).map(x=>x.symbol).filter(Boolean).sort(),key=symbols.join("|");
- if(!symbols.length||key===marketwide5mInventoryKey)return;
+ marketwide5mExchangeSymbols=Array.isArray(exchangeSymbols)?exchangeSymbols:marketwide5mExchangeSymbols;marketwide5mTickers=Array.isArray(tickers)?tickers:marketwide5mTickers;
+ const threshold=marketwide5mMinVolume(),quoteVolumeBySymbol=new Map((marketwide5mTickers||[]).map(t=>[t.symbol,Number(t.quoteVolume)]));
+ const symbols=(marketwide5mExchangeSymbols||[]).filter(x=>x&&x.status==="TRADING"&&Number(quoteVolumeBySymbol.get(x.symbol))>=threshold).map(x=>x.symbol).filter(Boolean).sort(),key=symbols.join("|");
+ if(key===marketwide5mInventoryKey)return;
  marketwide5mInventoryKey=key;marketwide5mSymbols=symbols;marketwide5mSocketGeneration++;
  for(const socket of marketwide5mSockets){try{socket.close();}catch(e){}}marketwide5mSockets=[];
  for(const symbol of [...marketwide5mStates.keys()])if(!symbols.includes(symbol))marketwide5mStates.delete(symbol);for(const symbol of [...marketwide5mSeedFailures.keys()])if(!symbols.includes(symbol))marketwide5mSeedFailures.delete(symbol);
  for(const symbol of [...marketwide5mSignals.keys()])if(!symbols.includes(symbol))marketwide5mSignals.delete(symbol);
  ensureMarketwide5mSockets();if(marketwide5mSeedTimer)clearTimeout(marketwide5mSeedTimer);marketwide5mSeedTimer=setTimeout(seedMarketwide5mBatch,1500);renderMarketwide5m();
 }
+$("marketwide5mMinVolume").addEventListener("change",()=>{const value=marketwide5mMinVolume();$("marketwide5mMinVolume").value=String(value);startMarketwide5m(marketwide5mExchangeSymbols,marketwide5mTickers);});
 $("marketwide5mSound").addEventListener("click",()=>{marketwide5mSoundOn=!marketwide5mSoundOn;try{if(marketwide5mSoundOn){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio is unavailable");if(!alertAudioContext)alertAudioContext=new Ctx();alertAudioContext.resume();}$("marketwide5mSound").textContent="Sound: "+(marketwide5mSoundOn?"ON":"OFF");$("marketwide5mSound").classList.toggle("auto-running",marketwide5mSoundOn);}catch(e){marketwide5mSoundOn=false;$("marketwide5mStatus").textContent="Could not enable sound: "+e.message;}});
 $("marketwide5mVolume").addEventListener("input",()=>{$("marketwide5mVolumeLabel").textContent=$("marketwide5mVolume").value+"%";});
 $("marketwide5mExpand").addEventListener("click",()=>{marketwide5mExpanded=!marketwide5mExpanded;renderMarketwide5m();});
