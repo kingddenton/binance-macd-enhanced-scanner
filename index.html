@@ -1239,4 +1239,14 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
 .v2-timeframes{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .v2-timeframes button{white-space:nowrap}
 @media(max-width:900px){#tfGrid{grid-template-columns:repeat(4,minmax(250px,1fr))!important}}</style>
+
+<style>
+/* Confirmed Alerts: bullish-only presentation; bearish scanner logic remains intact. */
+.confirmed-tier .alert-pair{grid-template-columns:minmax(0,1fr)!important}
+.confirmed-tier .alert-pair>.alert-box:nth-child(2){display:none!important}
+.confirmed-tier .alert-pair>.alert-box:first-child{width:100%;min-width:0}
+.confirmed-tier .alert-box h3{font-size:13px!important}
+.confirmed-tier .alert-items,.confirmed-tier .alert-entry{font-size:12px!important;line-height:1.55!important}
+</style>
+
 </body></html>
