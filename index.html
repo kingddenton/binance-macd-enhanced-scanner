@@ -1133,7 +1133,7 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
  // Top 5 is a narrow ranking strip, followed by the six-column live candle/reversal monitor.
  const anchor=statusRow||actionRow||filterPanel||intro||header;
  if(anchor&&momentum){momentum.classList.add("momentum-strip");anchor.insertAdjacentElement("afterend",momentum);}
- if(momentum&&livePanel)momentum.insertAdjacentElement("afterend",livePanel);
+ const marketwide5mPanel=$("marketwide5mPanel");if(momentum&&marketwide5mPanel)momentum.insertAdjacentElement("afterend",marketwide5mPanel);if(marketwide5mPanel&&livePanel)marketwide5mPanel.insertAdjacentElement("afterend",livePanel);else if(momentum&&livePanel)momentum.insertAdjacentElement("afterend",livePanel);
  else if(anchor&&livePanel)anchor.insertAdjacentElement("afterend",livePanel);
  // Bullish/bearish crossover, confirmed and reversal alert feeds follow the live monitor.
  if(livePanel&&alertCenter)livePanel.insertAdjacentElement("afterend",alertCenter);
