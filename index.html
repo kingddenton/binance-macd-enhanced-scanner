@@ -1285,6 +1285,8 @@ specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval
  const dashboard=$("v2TopDashboard");
  const results=$("tfGrid");
  const diagnostics=$("diagnosticsPanel");
+ const qualifiedCoins=$("specialMacdCandidatesList");
+ if(diagnostics&&qualifiedCoins){const heading=diagnostics.querySelector("h2");if(heading)heading.insertAdjacentElement("afterend",qualifiedCoins);qualifiedCoins.style.cssText="margin:8px 0 12px;padding:9px 10px;border:1px solid #8b6b2b;border-radius:8px;background:#211a0d;color:#f5cf78;font-size:12px;line-height:1.6";}
  // Keep header, then every filter, then the three primary scan actions.
  if(header&&intro)header.insertAdjacentElement("afterend",intro);
  if(intro&&filterPanel)intro.insertAdjacentElement("afterend",filterPanel);
