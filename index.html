@@ -388,7 +388,7 @@ function renderSpecialMacdHistory(){
   for(const item of items){
    const card=document.createElement("div");card.className="live-candle-card live-candle-red";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";
    const title=document.createElement("strong");title.textContent=item.symbol;
-   const detail=document.createElement("span");detail.textContent=tf.toUpperCase()+" · "+(item.change>0?"+":"")+item.change.toFixed(2)+"% 24h · "+new Date(item.at).toLocaleTimeString();detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
+   const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(3,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/3";detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
    card.append(title,detail);column.appendChild(card);
   }
  });
@@ -401,7 +401,7 @@ function renderSpecialMacdBullHistory(){
   if(heading)heading.classList.toggle("reversal-heading-active",tf===bullMacdLatestHeadingTf&&now<bullMacdHeadingBlinkUntil);
   column.replaceChildren();
   if(!items.length){const empty=document.createElement("div");empty.className="live-candle-empty";empty.textContent="No confirmed bullish crosses.";column.appendChild(empty);return;}
-  for(const item of items){const card=document.createElement("div");card.className="live-candle-card live-candle-green";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";const title=document.createElement("strong");title.textContent=item.symbol;const detail=document.createElement("span");detail.textContent=tf.toUpperCase()+" · "+(item.change>0?"+":"")+item.change.toFixed(2)+"% 24h · "+new Date(item.at).toLocaleTimeString();detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";card.append(title,detail);column.appendChild(card);}
+  for(const item of items){const card=document.createElement("div");card.className="live-candle-card live-candle-green";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";const title=document.createElement("strong");title.textContent=item.symbol;const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(3,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/3";detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";card.append(title,detail);column.appendChild(card);}
  });
 }
 function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist){
@@ -412,7 +412,7 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist){
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+3*durations[item.tf]).slice(0,5);
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
- setTimeout(renderSpecialMacdBullHistory,Math.max(50,candleTime+3*duration-now+50));renderSpecialMacdBullHistory();
+ setTimeout(renderSpecialMacdBullHistory,Math.max(50,candleTime+2*duration-now+50));setTimeout(renderSpecialMacdBullHistory,Math.max(100,candleTime+3*duration-now+50));renderSpecialMacdBullHistory();
  const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · completed candle closed with MACD histogram at/above zero after the previous completed candle was negative. Alert remains for 3 candles.";
  playSpecialMacdAlarm();
 }
@@ -426,7 +426,7 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
  specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
  if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
- setTimeout(renderSpecialMacdHistory,Math.max(50,candleTime+3*duration-now+50));
+ setTimeout(renderSpecialMacdHistory,Math.max(50,candleTime+2*duration-now+50));setTimeout(renderSpecialMacdHistory,Math.max(100,candleTime+3*duration-now+50));
  renderSpecialMacdHistory();
  $("specialMacdStatus").textContent="LIVE REVERSAL: "+symbol+" · "+tf+" MACD histogram turned red. Alert is immediate and remains displayed for 3 candles.";
  playSpecialMacdAlarm();
