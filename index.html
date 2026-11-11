@@ -443,10 +443,6 @@ async function loadSpecialRollingHistory(symbol){
 }
 function setSpecialMacdCandidates(tickers){
  specialMacdEligibleTickers=new Map(tickers.map(t=>[t.symbol,t]));
- for(const symbol of [...specialMacdRollingRows.keys()])if(!specialMacdEligibleTickers.has(symbol))specialMacdRollingRows.delete(symbol);
- const pending=[...specialMacdEligibleTickers.keys()].filter(symbol=>!specialMacdRollingRows.has(symbol)&&!specialMacdRollingLoads.has(symbol));let cursor=0;
- const workers=Array.from({length:4},async()=>{while(cursor<pending.length){const symbol=pending[cursor++];await loadSpecialRollingHistory(symbol);}});
- Promise.all(workers).then(()=>syncSpecialMacdCandidates());
  syncSpecialMacdCandidates();
 }
 const wsDiagnosticEvents=[];
