@@ -220,6 +220,7 @@ main{max-width:1800px;width:100%}
 </section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
  <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +15% minimum trigger on all timeframes; green stronger alert (+20% on 30m/1H); red +40% extreme alert. Reversal columns: coins up >20% in 24h with ≥$2M quote volume; completed-candle 1m/3m/5m MACD reversals.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
+ <div class="controls" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label for="specialMacdMinGain">Special reversal: minimum rolling 4H peak gain (%)</label><input id="specialMacdMinGain" type="number" min="0" max="500" step="0.5" value="10"></div><div><label for="specialMacdMinVolume">Special reversal: minimum 24h quote volume (USDT)</label><input id="specialMacdMinVolume" type="number" min="0" step="100000" value="2000000"></div></div>
  <div class="live-candle-scroll" style="overflow-x:auto;margin-top:10px"><div class="live-candle-columns" id="twentyPctFeed">
   
   <section class="live-candle-column"><h3>15M</h3><div class="live-candle-items" data-live-tf="15m">No alerts yet.</div></section>
@@ -393,7 +394,7 @@ function renderSpecialMacdHistory(){
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
 function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
- const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.change<10)return;
+ const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.change<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+3*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
@@ -408,6 +409,8 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
 function processSpecialMacdKline(symbol,tf,k){const state=specialMacdStates.get(symbol),history=specialMacdHistories.get(symbol),rows=history&&history[tf];if(!state||!Array.isArray(rows)||!specialMacdCandidates.has(symbol)||!["1m","3m","5m"].includes(tf))return;/* Only Binance's final kline event is eligible; forming-candle updates are ignored. */if(k.x!==true)return;const candleTime=Number(k.t),close=Number(k.c);if(!(close>0)||!Number.isFinite(candleTime))return;const last=rows[rows.length-1];/* A closed candle is processed once, in chronological order. */if(last&&candleTime<=Number(last[0]))return;rows.push([candleTime,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]);if(rows.length>150)rows.shift();const values=macd(rows).hist;if(values.length<2)return;const current=values[values.length-1],prior=state[tf];if(Number.isFinite(prior)&&prior>=0&&current<0)fireSpecialMacdAlert(symbol,tf,candleTime,current);state[tf]=current;
 }
 async function loadSpecialMacdHistory(symbol){if(!specialMacdCandidates.has(symbol)||specialMacdHistories.has(symbol)||specialMacdHistoryLoads.has(symbol))return;specialMacdHistoryLoads.add(symbol);try{const [one,three,five]=await Promise.all(["1m","3m","5m"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100")));if(!specialMacdCandidates.has(symbol))return;const closed=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[6])<=Date.now()):[];const histories={"1m":closed(one),"3m":closed(three),"5m":closed(five)};if(!Object.values(histories).every(rows=>rows.length>=35))throw new Error("Insufficient completed 1m/3m/5m candle history");specialMacdHistories.set(symbol,histories);specialMacdStates.set(symbol,{"1m":macd(histories["1m"]).hist.at(-1),"3m":macd(histories["3m"]).hist.at(-1),"5m":macd(histories["5m"]).hist.at(-1)});$("specialMacdStatus").textContent="Loaded completed 1m/3m/5m MACD history for "+specialMacdHistories.size+" qualifying market-wide coins; waiting for candle closes.";}catch(e){$("specialMacdStatus").textContent="Initial completed-candle MACD history unavailable for "+symbol+": "+e.message+"; will retry on the next market refresh.";}finally{specialMacdHistoryLoads.delete(symbol);}}
+function specialMacdMinGain(){const el=$("specialMacdMinGain"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(500,n)):10;}
+function specialMacdMinVolume(){const el=$("specialMacdMinVolume"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,n):2000000;}
 function getSpecialRollingMetric(symbol){
  const rows=specialMacdRollingRows.get(symbol);if(!Array.isArray(rows)||rows.length<200)return null;
  const now=Date.now(),cutoff=now-4*60*60*1000;let baseline=null,peak=0,current=0;
@@ -418,14 +421,14 @@ function getSpecialRollingMetric(symbol){
 }
 function syncSpecialMacdCandidates(){
  const next=new Map();
- for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol);if(d&&d.change>=10)next.set(symbol,{...d,quoteVolume:Number(t.quoteVolume)});}
+ for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol),volume=Number(t.quoteVolume);if(d&&d.change>=specialMacdMinGain()&&volume>=specialMacdMinVolume())next.set(symbol,{...d,quoteVolume:volume});}
  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
  specialMacdCandidates=next;
  for(const symbol of [...specialMacdHistories.keys()])if(!next.has(symbol)){specialMacdHistories.delete(symbol);specialMacdStates.delete(symbol);}
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
- const list=$("specialMacdCandidatesList");if(list){const ranked=[...next.entries()].sort((a,b)=>b[1].change-a[1].change);list.textContent=ranked.length?"Qualifying candidates (rolling 4H peak gain ≥+10%): "+ranked.map(([symbol,item])=>symbol+" (+"+item.change.toFixed(2)+"% peak; now "+item.price+")").join(" · "):"Qualifying candidates: none currently meet a rolling 4H peak gain of +10% and ≥$2M 24h quote volume.";}
- const status=$("specialMacdStatus");if(status)status.textContent=next.size+" qualifying USDⓈ-M trading contracts (rolling 4H peak gain ≥+10%, ≥$2M 24h quote volume) outside Top N; monitoring live 1m/3m/5m MACD reversals.";
+ const list=$("specialMacdCandidatesList");if(list){const ranked=[...next.entries()].sort((a,b)=>b[1].change-a[1].change);list.textContent=ranked.length?"Qualifying candidates (rolling 4H peak gain ≥+" + specialMacdMinGain() + "%): "+ranked.map(([symbol,item])=>symbol+" (+"+item.change.toFixed(2)+"% peak; now "+item.price+")").join(" · "):"Qualifying candidates: none currently meet the editable rolling 4H gain and 24h volume thresholds.";}
+ const status=$("specialMacdStatus");if(status)status.textContent=next.size+" qualifying USDⓈ-M trading contracts (rolling 4H peak gain ≥+"+specialMacdMinGain()+"%, ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume) outside Top N; monitoring 1m/3m/5m MACD reversals.";
 }
 function updateSpecialRollingKline(symbol,k){
  if(!specialMacdEligibleTickers.has(symbol)||!k||k.i!=="1m")return;
@@ -442,7 +445,7 @@ async function loadSpecialRollingHistory(symbol){
  finally{specialMacdRollingLoads.delete(symbol);}
 }
 function setSpecialMacdCandidates(tickers){
- specialMacdEligibleTickers=new Map(tickers.filter(t=>Number(t.quoteVolume)>=2000000).map(t=>[t.symbol,t]));
+ specialMacdEligibleTickers=new Map(tickers.map(t=>[t.symbol,t]));
  for(const symbol of [...specialMacdRollingRows.keys()])if(!specialMacdEligibleTickers.has(symbol))specialMacdRollingRows.delete(symbol);
  const pending=[...specialMacdEligibleTickers.keys()].filter(symbol=>!specialMacdRollingRows.has(symbol)&&!specialMacdRollingLoads.has(symbol));let cursor=0;
  const workers=Array.from({length:4},async()=>{while(cursor<pending.length){const symbol=pending[cursor++];await loadSpecialRollingHistory(symbol);}});
