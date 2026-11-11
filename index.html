@@ -495,7 +495,7 @@ function advanceConfirmedAlerts(symbol,oneMinuteCandleTime){
  }
  if(changed)renderAlertHistory();
 }
-function flashTimeframeHeading(function flashTimeframeHeading(tf,kind,direction="bull"){
+function flashTimeframeHeading(tf,kind,direction="bull"){
  const tier=kind==="qualified"?"confirmed":"crossover";
  const classes=["timeframe-flash-confirmed","timeframe-flash-crossover","timeframe-flash-bear"];
  // Clear the previous timeframe heading across both directions in this alert category.
