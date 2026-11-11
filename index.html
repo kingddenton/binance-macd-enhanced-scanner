@@ -469,7 +469,7 @@ function renderAlertHistory(){
  for(const timeframe of ALERT_TFS){
   for(const tier of ["confirmed","crossover"]){
    for(const direction of ["bull","bear"]){
-    const feed=$(tier+"Feed_"+direction+"_"+timeframe);if(!feed)continue;
+    const feed=$("tierFeed_"+direction+"_"+timeframe);if(!feed)continue;
     const panel=feed.closest(".alert-box");if(panel)panel.classList.remove("latest-alert-panel","latest-amber-panel","latest-bear-panel");
     feed.replaceChildren();const history=alertHistory[tier][direction][timeframe];
     history.forEach((item,index)=>{const baseClass=direction==="bear"?"bearish-alert-entry":(tier==="confirmed"?"qualified-alert-entry":"crossover-alert-entry");const el=document.createElement("div");el.className="alert-entry "+baseClass+(index===0?" newest-alert-entry":"");el.textContent=item.text;feed.appendChild(el);});
@@ -477,7 +477,25 @@ function renderAlertHistory(){
   }
  }
 }
-function flashTimeframeHeading(tf,kind,direction="bull"){
+function confirmedAlertText(item){return item.age+"/5 "+item.symbol+"  CVD: "+item.cvdText;}
+function advanceConfirmedAlerts(symbol,oneMinuteCandleTime){
+ if(!Number.isFinite(oneMinuteCandleTime))return;
+ let changed=false;
+ for(const direction of ["bull","bear"]){
+  for(const tf of ALERT_TFS){
+   const history=alertHistory.confirmed[direction][tf];
+   for(let index=history.length-1;index>=0;index--){
+    const item=history[index];if(item.symbol!==symbol||!Number.isFinite(item.trigger1mTime))continue;
+    const elapsed=Math.max(0,Math.floor((oneMinuteCandleTime-item.trigger1mTime)/60000));
+    const age=3+elapsed;
+    if(age>5){history.splice(index,1);changed=true;continue;}
+    if(age!==item.age){item.age=age;item.text=confirmedAlertText(item);changed=true;}
+   }
+  }
+ }
+ if(changed)renderAlertHistory();
+}
+function flashTimeframeHeading(function flashTimeframeHeading(tf,kind,direction="bull"){
  const tier=kind==="qualified"?"confirmed":"crossover";
  const classes=["timeframe-flash-confirmed","timeframe-flash-crossover","timeframe-flash-bear"];
  // Clear the previous timeframe heading across both directions in this alert category.
@@ -491,18 +509,22 @@ function flashTimeframeHeading(tf,kind,direction="bull"){
  const flashClass=kind==="qualified"?"timeframe-flash-confirmed":"timeframe-flash-crossover";
  heading.classList.add(flashClass);
 }
-function addAlert(symbol,tf,candleTime,kind,direction="bull",cvdPct=null){
+function addAlert(symbol,tf,candleTime,kind,direction="bull",cvdPct=null,oneMinuteCandleTime=null){
  const set=kind==="qualified"?alertedQualified:alertedCrossovers,key=symbol+"|"+tf+"|"+direction+"|"+candleTime;
  if(set.has(key))return;set.add(key);
- const when=new Date().toLocaleTimeString();
  const tier=kind==="qualified"?"confirmed":"crossover";latestResultAlert={symbol,tf,kind,direction};
- const history=alertHistory[tier][direction][tf];history.unshift({text:symbol+"  CVD: "+(Number.isFinite(cvdPct)?(cvdPct>0?"+":"")+cvdPct.toFixed(2)+"%":"—")});if(history.length>5)history.pop();
+ const cvdText=Number.isFinite(cvdPct)?(cvdPct>0?"+":"")+cvdPct.toFixed(2)+"%":"—";
+ const history=alertHistory[tier][direction][tf];
+ if(kind==="qualified"&&Number.isFinite(oneMinuteCandleTime)){
+  const item={symbol,age:3,trigger1mTime:oneMinuteCandleTime,cvdText,text:""};item.text=confirmedAlertText(item);history.unshift(item);
+ }else history.unshift({text:symbol+"  CVD: "+cvdText});
+ if(history.length>5)history.pop();
  renderAlertHistory();flashTimeframeHeading(tf,kind,direction);
  playAlertSound(tier,direction,tf);
 }
 function fireFreshCrossoverAlert(symbol,tf,candleTime,histValue,direction="bull",cvdPct=null){addAlert(symbol,tf,candleTime,"crossover",direction,cvdPct);}
-function fireQualifiedAlert(symbol,tf,candleTime,direction="bull",cvdPct=null){addAlert(symbol,tf,candleTime,"qualified",direction,cvdPct);}
-function renderEarlyMomentumHistory(){const feed=$("earlyMomentumFeed");if(!feed)return;feed.replaceChildren();if(!earlyMomentumHistory.length){feed.textContent="No early momentum alerts yet.";return;}earlyMomentumHistory.forEach((item,index)=>{const el=document.createElement("div");el.className="alert-entry "+(index===0?"newest-alert-entry":"");el.style.color="#83c5ff";el.textContent=item.text;feed.appendChild(el);});}
+function fireQualifiedAlert(symbol,tf,candleTime,direction="bull",cvdPct=null,oneMinuteCandleTime=null){addAlert(symbol,tf,candleTime,"qualified",direction,cvdPct,oneMinuteCandleTime);}
+function renderEarlyMomentumHistory(){function renderEarlyMomentumHistory(){const feed=$("earlyMomentumFeed");if(!feed)return;feed.replaceChildren();if(!earlyMomentumHistory.length){feed.textContent="No early momentum alerts yet.";return;}earlyMomentumHistory.forEach((item,index)=>{const el=document.createElement("div");el.className="alert-entry "+(index===0?"newest-alert-entry":"");el.style.color="#83c5ff";el.textContent=item.text;feed.appendChild(el);});}
 function addEarlyMomentumAlert(symbol,details,candleTime){const key=symbol+"|"+candleTime;if(alertedEarlyMomentum.has(key))return;alertedEarlyMomentum.add(key);earlyMomentumHistory.unshift({text:symbol+" · "+new Date(candleTime).toLocaleTimeString()+" · OI +"+details.oiPct.toFixed(2)+"% · CVD +"+details.cvdPct.toFixed(2)+"% · RSI "+details.rsi.toFixed(1)});if(earlyMomentumHistory.length>10)earlyMomentumHistory.pop();renderEarlyMomentumHistory();if(earlyMomentumSound){try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const now=alertAudioContext.currentTime,osc=alertAudioContext.createOscillator(),gain=alertAudioContext.createGain();osc.type="sine";osc.frequency.setValueAtTime(1046,now);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.18,now+.02);gain.gain.exponentialRampToValueAtTime(.0001,now+.35);osc.connect(gain);gain.connect(alertAudioContext.destination);osc.start(now);osc.stop(now+.36);}catch(e){}}}
 function renderReversalHistory(){
  for(const tf of REVERSAL_TFS){
@@ -807,7 +829,8 @@ async function scan(){
   for(let si=0;si<tickers.length;si++){
    const t=tickers[si],coinRecord=diag.universe[si];
    await Promise.all(TFS.map(tf=>getMacdAnalysis(t.symbol,tf).catch(()=>null)));
-   try{const [a1,a3,a5]=await Promise.all(["1m","3m","5m"].map(tf=>getMacdAnalysis(t.symbol,tf)));momentumData.push({symbol:t.symbol,change:Number(t.priceChangePercent),rsi1:rsi(a1.rows),rsi3:rsi(a3.rows),rsi5:rsi(a5.rows),age1:eventAge(a1.macd.hist,5,"bull"),age3:eventAge(a3.macd.hist,5,"bull"),age5:eventAge(a5.macd.hist,5,"bull")});}catch(e){}
+   let oneMinuteCandleTime=NaN;
+   try{const [a1,a3,a5]=await Promise.all(["1m","3m","5m"].map(tf=>getMacdAnalysis(t.symbol,tf)));oneMinuteCandleTime=Number(a1.rows.at(-1)?.[0]);advanceConfirmedAlerts(t.symbol,oneMinuteCandleTime);momentumData.push({symbol:t.symbol,change:Number(t.priceChangePercent),rsi1:rsi(a1.rows),rsi3:rsi(a3.rows),rsi5:rsi(a5.rows),age1:eventAge(a1.macd.hist,5,"bull"),age3:eventAge(a3.macd.hist,5,"bull"),age5:eventAge(a5.macd.hist,5,"bull")});}catch(e){}
    for(const tf of TFS){
     try{
      diag.stages[tf].evaluated++;const analysis=await getMacdAnalysis(t.symbol,tf),rows=analysis.rows,m=analysis.macd,i=m.hist.length-1,rv=rsi(rows),trace=coinRecord.timeframes[tf],age=eventAge(m.hist,window,"bull"),bearAge=eventAge(m.hist,window,"bear");if($("alert"+tf).checked){if(i>0&&m.hist[i]>0&&m.hist[i-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bull",cvdStats(rows.slice(0,i+1),cvdBars).pct);if(i>0&&m.hist[i]<0&&m.hist[i-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bear",cvdStats(rows.slice(0,i+1),cvdBars).pct);}if(bearAge>=0){const prev=Number(rows[rows.length-2][4]),last=Number(rows[rows.length-1][4]),change=prev?((last-prev)/prev)*100:NaN;output.bear[tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age:bearAge,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi:NaN,priceChange:change,priceChange24h:Number(t.priceChangePercent),cvdPct:cvdStats(rows,cvdBars).pct,cvdDelta:cvdStats(rows,cvdBars).delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay:"—"});}trace.rsi=rv;const cvd=cvdStats(rows,cvdBars);trace.cvdDelta=cvd.delta;trace.cvdPct=cvd.pct;trace.cvdBars=cvdBars;trace.crossover=age>=0;trace.candle=age>=0?age+1:null;
@@ -826,8 +849,8 @@ async function scan(){
       }else{trace.htf=null;trace.htfStatus="Not evaluated — earlier required checks failed";trace.oi=null;trace.oiStatus="Not evaluated — earlier required checks failed";}
       const oiChange=Number.isFinite(oi)?rollingOiChange(t.symbol,oi,Number(tf.slice(0,-1))):NaN,excludeNegativeBullOi=$("excludeNegativeBullOi").checked,negativeOiRejected=excludeNegativeBullOi&&Number.isFinite(oiChange)&&oiChange<0;if(negativeOiRejected){trace.oiStatus="Rejected — negative rolling OI ("+oiChange.toFixed(2)+"%)";reasons.push("Negative rolling OI change ("+oiChange.toFixed(2)+"%)");diag.stages[tf].oiReject++;}trace.reasons=reasons;trace.reason=reasons.join("; ");const passed=localPassed&&htfOK&&(minOI<=0||Number.isFinite(oi)&&oi>=minOI)&&!negativeOiRejected;
       if(!passed){trace.status="Rejected";continue;}
-      // Bullish signals that pass the configured filters also enter Confirmed Alerts.
-      fireQualifiedAlert(t.symbol,tf,Number(rows[rows.length-1-age][0]),"bull",cvd.pct);
+      // Confirmed Alerts trigger on the third consecutive same-direction MACD histogram candle.
+      if(age===2)fireQualifiedAlert(t.symbol,tf,Number(rows[i][0]),"bull",cvd.pct,oneMinuteCandleTime);
       let stDisplay="—";if(stFlipDisplay){const st=supertrendInfo(rows);if(!st){stDisplay="—";}else{const isBull=st.trend===1,recent=st.flipAge>=0&&st.flipAge<window;stDisplay='<span class="st-badge '+(isBull?"st-bull":"st-bear")+'">'+(isBull?"🟢 BULL":"🔴 BEAR")+(recent?(isBull?" ↑":" ↓"):"")+"</span>";}}const previousClose=Number(rows[rows.length-2][4]),latestClose=Number(rows[rows.length-1][4]),priceChange=previousClose?((latestClose-previousClose)/previousClose)*100:NaN;output[dir][tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi,oiChange,priceChange,priceChange24h:Number(t.priceChangePercent),cvdPct:cvd.pct,cvdDelta:cvd.delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay});diag.stages[tf].results++;trace.status="Displayed";trace.reason="Passed all enabled filters";
      }
     }catch(e){diag.stages[tf].dataErrors++;const trace=coinRecord.timeframes[tf];trace.status="Error";trace.reason=e.message;trace.reasons=[ "Data/request error: "+e.message ];trace.htfStatus=trace.htfStatus||"Not evaluated";trace.oiStatus=trace.oiStatus||"Not evaluated";errors.push(t.symbol+" "+tf+": "+e.message);}
