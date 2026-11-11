@@ -729,7 +729,7 @@ async function universe(){
  const countTypes=arr=>{const m=new Map();for(const x of arr){const k=x.contractType||"UNSPECIFIED";m.set(k,(m.get(k)||0)+1);}return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0]));};
  const usdTypes=countTypes(activeUsd);
  diag.marketInventorySummary=[{label:"USDⓈ-M trading instruments",value:activeUsd.length},{label:"USDⓈ-M contract types",value:usdTypes.map(x=>x[0]+" ("+x[1]+")").join(" · ")||"None"},{label:"Total USDⓈ-M inventory records",value:inventory.length},{label:"Eligible for scanner (all quote assets / all contract types)",value:eligible.size}];
- const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);setSpecialMacdCandidates(alertWatchlist);startMarketwide5m(ex.symbols,all);
+ const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);setSpecialMacdCandidates(all.filter(t=>eligible.has(t.symbol)));startMarketwide5m(ex.symbols,all);
  const highNow=Date.now();for(const ticker of all){if(!eligible.has(ticker.symbol))continue;const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh)fresh24hHighUntil.set(ticker.symbol,highNow+300000);previous24hHigh.set(ticker.symbol,currentHigh);}}
  for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
  const minVol=Math.max(0,Number($("minVol").value)||0),max=Math.max(1,Math.min(100,Number($("scanCount").value)||20));
