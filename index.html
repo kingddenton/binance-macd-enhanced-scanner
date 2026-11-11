@@ -220,7 +220,7 @@ main{max-width:1800px;width:100%}
 </section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
  <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +15% minimum trigger on all timeframes; green stronger alert (+20% on 30m/1H); red +40% extreme alert. Reversal columns: coins up >20% in 24h with ≥$2M quote volume; completed-candle 1m/3m/5m MACD reversals.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
- <div class="controls" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label for="specialMacdMinGain">Special reversal: minimum rolling 24h price change (%)</label><input id="specialMacdMinGain" type="number" min="0" max="500" step="0.5" value="20"></div><div><label for="specialMacdMinVolume">Special reversal: minimum 24h quote volume (USDT)</label><input id="specialMacdMinVolume" type="number" min="0" step="100000" value="2000000"></div></div>
+ <div class="controls" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label for="specialMacdMinGain">Special reversal: minimum absolute 24h price change (%) — both directions</label><input id="specialMacdMinGain" type="number" min="0" max="500" step="0.5" value="20"></div><div><label for="specialMacdMinVolume">Special reversal: minimum 24h quote volume (USDT)</label><input id="specialMacdMinVolume" type="number" min="0" step="100000" value="2000000"></div></div>
  <div class="live-candle-scroll" style="overflow-x:auto;margin-top:10px"><div class="live-candle-columns" id="twentyPctFeed">
   
   <section class="live-candle-column"><h3>15M</h3><div class="live-candle-items" data-live-tf="15m">No alerts yet.</div></section>
@@ -386,7 +386,7 @@ function renderSpecialMacdHistory(){
   for(const item of items){
    const card=document.createElement("div");card.className="live-candle-card live-candle-red";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";
    const title=document.createElement("strong");title.textContent=item.symbol;
-   const detail=document.createElement("span");detail.textContent=tf.toUpperCase()+" · "+item.change.toFixed(2)+"% rolling 4H peak gain · "+new Date(item.at).toLocaleTimeString();detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
+   const detail=document.createElement("span");detail.textContent=tf.toUpperCase()+" · "+(item.change>0?"+":"")+item.change.toFixed(2)+"% 24h · "+new Date(item.at).toLocaleTimeString();detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
    card.append(title,detail);column.appendChild(card);
   }
  });
@@ -394,7 +394,7 @@ function renderSpecialMacdHistory(){
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
 function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
- const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.change<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
+ const candidate=specialMacdCandidates.get(symbol);if(!candidate||Math.abs(candidate.change)<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+3*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
@@ -418,14 +418,14 @@ function getSpecialRollingMetric(symbol){
 }
 function syncSpecialMacdCandidates(){
  const next=new Map();
- for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol),volume=Number(t.quoteVolume);if(d&&d.change>=specialMacdMinGain()&&volume>=specialMacdMinVolume())next.set(symbol,{...d,quoteVolume:volume});}
+ for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol),volume=Number(t.quoteVolume);if(d&&Math.abs(d.change)>=specialMacdMinGain()&&volume>=specialMacdMinVolume())next.set(symbol,{...d,quoteVolume:volume});}
  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
  specialMacdCandidates=next;
  for(const symbol of [...specialMacdHistories.keys()])if(!next.has(symbol)){specialMacdHistories.delete(symbol);specialMacdStates.delete(symbol);}
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
- const list=$("specialMacdCandidatesList");if(list){const ranked=[...next.entries()].sort((a,b)=>b[1].change-a[1].change);list.textContent=ranked.length?"Qualifying candidates (rolling 24h price change ≥+" + specialMacdMinGain() + "%): "+ranked.map(([symbol,item])=>symbol+" (+"+item.change.toFixed(2)+"% 24h; now "+item.price+")").join(" · "):"Qualifying candidates: none currently meet the editable rolling 24h price-change and 24h volume thresholds.";}
- const status=$("specialMacdStatus");if(status)status.textContent=next.size+" qualifying USDⓈ-M trading contracts (rolling 24h price change ≥+"+specialMacdMinGain()+"%, ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume) outside Top N; monitoring 1m/3m/5m MACD reversals.";
+ const list=$("specialMacdCandidatesList");if(list){const ranked=[...next.entries()].sort((a,b)=>Math.abs(b[1].change)-Math.abs(a[1].change));list.textContent=ranked.length?"Qualifying candidates (24h change ≥+"+specialMacdMinGain()+"% OR ≤−"+specialMacdMinGain()+"%): "+ranked.map(([symbol,item])=>symbol+" ("+(item.change>0?"+":"")+item.change.toFixed(2)+"% 24h; now "+item.price+")").join(" · "):"Qualifying candidates: none currently meet the positive/negative 24h price-change and 24h volume thresholds.";}
+ const status=$("specialMacdStatus");if(status)status.textContent=next.size+" qualifying USDⓈ-M trading contracts (24h change ≥+"+specialMacdMinGain()+"% OR ≤−"+specialMacdMinGain()+"%, ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume) outside Top N; monitoring 1m/3m/5m MACD reversals.";
 }
 function updateSpecialRollingKline(symbol,k){
  if(!specialMacdEligibleTickers.has(symbol)||!k||k.i!=="1m")return;
