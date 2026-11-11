@@ -980,7 +980,7 @@ function openMarketwide5mSocket(batch,batchId,attempt=0,generation=marketwide5mS
  if(!batch.length)return;let socket;
  try{socket=new WebSocket("wss://fstream.binance.com/market/stream");}catch(e){setTimeout(()=>{if(generation===marketwide5mSocketGeneration)openMarketwide5mSocket(batch,batchId,attempt+1,generation);},Math.min(60000,3000*Math.pow(2,Math.min(attempt,4))));return;}
  socket._marketwideBatch=batch;socket._marketwideId=batchId;marketwide5mSockets.push(socket);
- socket.onopen=()=>{const streams=batch.map(s=>s.toLowerCase()+"@kline_5m");socket.send(JSON.stringify({method:"SUBSCRIBE",params:streams,id:500+batchId}));};
+ socket.onopen=()=>{const streams=batch.map(s=>s.toLowerCase()+"@kline_3m");socket.send(JSON.stringify({method:"SUBSCRIBE",params:streams,id:500+batchId}));};
  socket.onmessage=event=>{try{const msg=JSON.parse(event.data);if(msg.id!==undefined)return;const p=msg.data||msg,k=p&&p.k,symbol=p&&(p.s||k&&k.s);if(symbol&&k&&marketwide5mSymbols.includes(symbol))processMarketwide5mKline(symbol,k);}catch(e){}};
  socket.onerror=()=>{try{socket.close();}catch(e){}};
  socket.onclose=()=>{const i=marketwide5mSockets.indexOf(socket);if(i>=0)marketwide5mSockets.splice(i,1);if(generation===marketwide5mSocketGeneration&&marketwide5mSymbols.length&&batch.some(s=>marketwide5mSymbols.includes(s)))setTimeout(()=>openMarketwide5mSocket(batch,batchId,attempt+1,generation),Math.min(60000,3000*Math.pow(2,Math.min(attempt,4))));};
