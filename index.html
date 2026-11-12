@@ -1378,4 +1378,64 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 .confirmed-tier .alert-items,.confirmed-tier .alert-entry{font-size:12px!important;line-height:1.55!important}
 </style>
 
+
+<style>
+/* Dedicated Candle Monitor tab: isolate the live candle/reversal workspace. */
+#candleMonitorView[hidden]{display:none!important}
+#candleMonitorView{margin-top:10px}
+#candleMonitorView .candle-monitor-intro{margin:0 0 10px;color:var(--muted);font-size:12px}
+#candleMonitorView #diagnosticsPanel{margin:0 0 12px!important}
+#candleMonitorView #mmLiveMonitorStrip{margin:0 0 12px!important}
+#candleMonitorView #v2AlertCenter{margin:0!important}
+#candleMonitorNav.active{background:#087f5b!important;color:#fff}
+@media(max-width:760px){#candleMonitorView .special-universe-diagnostic{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){#candleMonitorView .special-universe-diagnostic{grid-template-columns:1fr}}
+</style>
+<script>
+/* Move the complete live candle/reversal workspace into its own tab.
+   Existing scanner engines, event handlers, settings IDs and alert state remain in place. */
+(function(){
+ const $=id=>document.getElementById(id);
+ const main=document.querySelector("main"),header=main?.querySelector(".v2-header");
+ if(!main||!header)return;
+ const nav=header.querySelector(".v2-nav");
+ if(nav&&!$("candleMonitorNav")){
+   const btn=document.createElement("button");
+   btn.id="candleMonitorNav";btn.type="button";btn.className="secondary";
+   btn.textContent="Candle Monitor";nav.insertBefore(btn,$("priceGainersNav")||null);
+ }
+ let view=$("candleMonitorView");
+ if(!view){
+   view=document.createElement("section");view.id="candleMonitorView";view.hidden=true;
+   const intro=document.createElement("div");intro.className="candle-monitor-intro";
+   intro.textContent="Dedicated live bullish candle, bullish-cross and bearish reversal workspace. The universe diagnostic is shown first so every alert can be read against the selected top gainers and top losers.";
+   view.appendChild(intro);header.insertAdjacentElement("afterend",view);
+ }
+ const diagnostics=$("diagnosticsPanel");
+ const liveFeed=$("twentyPctFeed");
+ const livePanel=liveFeed?.closest(".panel")||liveFeed?.closest("section");
+ const alertCenter=$("v2AlertCenter");
+ // The diagnostic comes first, followed by the live monitor and the mirrored reversal alerts.
+ [diagnostics,livePanel,alertCenter].filter(Boolean).forEach(node=>view.appendChild(node));
+ if(livePanel)livePanel.id="mmLiveMonitorStrip";
+ const allNav=[...nav.querySelectorAll("button")];
+ const setActive=active=>{
+   allNav.forEach(b=>{const on=b===active;b.classList.toggle("active",on);b.classList.toggle("secondary",!on);});
+ };
+ const showCandle=()=>{
+   $("greenTrackerView").hidden=true;
+   $("priceTracker").hidden=true;
+   view.hidden=false;setActive($("candleMonitorNav"));
+   window.scrollTo({top:0,behavior:"smooth"});
+ };
+ $("candleMonitorNav")?.addEventListener("click",showCandle);
+ $("greenTabBtn")?.addEventListener("click",()=>{view.hidden=true;setActive($("greenTabBtn"));});
+ $("priceTabBtn")?.addEventListener("click",()=>{view.hidden=true;setActive($("priceTabBtn"));});
+ // Existing secondary navigation remains available; when used, return to its Green Tracker context.
+ ["earlyNav","reversalNav","diagnosticsNav","settingsNav","priceGainersNav"].forEach(id=>{
+   $(id)?.addEventListener("click",()=>{if(!view.hidden){view.hidden=true;$("greenTrackerView").hidden=false;setActive($("greenTabBtn"));}});
+ });
+})();
+</script>
+
 </body></html>
