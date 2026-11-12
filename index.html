@@ -176,7 +176,7 @@ main{max-width:1800px;width:100%}
 #volumeControlsBody>div{min-width:190px}
 #marketwide5mPanel{min-width:0}#marketwide5mPanel .statusline{flex-wrap:wrap}
 @media(max-width:600px){#marketwide5mPanel .row{flex-wrap:wrap}#marketwide5mPanel .statusline>div:last-child{width:100%}}
-</style></head><body><main>
+</style><style>.histogram-monitor-row{margin:9px 0 12px;padding:8px;border:1px solid #24485b;border-radius:10px;background:#071521}.histogram-row-title{font-size:13px;font-weight:950;letter-spacing:.35px;margin:0 0 7px;color:#e9f7ff}.histogram-monitor-columns{grid-template-columns:repeat(6,minmax(165px,1fr))}.histogram-heading-bull{animation:histogram-bull-flash .75s ease-in-out infinite!important;border:2px solid #20ed73!important}.histogram-heading-bear{animation:histogram-bear-flash .75s ease-in-out infinite!important;border:2px solid #ff5269!important}@keyframes histogram-bull-flash{0%,100%{background:#075b42;color:#fff}50%{background:#d8ffe8;color:#06351d}}@keyframes histogram-bear-flash{0%,100%{background:#762332;color:#fff}50%{background:#ffe1e6;color:#5a0716}}@media(max-width:760px){.histogram-row-title{font-size:12px}}</style></head><body><main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥10% / 4H)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button><div id="marketwide5mVolumeSetting" class="saved-settings-volume"><label for="marketwide5mMinVolume">Market-wide 3m min 24h volume (USDT)</label><input id="marketwide5mMinVolume" type="number" min="0" step="100000" value="2000000" style="width:120px"></div></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="controls">
 <div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (1H + 4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (1H + 4H + 6H + 12H)</option><option value="gainers24h1plus">All coins with 24H change ≥ +1%</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
@@ -232,6 +232,8 @@ main{max-width:1800px;width:100%}
   <section class="live-candle-column"><h3>30M</h3><div class="live-candle-items" data-live-tf="30m">No alerts yet.</div></section>
   <section class="live-candle-column"><h3>1H</h3><div class="live-candle-items" data-live-tf="1h">No alerts yet.</div></section>
  </div></div>
+ <div class="histogram-monitor-row"><div class="histogram-row-title">📈 HISTOGRAM MOMENTUM — RISING / FALLING</div><div class="live-candle-scroll" style="overflow-x:auto"><div class="live-candle-columns histogram-monitor-columns"><section class="live-candle-column"><h3 id="histMomentumHeading_1m">1M</h3><div class="live-candle-items" id="histMomentum_1m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histMomentumHeading_3m">3M</h3><div class="live-candle-items" id="histMomentum_3m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histMomentumHeading_5m">5M</h3><div class="live-candle-items" id="histMomentum_5m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histMomentumHeading_15m">15M</h3><div class="live-candle-items" id="histMomentum_15m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histMomentumHeading_30m">30M</h3><div class="live-candle-items" id="histMomentum_30m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histMomentumHeading_1h">1H</h3><div class="live-candle-items" id="histMomentum_1h"><div class="live-candle-empty">No alerts yet.</div></div></section></div></div></div>
+ <div class="histogram-monitor-row"><div class="histogram-row-title">↔ PRICE / HISTOGRAM DIVERGENCE</div><div class="live-candle-scroll" style="overflow-x:auto"><div class="live-candle-columns histogram-monitor-columns"><section class="live-candle-column"><h3 id="histDivergenceHeading_1m">1M</h3><div class="live-candle-items" id="histDivergence_1m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histDivergenceHeading_3m">3M</h3><div class="live-candle-items" id="histDivergence_3m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histDivergenceHeading_5m">5M</h3><div class="live-candle-items" id="histDivergence_5m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histDivergenceHeading_15m">15M</h3><div class="live-candle-items" id="histDivergence_15m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histDivergenceHeading_30m">30M</h3><div class="live-candle-items" id="histDivergence_30m"><div class="live-candle-empty">No alerts yet.</div></div></section><section class="live-candle-column"><h3 id="histDivergenceHeading_1h">1H</h3><div class="live-candle-items" id="histDivergence_1h"><div class="live-candle-empty">No alerts yet.</div></div></section></div></div></div>
  <div id="twentyPctStatus" class="small" style="margin-top:8px">Visual monitoring starts with each scan. Turn the sound ON to enable the loud alarm.</div>
   <div id="specialMacdStatus" class="small" style="margin-top:5px">Special reversal monitor is ready; qualifying coins are checked independently of Top N.</div>
   <div id="specialMacdCandidatesList" class="special-universe-diagnostic" aria-live="polite">
@@ -601,6 +603,46 @@ function renderReversalHistory(){
   reversalAlertHistory[tf].forEach(item=>{const el=document.createElement("div");el.className="alert-entry "+item.className;el.textContent=item.text;feed.appendChild(el);});
  }
 }
+const HISTOGRAM_MONITOR_TFS=["1m","3m","5m","15m","30m","1h"];
+const histogramMonitorLastCandle=new Map(),histogramMomentumHistory=Object.fromEntries(HISTOGRAM_MONITOR_TFS.map(tf=>[tf,[]])),histogramDivergenceHistory=Object.fromEntries(HISTOGRAM_MONITOR_TFS.map(tf=>[tf,[]]));
+function histogramMonitorPush(history,tf,item){const list=history[tf];list.unshift(item);if(list.length>5)list.length=5;}
+function renderHistogramMonitorRow(tf,history,prefix){
+ const target=$((prefix)+"_"+tf);if(!target)return;
+ target.innerHTML=history[tf].length?history[tf].map(item=>'<div class="live-candle-card '+item.className+'"><strong>'+esc(item.symbol)+' · '+item.label+'</strong><span>'+item.priceChange.toFixed(2)+'% candle · H '+item.histogram.toPrecision(5)+'</span><small> '+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+}
+function flashHistogramHeading(prefix,tf,kind){
+ const heading=$(prefix+"Heading_"+tf);if(!heading)return;
+ heading.classList.remove("histogram-heading-bull","histogram-heading-bear");void heading.offsetWidth;
+ heading.classList.add(kind==="bull"?"histogram-heading-bull":"histogram-heading-bear");
+ clearTimeout(heading._histogramFlashTimer);heading._histogramFlashTimer=setTimeout(()=>heading.classList.remove("histogram-heading-bull","histogram-heading-bear"),5000);
+}
+function updateHistogramMonitor(symbol,tf,analysis){
+ if(!HISTOGRAM_MONITOR_TFS.includes(tf)||!analysis||!analysis.rows||!analysis.macd)return;
+ const rows=analysis.rows,hist=analysis.macd.hist,i=rows.length-2;
+ if(i<1||hist.length<=i||!rows[i])return;
+ const candleTime=Number(rows[i][0]),key=symbol+"|"+tf;
+ if(!Number.isFinite(candleTime)||histogramMonitorLastCandle.get(key)===candleTime)return;
+ histogramMonitorLastCandle.set(key,candleTime);
+ const h=Number(hist[i]),prev=Number(hist[i-1]),open=Number(rows[i][1]),close=Number(rows[i][4]);
+ if(![h,prev,open,close].every(Number.isFinite)||h===prev)return;
+ const priceChange=open?((close-open)/open)*100:0;
+ let momentumLabel="",momentumSide="";
+ if(h>0&&h>prev){momentumLabel="BULL · RISING";momentumSide="bull";}
+ else if(h>0&&h<prev){momentumLabel="BULL · FALLING";momentumSide="bull";}
+ else if(h<0&&h<prev){momentumLabel="BEAR · FALLING";momentumSide="bear";}
+ else if(h<0&&h>prev){momentumLabel="BEAR · RISING";momentumSide="bear";}
+ if(momentumLabel){
+  histogramMonitorPush(histogramMomentumHistory,tf,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
+  renderHistogramMonitorRow(tf,histogramMomentumHistory,"histMomentum");flashHistogramHeading("histMomentum",tf,momentumSide);
+ }
+ let divergenceLabel="",divergenceSide="";
+ if(close<open&&h>0){divergenceLabel=h>prev?"BULLISH DIVERGENCE · H RISING":"BULLISH DIVERGENCE · H FALLING";divergenceSide="bull";}
+ else if(close>open&&h<0){divergenceLabel=h<prev?"BEARISH DIVERGENCE · H FALLING":"BEARISH DIVERGENCE · H RISING";divergenceSide="bear";}
+ if(divergenceLabel){
+  histogramMonitorPush(histogramDivergenceHistory,tf,{symbol,label:divergenceLabel,candleTime,priceChange,histogram:h,className:divergenceSide==="bull"?"live-candle-green":"live-candle-red"});
+  renderHistogramMonitorRow(tf,histogramDivergenceHistory,"histDivergence");flashHistogramHeading("histDivergence",tf,divergenceSide);
+ }
+}
 function pushReversalAlert(symbol,tf,stage,candleTime,rsiValue,fiveMinCandleTime){
  const key=symbol+"|"+tf+"|"+stage+"|"+candleTime;if(reversalAlertKeys.has(key))return;reversalAlertKeys.add(key);
  const labels={1:"OVERBOUGHT — RSI ≥75 + MACD histogram rising",2:"REVERSAL WARNING — histogram declining 2 candles",3:"REVERSAL CONFIRMED — bearish MACD crossover"};
@@ -627,6 +669,7 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
  let fiveMinNegative=false,fiveMinCandleTime=null;
  const analyses=await Promise.all(["5m",...REVERSAL_TFS].map(tf=>getMacdAnalysis(symbol,tf).then(analysis=>({tf,analysis})).catch(()=>({tf,analysis:null}))));
  const byTf=new Map(analyses.map(item=>[item.tf,item.analysis]));
+ for(const tf of REVERSAL_TFS){const analysis=byTf.get(tf);if(analysis)updateHistogramMonitor(symbol,tf,analysis);}
  try{const fiveMin=byTf.get("5m");if(fiveMin){const fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;if(fiveMinIndex>=0)fiveMinCandleTime=Number(fiveMin.rows[fiveMinIndex][0]);}}catch(e){fiveMinNegative=false;}
  for(const tf of REVERSAL_TFS){
   try{
@@ -900,7 +943,7 @@ async function scan(){
    try{const [a1,a3,a5]=await Promise.all(["1m","3m","5m"].map(tf=>getMacdAnalysis(t.symbol,tf)));oneMinuteCandleTime=Number(a1.rows.at(-1)?.[0]);advanceConfirmedAlerts(t.symbol,oneMinuteCandleTime);momentumData.push({symbol:t.symbol,change:Number(t.priceChangePercent),rsi1:rsi(a1.rows),rsi3:rsi(a3.rows),rsi5:rsi(a5.rows),age1:eventAge(a1.macd.hist,5,"bull"),age3:eventAge(a3.macd.hist,5,"bull"),age5:eventAge(a5.macd.hist,5,"bull")});}catch(e){}
    for(const tf of TFS){
     try{
-     diag.stages[tf].evaluated++;const analysis=await getMacdAnalysis(t.symbol,tf),rows=analysis.rows,m=analysis.macd,i=m.hist.length-1,rv=rsi(rows),trace=coinRecord.timeframes[tf],age=eventAge(m.hist,window,"bull"),bearAge=eventAge(m.hist,window,"bear");if($("alert"+tf).checked){if(i>0&&m.hist[i]>0&&m.hist[i-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bull",cvdStats(rows.slice(0,i+1),cvdBars).pct);if(i>0&&m.hist[i]<0&&m.hist[i-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bear",cvdStats(rows.slice(0,i+1),cvdBars).pct);}if(bearAge>=0){const prev=Number(rows[rows.length-2][4]),last=Number(rows[rows.length-1][4]),change=prev?((last-prev)/prev)*100:NaN;output.bear[tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age:bearAge,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi:NaN,priceChange:change,priceChange24h:Number(t.priceChangePercent),cvdPct:cvdStats(rows,cvdBars).pct,cvdDelta:cvdStats(rows,cvdBars).delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay:"—"});}trace.rsi=rv;const cvd=cvdStats(rows,cvdBars);trace.cvdDelta=cvd.delta;trace.cvdPct=cvd.pct;trace.cvdBars=cvdBars;trace.crossover=age>=0;trace.candle=age>=0?age+1:null;
+     diag.stages[tf].evaluated++;const analysis=await getMacdAnalysis(t.symbol,tf);updateHistogramMonitor(t.symbol,tf,analysis);const rows=analysis.rows,m=analysis.macd,i=m.hist.length-1,rv=rsi(rows),trace=coinRecord.timeframes[tf],age=eventAge(m.hist,window,"bull"),bearAge=eventAge(m.hist,window,"bear");if($("alert"+tf).checked){if(i>0&&m.hist[i]>0&&m.hist[i-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bull",cvdStats(rows.slice(0,i+1),cvdBars).pct);if(i>0&&m.hist[i]<0&&m.hist[i-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[i][0]),m.hist[i],"bear",cvdStats(rows.slice(0,i+1),cvdBars).pct);}if(bearAge>=0){const prev=Number(rows[rows.length-2][4]),last=Number(rows[rows.length-1][4]),change=prev?((last-prev)/prev)*100:NaN;output.bear[tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age:bearAge,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi:NaN,priceChange:change,priceChange24h:Number(t.priceChangePercent),cvdPct:cvdStats(rows,cvdBars).pct,cvdDelta:cvdStats(rows,cvdBars).delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay:"—"});}trace.rsi=rv;const cvd=cvdStats(rows,cvdBars);trace.cvdDelta=cvd.delta;trace.cvdPct=cvd.pct;trace.cvdBars=cvdBars;trace.crossover=age>=0;trace.candle=age>=0?age+1:null;
      {
       const dir="bull";
       const reasons=[];const rsiMinRaw=$("rsiMin_"+tf).value.trim(),rsiMaxRaw=$("rsiMax_"+tf).value.trim(),rsiFilter=(rsiMinRaw===""?"":">="+rsiMinRaw)+(rsiMinRaw!==""&&rsiMaxRaw!==""?" and ":"")+(rsiMaxRaw===""?"":"<="+rsiMaxRaw);
