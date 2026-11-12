@@ -635,7 +635,7 @@ function updateHistogramMonitor(symbol,tf,analysis){
  let momentumLabel="",momentumSide="";
  if(h>0&&h>prev&&prev>prev2){momentumLabel="BULL · RISING";momentumSide="bull";}
  else if(h<0&&h<prev&&prev<prev2){momentumLabel="BEAR · FALLING";momentumSide="bear";}
- if(momentumLabel){
+ if(momentumLabel&&Math.abs(priceChange)>=0.2){
   histogramMomentumUpsert(tf,momentumSide,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
   renderHistogramMonitorRow(tf,histogramMomentumHistory,"histMomentum",momentumSide);flashHistogramHeading("histMomentum",tf,momentumSide);
  }
