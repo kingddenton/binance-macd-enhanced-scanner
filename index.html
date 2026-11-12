@@ -622,18 +622,18 @@ function flashHistogramHeading(prefix,tf,side){
 function updateHistogramMonitor(symbol,tf,analysis){
  if(!HISTOGRAM_MONITOR_TFS.includes(tf)||!analysis||!analysis.rows||!analysis.macd)return;
  const rows=analysis.rows,hist=analysis.macd.hist,i=rows.length-2;
- if(i<1||hist.length<=i||!rows[i])return;
+ if(i<2||hist.length<=i||!rows[i])return;
  const candleTime=Number(rows[i][0]),key=symbol+"|"+tf;
  if(!Number.isFinite(candleTime)||histogramMonitorLastCandle.get(key)===candleTime)return;
  histogramMonitorLastCandle.set(key,candleTime);
- const h=Number(hist[i]),prev=Number(hist[i-1]),open=Number(rows[i][1]),close=Number(rows[i][4]);
- if(![h,prev,open,close].every(Number.isFinite)||h===prev)return;
+ const h=Number(hist[i]),prev=Number(hist[i-1]),prev2=Number(hist[i-2]),open=Number(rows[i][1]),close=Number(rows[i][4]);
+ if(![h,prev,prev2,open,close].every(Number.isFinite))return;
  const priceChange=open?((close-open)/open)*100:0;
  // Keep only directional candidates: positive histogram strengthening for BULLISH,
  // and negative histogram deepening for BEARISH. Ignore weakening/opposite-direction moves.
  let momentumLabel="",momentumSide="";
- if(h>0&&h>prev){momentumLabel="BULL · RISING";momentumSide="bull";}
- else if(h<0&&h<prev){momentumLabel="BEAR · FALLING";momentumSide="bear";}
+ if(h>0&&h>prev&&prev>prev2){momentumLabel="BULL · RISING";momentumSide="bull";}
+ else if(h<0&&h<prev&&prev<prev2){momentumLabel="BEAR · FALLING";momentumSide="bear";}
  if(momentumLabel){
   histogramMonitorPush(histogramMomentumHistory,tf,momentumSide,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
   renderHistogramMonitorRow(tf,histogramMomentumHistory,"histMomentum",momentumSide);flashHistogramHeading("histMomentum",tf,momentumSide);
