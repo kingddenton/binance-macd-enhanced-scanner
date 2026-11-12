@@ -629,11 +629,11 @@ function updateHistogramMonitor(symbol,tf,analysis){
  const h=Number(hist[i]),prev=Number(hist[i-1]),open=Number(rows[i][1]),close=Number(rows[i][4]);
  if(![h,prev,open,close].every(Number.isFinite)||h===prev)return;
  const priceChange=open?((close-open)/open)*100:0;
+ // Keep only directional candidates: positive histogram strengthening for BULLISH,
+ // and negative histogram deepening for BEARISH. Ignore weakening/opposite-direction moves.
  let momentumLabel="",momentumSide="";
  if(h>0&&h>prev){momentumLabel="BULL · RISING";momentumSide="bull";}
- else if(h>0&&h<prev){momentumLabel="BULL · FALLING";momentumSide="bull";}
  else if(h<0&&h<prev){momentumLabel="BEAR · FALLING";momentumSide="bear";}
- else if(h<0&&h>prev){momentumLabel="BEAR · RISING";momentumSide="bear";}
  if(momentumLabel){
   histogramMonitorPush(histogramMomentumHistory,tf,momentumSide,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
   renderHistogramMonitorRow(tf,histogramMomentumHistory,"histMomentum",momentumSide);flashHistogramHeading("histMomentum",tf,momentumSide);
