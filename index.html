@@ -385,10 +385,12 @@ function render15mCoverageDiagnostic(){
  summary.textContent="Qualified "+symbols.length+" · GREEN fresh "+count.GREEN+" · YELLOW stale/pending "+count.YELLOW+" · RED missing/rejected "+count.RED+" · Positive "+count.positive+" · Negative "+count.negative;
  meta.textContent="Snapshot "+new Date(now).toLocaleTimeString()+" · 15m change = candle close ÷ open − 1 · freshness limit 60s · cached sockets only; no extra REST calls or subscriptions.";
 }
+function specialMacdCandleLimit(){const value=Number($("eventBars")?.value);return Number.isFinite(value)?Math.max(1,Math.min(100,Math.floor(value))):5;}
+function scheduleSpecialMacdAlertRefresh(renderFn,candleTime,duration){const now=Date.now(),limit=specialMacdCandleLimit();for(let candle=2;candle<=limit;candle++)setTimeout(renderFn,Math.max(50,candleTime+candle*duration-now+50));}
 function renderSpecialMacdHistory(){
- const feed=$("twentyPctFeed");if(!feed)return;
- const durations={"1m":60000,"3m":180000,"5m":300000},now=Date.now();
- const active=specialMacdHistory.filter(item=>durations[item.tf]&&now<item.candleTime+3*durations[item.tf]).slice(0,5);
+  const feed=$("twentyPctFeed");if(!feed)return;
+  const durations={"1m":60000,"3m":180000,"5m":300000},now=Date.now(),limit=specialMacdCandleLimit();
+  const active=specialMacdHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,5);
  specialMacdHistory=active;
  feed.querySelectorAll("[data-special-tf]").forEach(column=>{
   const tf=column.dataset.specialTf,items=active.filter(x=>x.tf===tf),heading=$("specialHeading_"+tf);
@@ -398,20 +400,20 @@ function renderSpecialMacdHistory(){
   for(const item of items){
    const card=document.createElement("div");card.className="live-candle-card live-candle-red";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";
    const title=document.createElement("strong");title.textContent=item.symbol;
-   const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(3,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/3";detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
+   const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(limit,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/"+limit;detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
    card.append(title,detail);column.appendChild(card);
   }
  });
 }
 function renderSpecialMacdBullHistory(){
- const feed=$("twentyPctFeed");if(!feed)return;const durations={"1m":60000,"3m":180000,"5m":300000},now=Date.now();
- const active=specialMacdBullHistory.filter(item=>durations[item.tf]&&now<item.candleTime+3*durations[item.tf]).slice(0,5);specialMacdBullHistory=active;
+  const feed=$("twentyPctFeed");if(!feed)return;const durations={"1m":60000,"3m":180000,"5m":300000},now=Date.now(),limit=specialMacdCandleLimit();
+  const active=specialMacdBullHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,5);specialMacdBullHistory=active;
  feed.querySelectorAll("[data-special-bull-tf]").forEach(column=>{
   const tf=column.dataset.specialBullTf,items=active.filter(x=>x.tf===tf),heading=$("specialBullHeading_"+tf);
   if(heading)heading.classList.toggle("reversal-heading-active",tf===bullMacdLatestHeadingTf&&now<bullMacdHeadingBlinkUntil);
   column.replaceChildren();
   if(!items.length){const empty=document.createElement("div");empty.className="live-candle-empty";empty.textContent="No confirmed bullish crosses.";column.appendChild(empty);return;}
-  for(const item of items){const card=document.createElement("div");card.className="live-candle-card live-candle-green";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";const title=document.createElement("strong");title.textContent=item.symbol;const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(3,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/3";detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";card.append(title,detail);column.appendChild(card);}
+  for(const item of items){const card=document.createElement("div");card.className="live-candle-card live-candle-green";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";const title=document.createElement("strong");title.textContent=item.symbol;const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(limit,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/"+limit;detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";card.append(title,detail);column.appendChild(card);}
  });
 }
 function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist){
@@ -419,11 +421,11 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist){
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||Math.abs(candidate.change)<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
  const durations={"1m":60000,"3m":180000,"5m":300000},duration=durations[tf];if(!duration)return;
  const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
- specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+3*durations[item.tf]).slice(0,5);
+ specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
- setTimeout(renderSpecialMacdBullHistory,Math.max(50,candleTime+2*duration-now+50));setTimeout(renderSpecialMacdBullHistory,Math.max(100,candleTime+3*duration-now+50));renderSpecialMacdBullHistory();
- const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · completed candle closed with MACD histogram at/above zero after the previous completed candle was negative. Alert remains for 3 candles.";
+ scheduleSpecialMacdAlertRefresh(renderSpecialMacdBullHistory,candleTime,duration);renderSpecialMacdBullHistory();
+ const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · completed candle closed with MACD histogram at/above zero after the previous completed candle was negative. Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
@@ -432,13 +434,13 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||Math.abs(candidate.change)<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
- specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+3*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
+ specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
  specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
  if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
- setTimeout(renderSpecialMacdHistory,Math.max(50,candleTime+2*duration-now+50));setTimeout(renderSpecialMacdHistory,Math.max(100,candleTime+3*duration-now+50));
+ scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,candleTime,duration);
  renderSpecialMacdHistory();
- $("specialMacdStatus").textContent="LIVE REVERSAL: "+symbol+" · "+tf+" MACD histogram turned red. Alert is immediate and remains displayed for 3 candles.";
+ $("specialMacdStatus").textContent="LIVE REVERSAL: "+symbol+" · "+tf+" MACD histogram turned red. Alert is immediate and remains displayed for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
 function processSpecialMacdKline(symbol,tf,k){const state=specialMacdStates.get(symbol),history=specialMacdHistories.get(symbol),rows=history&&history[tf];if(!state||!Array.isArray(rows)||!specialMacdCandidates.has(symbol)||!["1m","3m","5m"].includes(tf))return;/* Only Binance's final kline event is eligible; forming-candle updates are ignored. */if(k.x!==true)return;const candleTime=Number(k.t),close=Number(k.c);if(!(close>0)||!Number.isFinite(candleTime))return;const last=rows[rows.length-1];/* A closed candle is processed once, in chronological order. */if(last&&candleTime<=Number(last[0]))return;rows.push([candleTime,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]);if(rows.length>150)rows.shift();const values=macd(rows).hist;if(values.length<2)return;const current=values[values.length-1],prior=state[tf];if(Number.isFinite(prior)&&prior<0&&current>=0)fireSpecialMacdBullAlert(symbol,tf,candleTime,current);if(Number.isFinite(prior)&&prior>=0&&current<0)fireSpecialMacdAlert(symbol,tf,candleTime,current);state[tf]=current;
@@ -1243,6 +1245,7 @@ function pcAutoToggle(){if(pcAutoOn){pcAutoOn=false;if(pcTimer)clearTimeout(pcTi
 function pcTab(name){const g=name==="green";$("greenTrackerView").hidden=!g;$("priceTracker").hidden=g;$("greenTabBtn").classList.toggle("active",g);$("priceTabBtn").classList.toggle("active",!g);$("greenTabBtn").classList.toggle("secondary",!g);$("priceTabBtn").classList.toggle("secondary",g);}
 $("greenTabBtn").addEventListener("click",()=>pcTab("green"));$("priceTabBtn").addEventListener("click",()=>pcTab("price"));$("pcScan").addEventListener("click",pcRun);$("pcAuto").addEventListener("click",pcAutoToggle);pcInit();restoreLastSettings();$("run15mCoverageDiagnostic").addEventListener("click",render15mCoverageDiagnostic);
 
+$("eventBars")?.addEventListener("change",()=>{const el=$("eventBars");el.value=String(specialMacdCandleLimit());renderSpecialMacdHistory();renderSpecialMacdBullHistory();});
 syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain","specialMacdTopGainers","specialMacdWorstLosers","specialMacdMinVolume"].forEach(id=>$(id).addEventListener("input",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();}));$("specialMacdUniverseMode").addEventListener("change",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();});specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval(()=>{const now=Date.now();if(twentyPctWatchSymbols.size&&twentyPctLastMessageAt&&now-twentyPctLastMessageAt>30000){const status=$("twentyPctStatus");if(status)status.textContent="LIVE STREAM STALE — no candle updates for "+Math.round((now-twentyPctLastMessageAt)/1000)+"s; reconnecting if the socket closes.";}},15000);$("universeSearch").addEventListener("input",renderUniverse);buildPanels();if(!$("showOiDollar").checked)document.querySelectorAll(".oi-dollar-cell").forEach(el=>el.hidden=true);renderDiagnostics();renderUniverse();
 })();
 </script>
