@@ -1521,4 +1521,58 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 })();
 </script>
 
+
+<style>
+/* User-controlled display collapse: visual only; scanner engines and API polling remain active. */
+.mm-panel-toggle{width:auto!important;min-width:88px!important;padding:6px 10px!important;margin-left:auto!important;font-size:11px!important;line-height:1.2!important;white-space:nowrap!important}
+.mm-collapse-target[hidden]{display:none!important}
+.mm-collapse-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+</style>
+<script>
+/* Independent display controls. Hiding a panel never pauses its data engine. */
+(function(){
+ const $=id=>document.getElementById(id);
+ const storageKey='mmLivePanelCollapse_v1';
+ let saved={};
+ try{saved=JSON.parse(localStorage.getItem(storageKey)||'{}')||{};}catch(_){}
+ function attach(key,label,target,host){
+   if(!target||!host||host.querySelector('[data-mm-toggle="'+key+'"]'))return;
+   target.classList.add('mm-collapse-target');
+   const button=document.createElement('button');
+   button.type='button';button.className='secondary mm-panel-toggle';
+   button.dataset.mmToggle=key;
+   const collapsed=!!saved[key];
+   target.hidden=collapsed;
+   button.textContent=collapsed?'Expand':'Collapse';
+   button.setAttribute('aria-expanded',String(!collapsed));
+   button.setAttribute('aria-label',(collapsed?'Expand ':'Collapse ')+label+' display');
+   button.addEventListener('click',()=>{
+     const next=!target.hidden;
+     target.hidden=next;
+     button.textContent=next?'Expand':'Collapse';
+     button.setAttribute('aria-expanded',String(!next));
+     button.setAttribute('aria-label',(next?'Expand ':'Collapse ')+label+' display');
+     saved[key]=next;
+     try{localStorage.setItem(storageKey,JSON.stringify(saved));}catch(_){}
+   });
+   host.classList.add('mm-collapse-heading');
+   host.appendChild(button);
+ }
+ // Top Momentum ranking: keep its heading and limit selector visible.
+ const momentum=$('topMomentumPanel');
+ attach('top-momentum','Top Momentum',momentum?.querySelector('.momentum-table-wrap'),momentum?.querySelector('.momentum-head'));
+ // Market-wide 3-minute alert list.
+ const marketwide=$('marketwide5mPanel');
+ attach('marketwide-alerts','Market-wide 3m Alert',marketwide?.querySelector('#marketwide5mRows')?.parentElement,marketwide?.querySelector('.statusline')||marketwide?.firstElementChild);
+ // Live bullish/reversal feed: keep universe controls and sound controls visible.
+ const liveFeed=$('twentyPctFeed');
+ const liveScroll=liveFeed?.closest('.live-candle-scroll');
+ const livePanel=liveFeed?.closest('.panel');
+ attach('live-bullish-feed','Live Bullish / Reversal Feed',liveScroll,livePanel?.querySelector('.statusline'));
+ // Histogram Momentum: independently collapse only its visual output.
+ const histogramRow=document.querySelector('.histogram-monitor-row');
+ attach('histogram-momentum','Histogram Momentum',histogramRow?.querySelector('.histogram-monitor-scroll'),histogramRow?.querySelector('.histogram-row-title'));
+})();
+</script>
+
 </body></html>
