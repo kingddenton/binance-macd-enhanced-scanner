@@ -1429,10 +1429,12 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
    window.scrollTo({top:0,behavior:"smooth"});
  };
  $("candleMonitorNav")?.addEventListener("click",showCandle);
+ // Legacy Reversal and Diagnostics shortcuts now open the dedicated tab before their existing scroll handlers run.
+ ["reversalNav","diagnosticsNav"].forEach(id=>$(id)?.addEventListener("click",showCandle,{capture:true}));
  $("greenTabBtn")?.addEventListener("click",()=>{view.hidden=true;setActive($("greenTabBtn"));});
  $("priceTabBtn")?.addEventListener("click",()=>{view.hidden=true;setActive($("priceTabBtn"));});
  // Existing secondary navigation remains available; when used, return to its Green Tracker context.
- ["earlyNav","reversalNav","diagnosticsNav","settingsNav","priceGainersNav"].forEach(id=>{
+ ["earlyNav","settingsNav","priceGainersNav"].forEach(id=>{
    $(id)?.addEventListener("click",()=>{if(!view.hidden){view.hidden=true;$("greenTrackerView").hidden=false;setActive($("greenTabBtn"));}});
  });
 })();
