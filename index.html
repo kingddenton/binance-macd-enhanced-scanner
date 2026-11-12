@@ -599,7 +599,8 @@ function addAlert(symbol,tf,candleTime,kind,direction="bull",cvdPct=null,oneMinu
 function fireFreshCrossoverAlert(symbol,tf,candleTime,histValue,direction="bull",cvdPct=null){addAlert(symbol,tf,candleTime,"crossover",direction,cvdPct);}
 function fireQualifiedAlert(symbol,tf,candleTime,direction="bull",cvdPct=null,oneMinuteCandleTime=null){addAlert(symbol,tf,candleTime,"qualified",direction,cvdPct,oneMinuteCandleTime);}
 function renderEarlyMomentumHistory(){const feed=$("earlyMomentumFeed");if(!feed)return;feed.replaceChildren();if(!earlyMomentumHistory.length){feed.textContent="No early momentum alerts yet.";return;}earlyMomentumHistory.forEach((item,index)=>{const el=document.createElement("div");el.className="alert-entry "+(index===0?"newest-alert-entry":"");el.style.color="#83c5ff";el.textContent=item.text;feed.appendChild(el);});}
-function addEarlyMomentumAlert(symbol,details,candleTime){const key=symbol+"|"+candleTime;if(alertedEarlyMomentum.has(key))return;alertedEarlyMomeconst HISTOGRAM_MONITOR_TFS=["1m","3m","5m"];
+function addEarlyMomentumAlert(symbol,details,candleTime){const key=symbol+"|"+candleTime;if(alertedEarlyMomentum.has(key))return;alertedEarlyMomentum.add(key);earlyMomentumHistory.unshift({text:symbol+" · "+new Date(candleTime).toLocaleTimeString()+" · OI +"+details.oiPct.toFixed(2)+"% · CVD +"+details.cvdPct.toFixed(2)+"% · RSI "+details.rsi.toFixed(1)});if(earlyMomentumHistory.length>10)earlyMomentumHistory.pop();renderEarlyMomentumHistory();if(earlyMomentumSound){try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const now=alertAudioContext.currentTime,osc=alertAudioContext.createOscillator(),gain=alertAudioContext.createGain();osc.type="sine";osc.frequency.setValueAtTime(1046,now);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.18,now+.02);gain.gain.exponentialRampToValueAtTime(.0001,now+.35);osc.connect(gain);gain.connect(alertAudioContext.destination);osc.start(now);osc.stop(now+.36);}catch(e){}}}
+const HISTOGRAM_MONITOR_TFS=["1m","3m","5m"];
 const histogramMonitorLastCandle=new Map();
 const histogramMomentumHistory=Object.fromEntries(HISTOGRAM_MONITOR_TFS.map(tf=>[tf,{bull:[],bear:[]}]));
 const histogramDivergenceHistory=Object.fromEntries(HISTOGRAM_MONITOR_TFS.map(tf=>[tf,{bull:[],bear:[]}]));
@@ -640,24 +641,6 @@ function updateHistogramMonitor(symbol,tf,analysis){
  if(divergenceLabel){
   histogramMonitorPush(histogramDivergenceHistory,tf,divergenceSide,{symbol,label:divergenceLabel,candleTime,priceChange,histogram:h,className:divergenceSide==="bull"?"live-candle-green":"live-candle-red"});
   renderHistogramMonitorRow(tf,histogramDivergenceHistory,"histDivergence",divergenceSide);flashHistogramHeading("histDivergence",tf,divergenceSide);
- }
-}
-/open)*100:0;
- let momentumLabel="",momentumSide="";
- if(h>0&&h>prev){momentumLabel="BULL · RISING";momentumSide="bull";}
- else if(h>0&&h<prev){momentumLabel="BULL · FALLING";momentumSide="bull";}
- else if(h<0&&h<prev){momentumLabel="BEAR · FALLING";momentumSide="bear";}
- else if(h<0&&h>prev){momentumLabel="BEAR · RISING";momentumSide="bear";}
- if(momentumLabel){
-  histogramMonitorPush(histogramMomentumHistory,tf,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
-  renderHistogramMonitorRow(tf,histogramMomentumHistory,"histMomentum");flashHistogramHeading("histMomentum",tf,momentumSide);
- }
- let divergenceLabel="",divergenceSide="";
- if(close<open&&h>0){divergenceLabel=h>prev?"BULLISH DIVERGENCE · H RISING":"BULLISH DIVERGENCE · H FALLING";divergenceSide="bull";}
- else if(close>open&&h<0){divergenceLabel=h<prev?"BEARISH DIVERGENCE · H FALLING":"BEARISH DIVERGENCE · H RISING";divergenceSide="bear";}
- if(divergenceLabel){
-  histogramMonitorPush(histogramDivergenceHistory,tf,{symbol,label:divergenceLabel,candleTime,priceChange,histogram:h,className:divergenceSide==="bull"?"live-candle-green":"live-candle-red"});
-  renderHistogramMonitorRow(tf,histogramDivergenceHistory,"histDivergence");flashHistogramHeading("histDivergence",tf,divergenceSide);
  }
 }
 function pushReversalAlert(symbol,tf,stage,candleTime,rsiValue,fiveMinCandleTime){
