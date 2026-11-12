@@ -1572,6 +1572,9 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
  // Histogram Momentum: independently collapse only its visual output.
  const histogramRow=document.querySelector('.histogram-monitor-row');
  attach('histogram-momentum','Histogram Momentum',histogramRow?.querySelector('.histogram-monitor-scroll'),histogramRow?.querySelector('.histogram-row-title'));
+ // Price / Histogram Divergence: its own independent collapse control.
+ const divergenceRow=[...document.querySelectorAll('.histogram-monitor-row')].find(row=>row.querySelector('.histogram-row-title')?.textContent.includes('PRICE / HISTOGRAM DIVERGENCE'));
+ attach('price-histogram-divergence','Price / Histogram Divergence',divergenceRow?.querySelector('.histogram-monitor-scroll'),divergenceRow?.querySelector('.histogram-row-title'));
 })();
 </script>
 
