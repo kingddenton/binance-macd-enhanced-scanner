@@ -608,6 +608,7 @@ const histogramMonitorLastCandle=new Map();
 const histogramMomentumHistory=Object.fromEntries(HISTOGRAM_MONITOR_TFS.map(tf=>[tf,{bull:[],bear:[]}]));
 const histogramDivergenceHistory=Object.fromEntries(HISTOGRAM_MONITOR_TFS.map(tf=>[tf,{bull:[],bear:[]}]));
 function histogramMonitorPush(history,tf,side,item){const list=history[tf][side];list.unshift(item);if(list.length>5)list.length=5;}
+function histogramMomentumUpsert(tf,side,item){const list=histogramMomentumHistory[tf][side],existingIndex=list.findIndex(entry=>entry.symbol===item.symbol);if(existingIndex>=0)list.splice(existingIndex,1);list.unshift(item);if(list.length>5)list.length=5;}
 function renderHistogramMonitorRow(tf,history,prefix,side){
  const target=$(prefix+"_"+side+"_"+tf);if(!target)return;
  const list=history[tf][side];
@@ -635,7 +636,7 @@ function updateHistogramMonitor(symbol,tf,analysis){
  if(h>0&&h>prev&&prev>prev2){momentumLabel="BULL · RISING";momentumSide="bull";}
  else if(h<0&&h<prev&&prev<prev2){momentumLabel="BEAR · FALLING";momentumSide="bear";}
  if(momentumLabel){
-  histogramMonitorPush(histogramMomentumHistory,tf,momentumSide,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
+  histogramMomentumUpsert(tf,momentumSide,{symbol,label:momentumLabel,candleTime,priceChange,histogram:h,className:momentumSide==="bull"?"live-candle-green":"live-candle-red"});
   renderHistogramMonitorRow(tf,histogramMomentumHistory,"histMomentum",momentumSide);flashHistogramHeading("histMomentum",tf,momentumSide);
  }
  let divergenceLabel="",divergenceSide="";
