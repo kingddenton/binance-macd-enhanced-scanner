@@ -1436,6 +1436,7 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 </style>
 <script>
 /* Move the complete live candle/reversal workspace into its own tab.
+   Keep scan controls and the gainers/losers diagnostic at the top; technical diagnostics stay at the bottom.
    Existing scanner engines, event handlers, settings IDs and alert state remain in place. */
 (function(){
  const $=id=>document.getElementById(id);
@@ -1451,16 +1452,33 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
  if(!view){
    view=document.createElement("section");view.id="candleMonitorView";view.hidden=true;
    const intro=document.createElement("div");intro.className="candle-monitor-intro";
-   intro.textContent="Dedicated live bullish candle, bullish-cross and bearish reversal workspace. The universe diagnostic is shown first so every alert can be read against the selected top gainers and top losers.";
+   intro.textContent="Dedicated live bullish candle, bullish-cross and bearish reversal workspace. Scan controls and the top gainers/losers diagnostic are shown first; technical diagnostics are at the bottom.";
    view.appendChild(intro);header.insertAdjacentElement("afterend",view);
  }
+ const intro=view.querySelector(".candle-monitor-intro");
+ const actionRow=$("autoBtn")?.closest(".row.actions");
  const diagnostics=$("diagnosticsPanel");
+ const qualifiedCoins=$("specialMacdCandidatesList");
  const liveFeed=$("twentyPctFeed");
  const livePanel=liveFeed?.closest(".panel")||liveFeed?.closest("section");
  const alertCenter=$("v2AlertCenter");
- // The diagnostic comes first, followed by the live monitor and the mirrored reversal alerts.
- [diagnostics,livePanel,alertCenter].filter(Boolean).forEach(node=>view.appendChild(node));
+ // Put Start auto-scan / Scan once (and Clear display) at the top of this page.
+ if(actionRow){
+   if(intro)intro.insertAdjacentElement("afterend",actionRow);
+   else view.insertBefore(actionRow,view.firstChild);
+ }
+ // Keep the top gainers/losers diagnostic immediately below the scan controls.
+ if(qualifiedCoins){
+   if(actionRow)actionRow.insertAdjacentElement("afterend",qualifiedCoins);
+   else if(intro)intro.insertAdjacentElement("afterend",qualifiedCoins);
+   else view.insertBefore(qualifiedCoins,view.firstChild);
+ }
+ // The three technical diagnostics are kept together at the very bottom.
+ if(livePanel)view.appendChild(livePanel);
+ if(alertCenter)view.appendChild(alertCenter);
+ if(diagnostics)view.appendChild(diagnostics);
  if(livePanel)livePanel.id="mmLiveMonitorStrip";
+ if(diagnostics){diagnostics.style.maxHeight="none";diagnostics.style.overflow="visible";}
  const allNav=[...nav.querySelectorAll("button")];
  const setActive=active=>{
    allNav.forEach(b=>{const on=b===active;b.classList.toggle("active",on);b.classList.toggle("secondary",!on);});
