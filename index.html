@@ -666,12 +666,12 @@ const histogramBearShrinkHistory=Object.fromEntries(HISTOGRAM_SHRINK_TFS.map(tf=
 function renderHistogramShrink(tf){
  const target=$("histShrink_"+tf);if(!target)return;
  const list=histogramShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-green"><strong>'+esc(item.symbol)+' · BULLISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · down '+item.shrinkPct.toFixed(1)+'% from prior bar</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong>'+esc(item.symbol)+' · BULLISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · down '+item.shrinkPct.toFixed(1)+'% from prior bar</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function renderBearishHistogramShrink(tf){
  const target=$("histBearShrink_"+tf);if(!target)return;
  const list=histogramBearShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong>'+esc(item.symbol)+' · BEARISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · up '+item.shrinkPct.toFixed(1)+'% toward zero</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-green"><strong>'+esc(item.symbol)+' · BEARISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · up '+item.shrinkPct.toFixed(1)+'% toward zero</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function updateBullishHistogramShrink(symbol,tf,analysis){
  if(!HISTOGRAM_SHRINK_TFS.includes(tf)||!analysis?.rows||!analysis?.macd?.hist)return;
@@ -688,7 +688,7 @@ function updateBullishHistogramShrink(symbol,tf,analysis){
  list.unshift({symbol,candleTime,histogram:current,shrinkPct:((previous-current)/previous)*100});
  if(list.length>5)list.length=5;
  renderHistogramShrink(tf);
- const heading=$("histShrinkHeading_"+tf);if(heading){heading.classList.remove("histogram-heading-bull");void heading.offsetWidth;heading.classList.add("histogram-heading-bull");clearTimeout(heading._histogramFlashTimer);heading._histogramFlashTimer=setTimeout(()=>heading.classList.remove("histogram-heading-bull"),5000);}
+ const heading=$("histShrinkHeading_"+tf);if(heading){heading.classList.remove("histogram-heading-bull","histogram-heading-bear");void heading.offsetWidth;heading.classList.add("histogram-heading-bear");clearTimeout(heading._histogramFlashTimer);heading._histogramFlashTimer=setTimeout(()=>heading.classList.remove("histogram-heading-bear"),5000);}
 }
 function updateBearishHistogramShrink(symbol,tf,analysis){
  if(!HISTOGRAM_SHRINK_TFS.includes(tf)||!analysis?.rows||!analysis?.macd?.hist)return;
@@ -705,7 +705,7 @@ function updateBearishHistogramShrink(symbol,tf,analysis){
  list.unshift({symbol,candleTime,histogram:current,shrinkPct:((Math.abs(previous)-Math.abs(current))/Math.abs(previous))*100});
  if(list.length>5)list.length=5;
  renderBearishHistogramShrink(tf);
- const heading=$("histBearShrinkHeading_"+tf);if(heading){heading.classList.remove("histogram-heading-bear");void heading.offsetWidth;heading.classList.add("histogram-heading-bear");clearTimeout(heading._histogramFlashTimer);heading._histogramFlashTimer=setTimeout(()=>heading.classList.remove("histogram-heading-bear"),5000);}
+ const heading=$("histBearShrinkHeading_"+tf);if(heading){heading.classList.remove("histogram-heading-bull","histogram-heading-bear");void heading.offsetWidth;heading.classList.add("histogram-heading-bull");clearTimeout(heading._histogramFlashTimer);heading._histogramFlashTimer=setTimeout(()=>heading.classList.remove("histogram-heading-bull"),5000);}
 }
 function updateHistogramMonitor(symbol,tf,analysis){
  updateBullishHistogramShrink(symbol,tf,analysis);
