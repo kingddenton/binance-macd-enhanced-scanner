@@ -435,7 +435,7 @@ function renderSpecialMacdBullHistory(){
 function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.2;}
 function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct){
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;specialMacdBullAlertKeys.add(key);
- const candidate=specialMacdCandidates.get(symbol);if(!candidate||Math.abs(candidate.change)<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
+ const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||(!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
  const durations={"3m":180000,"5m":300000,"15m":900000},duration=durations[tf];if(!duration)return;
  const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
@@ -448,7 +448,7 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct){
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
 function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
- const candidate=specialMacdCandidates.get(symbol);if(!candidate||Math.abs(candidate.change)<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
+ const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||(!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
  const now=Date.now(),duration={"3m":180000,"5m":300000,"15m":900000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"3m":180000,"5m":300000,"15m":900000}[item.tf]||0)).slice(0,5);
