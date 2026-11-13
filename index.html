@@ -226,9 +226,10 @@ main{max-width:1800px;width:100%}
   <section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_3m">🟢 BULLISH CROSS · 3M</h3><div class="live-candle-items" data-special-bull-tf="3m">No bullish crosses yet.</div></section>
   <section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_5m">🟢 BULLISH CROSS · 5M</h3><div class="live-candle-items" data-special-bull-tf="5m">No bullish crosses yet.</div></section>
   <section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_15m">🟢 BULLISH CROSS · 15M</h3><div class="live-candle-items" data-special-bull-tf="15m">No bullish crosses yet.</div></section>
-  <section class="live-candle-column"><h3 class="bearish-heading" id="specialHeading_1m">🔴 BEARISH REVERSAL · 1M</h3><div class="live-candle-items" data-special-tf="1m">No special reversals yet.</div></section>
+  <section class="live-candle-column">
   <section class="live-candle-column"><h3 class="bearish-heading" id="specialHeading_3m">🔴 BEARISH REVERSAL · 3M</h3><div class="live-candle-items" data-special-tf="3m">No special reversals yet.</div></section>
   <section class="live-candle-column"><h3 class="bearish-heading" id="specialHeading_5m">🔴 BEARISH REVERSAL · 5M</h3><div class="live-candle-items" data-special-tf="5m">No special reversals yet.</div></section>
+  <section class="live-candle-column"><h3 class="bearish-heading" id="specialHeading_15m">🔴 BEARISH REVERSAL · 15M</h3><div class="live-candle-items" data-special-tf="15m">No special reversals yet.</div></section>
   
   
   
@@ -390,7 +391,7 @@ function specialMacdCandleLimit(){const value=Number($("eventBars")?.value);retu
 function scheduleSpecialMacdAlertRefresh(renderFn,candleTime,duration){const now=Date.now(),limit=specialMacdCandleLimit();for(let candle=2;candle<=limit;candle++)setTimeout(renderFn,Math.max(50,candleTime+candle*duration-now+50));}
 function renderSpecialMacdHistory(){
   const feed=$("twentyPctFeed");if(!feed)return;
-  const durations={"1m":60000,"3m":180000,"5m":300000},now=Date.now(),limit=specialMacdCandleLimit();
+  const durations={"3m":180000,"5m":300000,"15m":900000},now=Date.now(),limit=specialMacdCandleLimit();
   const active=specialMacdHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,5);
  specialMacdHistory=active;
  feed.querySelectorAll("[data-special-tf]").forEach(column=>{
@@ -434,9 +435,9 @@ function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx
 function fireSpecialMacdAlert(symbol,tf,candleTime,hist){
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||Math.abs(candidate.change)<specialMacdMinGain()||candidate.quoteVolume<specialMacdMinVolume())return;
- const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
+ const now=Date.now(),duration={"3m":180000,"5m":300000,"15m":900000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
- specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
+ specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"3m":180000,"5m":300000,"15m":900000}[item.tf]||0)).slice(0,5);
  specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
  if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
@@ -514,7 +515,7 @@ function openSpecialMacdBatch(batch,batchId,retryAttempt=0){
  socket.onclose=event=>{const index=specialMacdSockets.indexOf(socket);if(index<0)return;specialMacdSockets.splice(index,1);recordWsDiagnostic("CLOSED",socket,"code "+event.code+" ("+wsCloseDescription(event.code)+"); reason: "+(event.reason||"(empty)")+"; clean: "+event.wasClean);if(specialMacdCandidates.size&&batch.some(symbol=>specialMacdCandidates.has(symbol))){const attempt=retryAttempt+1,delay=Math.min(60000,3000*Math.pow(2,Math.min(attempt-1,4))),status=$("specialMacdStatus");if(status)status.textContent="One special MACD connection disconnected; only its candidate batch is retrying in "+Math.round(delay/1000)+"s. Other batches remain active.";setTimeout(()=>openSpecialMacdBatch(batch,batchId,attempt),delay);}};
 }
 function ensureSpecialMacdSockets(){if(!specialMacdCandidates.size||specialMacdSockets.length)return;try{const symbols=[...specialMacdCandidates.keys()],batchSize=150;let batchId=0;for(let start=0;start<symbols.length;start+=batchSize)openSpecialMacdBatch(symbols.slice(start,start+batchSize),batchId++);}catch(e){const status=$("specialMacdStatus");if(status)status.textContent="Could not initialize special MACD streams: "+e.message;}}
-async function specialCandidateRestFallback(){if(specialFallbackBusy||!specialMacdCandidates.size)return;const stale=!specialMacdLastMessageAt||Date.now()-specialMacdLastMessageAt>20000;const mainStale=!twentyPctLastMessageAt||Date.now()-twentyPctLastMessageAt>20000;if(!stale&&!mainStale)return;specialFallbackBusy=true;let checked=0,failed=0;try{for(const symbol of specialMacdCandidates.keys()){for(const tf of ["1m","3m","5m"]){try{const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=2");if(!specialMacdCandidates.has(symbol)||!Array.isArray(rows)||!rows.length)continue;const row=[...rows].reverse().find(item=>Number(item[6])<=Date.now());if(!row)continue;const k={t:row[0],o:row[1],h:row[2],l:row[3],c:row[4],v:row[5],T:row[6],q:row[7],n:row[8],V:row[9],Q:row[10],B:row[11],x:true};processSpecialMacdKline(symbol,tf,k);checked++;}catch(e){failed++;}}}const status=$("specialMacdStatus");if(status)status.textContent="LIVE STREAM DEGRADED — REST safety check for "+checked+" completed candidate candles"+(failed?"; "+failed+" checks failed":"")+"; alerts may be delayed until candle close or stream recovery.";}finally{specialFallbackBusy=false;}}
+async function specialCandidateRestFallback(){if(specialFallbackBusy||!specialMacdCandidates.size)return;const stale=!specialMacdLastMessageAt||Date.now()-specialMacdLastMessageAt>20000;const mainStale=!twentyPctLastMessageAt||Date.now()-twentyPctLastMessageAt>20000;if(!stale&&!mainStale)return;specialFallbackBusy=true;let checked=0,failed=0;try{for(const symbol of specialMacdCandidates.keys()){for(const tf of ["3m","5m","15m"]){try{const rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=2");if(!specialMacdCandidates.has(symbol)||!Array.isArray(rows)||!rows.length)continue;const row=[...rows].reverse().find(item=>Number(item[6])<=Date.now());if(!row)continue;const k={t:row[0],o:row[1],h:row[2],l:row[3],c:row[4],v:row[5],T:row[6],q:row[7],n:row[8],V:row[9],Q:row[10],B:row[11],x:true};processSpecialMacdKline(symbol,tf,k);checked++;}catch(e){failed++;}}}const status=$("specialMacdStatus");if(status)status.textContent="LIVE STREAM DEGRADED — REST safety check for "+checked+" completed candidate candles"+(failed?"; "+failed+" checks failed":"")+"; alerts may be delayed until candle close or stream recovery.";}finally{specialFallbackBusy=false;}}
 function openTwentyPctBatch(batch,batchId,retryAttempt=0){
  const activeBatch=batch.filter(symbol=>twentyPctWatchSymbols.has(symbol));if(!activeBatch.length)return;
  let socket;try{socket=new WebSocket("wss://fstream.binance.com/market/stream");}catch(e){const delay=Math.min(60000,3000*Math.pow(2,Math.min(retryAttempt,4)));setTimeout(()=>openTwentyPctBatch(batch,batchId,retryAttempt+1),delay);return;}
@@ -1312,7 +1313,7 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
  const alertNodes=[document.querySelector(".alert-tier.confirmed-tier")?.closest(".panel"),$("earlyMomentumFeed")?.closest(".alert-tier"),document.querySelector(".alert-tier.reversal-tier")];
  alertNodes.filter(Boolean).forEach(node=>alertCenter.appendChild(node));
  const nav=(id,fn)=>$(id)?.addEventListener("click",fn),scrollTo=id=>$(id)?.scrollIntoView({behavior:"smooth",block:"start"});
- nav("earlyNav",()=>scrollTo("earlyMomentumFeed"));nav("reversalNav",()=>scrollTo("specialHeading_1m"));nav("diagnosticsNav",()=>scrollTo("diagnosticsPanel"));
+ nav("earlyNav",()=>scrollTo("earlyMomentumFeed"));nav("reversalNav",()=>scrollTo("specialHeading_3m"));nav("diagnosticsNav",()=>scrollTo("diagnosticsPanel"));
  nav("settingsNav",()=>{const x=$("filtersContent");if(x){x.hidden=false;scrollTo("filtersContent");}});
  nav("priceGainersNav",()=>{$("priceTabBtn")?.click();setTimeout(()=>scrollTo("pcRows"),50);});
  nav("fullscreenNav",()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();});
