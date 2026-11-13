@@ -708,7 +708,8 @@ function updateBearishHistogramShrink(symbol,tf,analysis){
  const heading=$("histBearShrinkHeading_"+tf);if(heading){heading.classList.remove("histogram-heading-bear");void heading.offsetWidth;heading.classList.add("histogram-heading-bear");clearTimeout(heading._histogramFlashTimer);heading._histogramFlashTimer=setTimeout(()=>heading.classList.remove("histogram-heading-bear"),5000);}
 }
 function updateHistogramMonitor(symbol,tf,analysis){
- updateBullishHistogramShrink(symbol,tf,analysis);\n updateBearishHistogramShrink(symbol,tf,analysis);
+ updateBullishHistogramShrink(symbol,tf,analysis);
+ updateBearishHistogramShrink(symbol,tf,analysis);
  if(!HISTOGRAM_MONITOR_TFS.includes(tf)||!analysis||!analysis.rows||!analysis.macd)return;
  const rows=analysis.rows,hist=analysis.macd.hist,i=rows.length-2;
  if(i<2||hist.length<=i||!rows[i])return;
