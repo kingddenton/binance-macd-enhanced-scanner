@@ -1743,94 +1743,35 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 </style>
 
 
-<!-- Candle Monitor_2: a second navigation entry to the same live Sections 01–06 workspace.
-     Reuses the existing live DOM and controls to avoid duplicate IDs or split alert state. -->
+
+<!-- Candle Monitor_2 is a separate page with its own scanner DOM and state. -->
 <style>
 #candleMonitor2Nav.active{background:#087f5b!important;color:#fff}
+#candleMonitor2View{margin-top:10px}
+#candleMonitor2Frame{display:block;width:100%;height:88vh;min-height:900px;border:0;border-radius:10px;background:#07131d}
 </style>
 <script>
 (function(){
  const $=id=>document.getElementById(id);
- const nav=document.querySelector(".v2-header .v2-nav");
- const view=$("candleMonitorView");
- const existing=$("candleMonitorNav");
- const green=$("greenTrackerView");
- const price=$("priceTracker");
- if(!nav||!view||!existing||!green)return;
- let tab=$("candleMonitor2Nav");
- if(!tab){
-   tab=document.createElement("button");
-   tab.id="candleMonitor2Nav";
-   tab.type="button";
-   tab.className="secondary";
-   tab.textContent="Candle Monitor_2";
-   nav.insertBefore(tab,nav.firstChild);
- }
- const setActive=active=>{
-   nav.querySelectorAll("button").forEach(button=>{
-     const on=button===active;
-     button.classList.toggle("active",on);
-     button.classList.toggle("secondary",!on);
-   });
- };
- const openWorkspace=()=>{
-   green.hidden=true;
-   if(price)price.hidden=true;
-   view.hidden=false;
-   setActive(tab);
-   window.scrollTo({top:0,behavior:"smooth"});
- };
- tab.addEventListener("click",openWorkspace);
- // Keep the two navigation entries and all other tabs visually synchronized.
- nav.addEventListener("click",event=>{
-   const button=event.target.closest("button");
-   if(button)setActive(button);
- },true);
- // Candle Monitor_2 is the first/default opening tab. Its Sections 01–06,
- // universe controls, candle count, volume threshold and live alerts all
- // remain the existing functioning elements; no scanner logic is changed.
- openWorkspace();
+ const main=document.querySelector('main'),nav=document.querySelector('.v2-header .v2-nav');
+ const green=$('greenTrackerView'),price=$('priceTracker'),oldView=$('candleMonitorView');
+ if(!main||!nav||!green)return;
+ let tab=$('candleMonitor2Nav');
+ if(!tab){tab=document.createElement('button');tab.id='candleMonitor2Nav';tab.type='button';tab.className='secondary';tab.textContent='Candle Monitor_2';nav.insertBefore(tab,nav.firstChild);}
+ let view=$('candleMonitor2View');
+ if(!view){view=document.createElement('section');view.id='candleMonitor2View';view.hidden=true;const frame=document.createElement('iframe');frame.id='candleMonitor2Frame';frame.title='Independent Candle Monitor_2 scanner';frame.loading='lazy';view.appendChild(frame);main.appendChild(view);}
+ const frame=$('candleMonitor2Frame');
+ let loaded=false;
+ const setActive=active=>nav.querySelectorAll('button').forEach(b=>{const on=b===active;b.classList.toggle('active',on);b.classList.toggle('secondary',!on);});
+ const open=()=>{green.hidden=true;if(price)price.hidden=true;if(oldView)oldView.hidden=true;view.hidden=false;if(frame&&!loaded){frame.src='candle-monitor-2.html';loaded=true;}setActive(tab);window.scrollTo({top:0,behavior:'smooth'});};
+ tab.addEventListener('click',open);
+ $('greenTabBtn')?.addEventListener('click',()=>{view.hidden=true;});
+ $('priceTabBtn')?.addEventListener('click',()=>{view.hidden=true;});
+ $('candleMonitorNav')?.addEventListener('click',()=>{view.hidden=true;});
+ ['earlyNav','settingsNav','priceGainersNav','reversalNav','diagnosticsNav'].forEach(id=>$(id)?.addEventListener('click',()=>{view.hidden=true;}));
+ open();
 })();
 </script>
 
-
-<!-- Candle Monitor_2 cleanup: keep the original momentum, market-wide alert,
-     MACD grid and scanner settings in the original Green Tracker workspace only. -->
-<script>
-(function(){
- const $=id=>document.getElementById(id);
- const original=$('greenTrackerView');
- const monitor=$('candleMonitorView');
- if(!original||!monitor)return;
- // These are intentionally excluded from Candle Monitor_2. If a prior layout
- // change ever places one inside the new monitor, return it to the original page.
- const excluded=[
-   $('topMomentumPanel'),
-   $('marketwide5mPanel'),
-   $('tfGrid'),
-   original.querySelector('.saved-settings'),
-   $('filtersContent'),
-   $('volumeControlsTab')
- ].filter(Boolean);
- excluded.forEach(el=>{
-   if(monitor.contains(el))original.appendChild(el);
- });
- // The Settings/filter workspace remains on the original tab, not in the monitor.
- const settingsNav=$('settingsNav');
- if(settingsNav)settingsNav.setAttribute('aria-label','Settings');
- // Keep the collapsible Volume controls group in the original Green Tracker
- // workspace only. Hide it while Candle Monitor_2 is active, then restore it.
- const volumeGroup=$('volumeControlsTab');
- const greenTab=$('greenTabBtn');
- const monitorTab=$('candleMonitor2Nav');
- const syncVolumeVisibility=()=>{
-   if(volumeGroup)volumeGroup.hidden=!!(monitorTab&&monitorTab.classList.contains('active'));
- };
- if(monitorTab)monitorTab.addEventListener('click',syncVolumeVisibility);
- if(greenTab)greenTab.addEventListener('click',()=>{if(volumeGroup)volumeGroup.hidden=false;});
- syncVolumeVisibility();
- // Candle Monitor_2 shows Sections 01–06 and only its required scan controls.
-})();
-</script>
 
 </body></html>
