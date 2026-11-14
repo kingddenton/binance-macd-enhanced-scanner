@@ -267,8 +267,8 @@ main{max-width:1800px;width:100%}
  <div id="twentyPctStatus" class="small" style="margin-top:8px">Visual monitoring starts with each scan. Turn the sound ON to enable the loud alarm.</div>
   <div id="specialMacdStatus" class="small" style="margin-top:5px">Special reversal monitor is ready; qualifying coins are checked independently of Top N.</div>
   <div id="specialMacdCandidatesList" class="special-universe-diagnostic" aria-live="polite">
-<section class="special-universe-side special-universe-gainers"><h3>🟢 TOP GAINERS</h3><div class="special-universe-meta" id="specialGainersMeta">Waiting for market scan…</div><ol id="specialGainersRows"><li class="small">Waiting for market scan…</li></ol></section>
-<section class="special-universe-side special-universe-losers"><h3>🔴 TOP LOSERS</h3><div class="special-universe-meta" id="specialLosersMeta">Waiting for market scan…</div><ol id="specialLosersRows"><li class="small">Waiting for market scan…</li></ol></section></div>
+<section class="special-universe-side special-universe-gainers"><h3>🟢 01A · LEADERS — BULLISH WATCHLIST</h3><div class="special-universe-meta" id="specialGainersMeta">Waiting for market scan…</div><ol id="specialGainersRows"><li class="small">Waiting for market scan…</li></ol></section>
+<section class="special-universe-side special-universe-losers"><h3>🔴 01B · LAGGARDS — BEARISH WATCHLIST</h3><div class="special-universe-meta" id="specialLosersMeta">Waiting for market scan…</div><ol id="specialLosersRows"><li class="small">Waiting for market scan…</li></ol></section></div>
   
 
 </div>
@@ -490,7 +490,7 @@ function syncSpecialMacdCandidates(){
   if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
   for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
   const modeLabel=mode==="ranking"?"Top "+specialMacdRankCount("specialMacdTopGainers")+" gainers / Worst "+specialMacdRankCount("specialMacdWorstLosers")+" losers":"24h threshold ±"+specialMacdMinGain()+"%";
-  const renderSide=(rowsId,metaId,rows,empty)=>{const body=$(rowsId),meta=$(metaId);if(meta)meta.textContent=rows.length+" selected · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li><b>'+esc(symbol)+'</b> <span>'+(item.change>0?"+":"")+item.change.toFixed(2)+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
+  const renderSide=(rowsId,metaId,rows,empty)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" selected · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(item.change>0?"+":"")+item.change.toFixed(2)+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
   renderSide("specialGainersRows","specialGainersMeta",gainers,"No qualifying gainers.");renderSide("specialLosersRows","specialLosersMeta",losers,"No qualifying losers.");renderAlertHistory();
   const status=$("specialMacdStatus");if(status)status.textContent=next.size+" qualifying USDⓈ-M trading contracts ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); monitoring 1m/3m/5m MACD reversals and bullish crosses.";
  }function updateSpecialRollingKline(symbol,k){
@@ -1724,5 +1724,19 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
  if(diagnosticsTitle)diagnosticsTitle.textContent='06  SCANNER DIAGNOSTICS';
 })();
 </script>
+
+
+<style>
+/* Section 01 directional identity: watchlist bias only, not a trade confirmation. */
+#specialGainersRows .leader-coin-row{margin:4px 0;padding:6px 8px;border:1px solid rgba(34,197,94,.42);border-left:4px solid #22c55e;border-radius:6px;background:rgba(22,163,74,.13);color:#d9fbe6}
+#specialGainersRows .leader-coin-row b{color:#86efac}
+#specialGainersRows .leader-coin-row span{color:#a7f3c0;font-weight:800}
+#specialLosersRows .lagger-coin-row{margin:4px 0;padding:6px 8px;border:1px solid rgba(239,68,68,.42);border-left:4px solid #ef4444;border-radius:6px;background:rgba(220,38,38,.13);color:#ffe0e4}
+#specialLosersRows .lagger-coin-row b{color:#fda4af}
+#specialLosersRows .lagger-coin-row span{color:#fecaca;font-weight:800}
+#specialGainersRows,#specialLosersRows{padding-left:25px}
+#specialGainersRows li::marker{color:#4ade80;font-weight:900}
+#specialLosersRows li::marker{color:#fb7185;font-weight:900}
+</style>
 
 </body></html>
