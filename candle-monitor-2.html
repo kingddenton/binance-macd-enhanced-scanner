@@ -1873,6 +1873,8 @@ html,body{min-height:100%;}body{padding:8px!important}
  move('universe');move('scanCount');move('minVol');
  const volume=$('minVol')?.closest('.cm2-control');
  if(volume){const l=volume.querySelector('label');if(l)l.textContent='Minimum 24h quote volume (USDT)';}
+ // Remove the leftover MARKET RESULTS heading and timeframe selector from this independent page.
+ view.querySelectorAll('.v2-results-heading,.v2-timeframes').forEach(el=>el.remove());
  // Keep the standalone page on the live Sections 01–06 workspace only.
  $('greenTrackerView').hidden=true;
  if($('priceTracker'))$('priceTracker').hidden=true;
