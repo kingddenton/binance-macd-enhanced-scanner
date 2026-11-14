@@ -1267,7 +1267,7 @@ function applySettings(settings){
 function syncSavedSoundUi(){
  const items=[["toggle20PctSound","Live candle alert sound: ",twentyPctSoundEnabled],["toggleSpecialMacdSound","Special reversal alarm: ",specialMacdSoundEnabled],["toggleEarlyMomentumSound","Early Momentum sound: ",earlyMomentumSound],["marketwide5mSound","Sound: ",marketwide5mSoundOn],["toggleConfirmedBullSound","Confirmed bullish alert: ",alertSoundEnabled.confirmedBull],["toggleConfirmedBearSound","Confirmed bearish alert: ",alertSoundEnabled.confirmedBear],["toggleCrossoverBearSound","Bearish MACD crossover: ",alertSoundEnabled.crossoverBear]];
  items.forEach(([id,label,on])=>{const b=$(id);if(b){b.textContent=label+(on?"ON":"OFF");b.classList.toggle("auto-running",on);}});
- $("alertSoundStatus").textContent="Confirmed bullish "+(alertSoundEnabled.confirmedBull?"ON":"OFF")+" · Confirmed bearish "+(alertSoundEnabled.confirmedBear?"ON":"OFF")+"+" · Bearish crossover "+(alertSoundEnabled.crossoverBear?"ON":"OFF")+". Visual alerts remain active regardless of sound settings.";
+ $("alertSoundStatus").textContent="Confirmed bullish "+(alertSoundEnabled.confirmedBull?"ON":"OFF")+" · Confirmed bearish "+(alertSoundEnabled.confirmedBear?"ON":"OFF")+" · Bearish crossover "+(alertSoundEnabled.crossoverBear?"ON":"OFF")+". Visual alerts remain active regardless of sound settings.";
 }
 function saveProfile(){
  const name=$("profileName").value.trim()||"Current settings";$("profileName").value=name;
