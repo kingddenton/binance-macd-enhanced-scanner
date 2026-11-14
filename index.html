@@ -1746,4 +1746,108 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 #specialLosersRows li::marker{color:#fb7185;font-weight:900}
 </style>
 
+
+<!-- MM HOME + CONSOLIDATED SCANNER WORKSPACE -->
+<style>
+#mmLandingPage[hidden],#mmScannerWorkspace[hidden]{display:none!important}
+#mmLandingPage{margin:14px 0 22px;padding:clamp(18px,4vw,42px);border:1px solid #28516a;border-radius:18px;background:radial-gradient(ellipse at 85% 0%,#16445a 0,#0b1b2b 42%,#07111b 100%);box-shadow:0 12px 34px #0008}
+.mm-home-kicker{color:#68d5ff;font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
+.mm-home-title{margin:10px 0 8px;color:#f5cf42;font-size:clamp(28px,5vw,48px);line-height:1.08;font-weight:950}
+.mm-home-copy{max-width:720px;color:#c4d5e2;font-size:14px;line-height:1.65}
+.mm-home-actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
+.mm-home-actions button{width:auto;min-width:170px;padding:12px 18px}
+.mm-home-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:24px}
+.mm-home-card{padding:14px;border:1px solid #25475b;border-radius:12px;background:#091724}
+.mm-home-card b{display:block;margin-bottom:6px;color:#e9f7ff;font-size:13px}
+.mm-home-card span{color:#9eb4c5;font-size:12px;line-height:1.5}
+#mmLandingPage .mm-home-note{margin-top:22px;color:#8fa9bb;font-size:11px}
+#mmHomeNav.active,#greenTabBtn.active{background:linear-gradient(135deg,#087e48,#12c968)!important;color:#03140b!important;border-color:#28f080!important}
+#candleMonitorNav{display:none!important}
+@media(max-width:700px){#mmHomeNav{order:-1}.mm-home-grid{grid-template-columns:1fr}.mm-home-actions button{width:100%}}
+</style>
+<script>
+/* Home screen + consolidated scanner workspace.
+   Presentation-only reorganisation: existing scanner engines, IDs, handlers,
+   saved settings, alert conditions and API schedules are retained. */
+(function(){
+ const $=id=>document.getElementById(id);
+ const main=document.querySelector("main");
+ const header=main?.querySelector(".v2-header");
+ const nav=header?.querySelector(".v2-nav");
+ const green=$("greenTrackerView");
+ const candle=$("candleMonitorView");
+ const price=$("priceTracker");
+ if(!main||!header||!nav||!green)return;
+
+ let home=$("mmLandingPage");
+ if(!home){
+   home=document.createElement("section");
+   home.id="mmLandingPage";
+   home.innerHTML='<div class="mm-home-kicker">MM BINANCE V2 · MARKET INTELLIGENCE</div><div class="mm-home-title">Your market, clearly in view.</div><div class="mm-home-copy">A focused workspace for monitoring Binance USDⓈ-M USDT perpetual markets, spotting momentum changes, and reviewing bullish and bearish signals. Use the Scanner Workspace to open the full monitoring suite.</div><div class="mm-home-actions"><button id="mmLaunchScanner" type="button">Open Scanner Workspace</button><button id="mmOpenPriceChange" class="secondary" type="button">Open Price Change</button></div><div class="mm-home-grid"><div class="mm-home-card"><b>Market monitoring</b><span>Follow market leaders, laggards and live candle activity.</span></div><div class="mm-home-card"><b>Momentum &amp; reversals</b><span>Review MACD histogram behaviour, divergences and reversal stages.</span></div><div class="mm-home-card"><b>Scanner diagnostics</b><span>Inspect scan timing, API health and market coverage.</span></div></div><div class="mm-home-note">Scanner only · No orders are placed. Market data and signals are for monitoring.</div>';
+   header.insertAdjacentElement("afterend",home);
+ }
+ let workspace=$("mmScannerWorkspace");
+ if(!workspace){
+   workspace=document.createElement("section");
+   workspace.id="mmScannerWorkspace";
+   workspace.hidden=true;
+   workspace.setAttribute("aria-label","Scanner Workspace");
+   home.insertAdjacentElement("afterend",workspace);
+ }
+ // Bring both existing scanner views together. Their original IDs and controls stay intact.
+ if(green.parentElement!==workspace)workspace.appendChild(green);
+ if(candle&&candle.parentElement!==workspace)workspace.appendChild(candle);
+
+ let homeBtn=$("mmHomeNav");
+ if(!homeBtn){
+   homeBtn=document.createElement("button");
+   homeBtn.id="mmHomeNav";homeBtn.type="button";homeBtn.className="secondary";
+   homeBtn.textContent="Home";
+   nav.insertBefore(homeBtn,nav.firstChild);
+ }
+ const scannerBtn=$("greenTabBtn");
+ if(scannerBtn)scannerBtn.textContent="Scanner Workspace";
+ const candleBtn=$("candleMonitorNav");
+ if(candleBtn)candleBtn.hidden=true;
+
+ function active(btn){
+   [homeBtn,scannerBtn,$("priceTabBtn")].filter(Boolean).forEach(b=>{
+     const on=b===btn;b.classList.toggle("active",on);b.classList.toggle("secondary",!on);
+   });
+ }
+ function showHome(){
+   home.hidden=false;workspace.hidden=true;
+   if(price)price.hidden=true;
+   if(green)green.hidden=true;
+   if(candle)candle.hidden=true;
+   active(homeBtn);window.scrollTo({top:0,behavior:"smooth"});
+ }
+ function showScanner(){
+   home.hidden=true;workspace.hidden=false;
+   if(price)price.hidden=true;
+   if(green)green.hidden=false;
+   if(candle)candle.hidden=false;
+   active(scannerBtn);window.scrollTo({top:0,behavior:"smooth"});
+ }
+ function showPrice(){
+   home.hidden=true;workspace.hidden=true;
+   if(green)green.hidden=true;
+   if(candle)candle.hidden=true;
+   if(price)price.hidden=false;
+   active($("priceTabBtn"));window.scrollTo({top:0,behavior:"smooth"});
+ }
+ homeBtn.addEventListener("click",showHome);
+ $("mmLaunchScanner")?.addEventListener("click",showScanner);
+ $("mmOpenPriceChange")?.addEventListener("click",showPrice);
+ scannerBtn?.addEventListener("click",showScanner);
+ $("priceTabBtn")?.addEventListener("click",showPrice);
+ // Existing shortcut buttons still work, but now open the consolidated workspace first.
+ ["priceGainersNav","earlyNav","reversalNav","diagnosticsNav","settingsNav"].forEach(id=>{
+   $(id)?.addEventListener("click",showScanner);
+ });
+ // Default entry point for every fresh visit is the new landing page.
+ showHome();
+})();
+</script>
+
 </body></html>
