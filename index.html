@@ -244,7 +244,6 @@ main{max-width:1800px;width:100%}
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
  <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +15% minimum trigger on all timeframes; green stronger alert (+20% on 30m/1H); red +40% extreme alert. Reversal columns: selected 24h universe (positive gainers and negative losers) with ≥$2M quote volume; completed-candle 1m/3m/5m MACD reversals.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
  <div class="controls" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label for="specialMacdUniverseMode">Reversal universe mode</label><select id="specialMacdUniverseMode"><option value="threshold">Percentage threshold</option><option value="ranking">Top gainers / worst losers</option></select></div><div id="specialThresholdControls"><label for="specialMacdMinGain">Minimum absolute 24h price change (%) — both directions</label><input id="specialMacdMinGain" type="number" min="0" max="500" step="0.5" value="20"></div><div id="specialRankingControls" hidden><label for="specialMacdTopGainers">Top 24h gainers</label><input id="specialMacdTopGainers" type="number" min="1" max="1000" step="1" value="10"><label for="specialMacdWorstLosers" style="margin-top:7px">Worst 24h losers</label><input id="specialMacdWorstLosers" type="number" min="1" max="1000" step="1" value="10"></div><div><label for="specialMacdMinVolume">Minimum 24h quote volume (USDT)</label><input id="specialMacdMinVolume" type="number" min="0" step="100000" value="2000000"></div><div><label for="specialBullMinCandleChange">Live bullish monitor — minimum candle change (%)</label><input id="specialBullMinCandleChange" type="number" min="0" max="100" step="0.05" value="0.2"></div></div>
- <div class="controls" style="margin-top:9px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))"><div class="panel" style="margin:0;padding:9px"><b style="color:#63d69a">Bullish cross confirmations</b><label class="check"><input id="specialBullRequireST" type="checkbox" checked> Require bullish Supertrend</label><label class="check"><input id="specialBullRequireDEA" type="checkbox" checked> Require DEA above zero</label><label class="check"><input id="specialBullRequireDIF" type="checkbox" checked> Require DIF above zero</label></div><div class="panel" style="margin:0;padding:9px"><b style="color:#ff8585">Bearish reversal confirmations</b><label class="check"><input id="specialBearRequireST" type="checkbox" checked> Require bearish Supertrend</label><label class="check"><input id="specialBearRequireDEA" type="checkbox" checked> Require DEA below zero</label><label class="check"><input id="specialBearRequireDIF" type="checkbox" checked> Require DIF below zero</label></div></div>
  <div class="live-candle-scroll special-alert-scroll" style="overflow-x:auto;margin-top:10px"><div class="special-alert-layout" id="twentyPctFeed">
   <div class="special-direction-group special-bull-group"><div class="special-group-title">🟢 BULLISH CROSS</div><div class="special-group-columns">
    <section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_1m">1M</h3><div class="live-candle-items" data-special-bull-tf="1m">No bullish crosses yet.</div></section><section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_3m">3M</h3><div class="live-candle-items" data-special-bull-tf="3m">No bullish crosses yet.</div></section>
@@ -282,7 +281,7 @@ main{max-width:1800px;width:100%}
 <section class="panel momentum-panel" id="topMomentumPanel" aria-label="Top momentum coins"><div class="momentum-head"><div><h2>🏆 Top Momentum</h2><span class="small">Only coins with RSI ≥ 60 on 1m, 3m and 5m · ranked by 24h price change</span></div><label class="momentum-limit">Show <select id="momentumLimit" aria-label="Number of top momentum coins"><option value="3">Top 3</option><option value="5" selected>Top 5</option></select></label></div><div class="tablewrap momentum-table-wrap"><table class="compact-table"><thead><tr><th>#</th><th>Symbol</th><th>24h Change</th><th>RSI 1m</th><th>RSI 3m</th><th>RSI 5m</th></tr></thead><tbody id="topMomentumRows"><tr><td colspan="6" class="compact-empty">Run a scan to find qualifying coins.</td></tr></tbody></table></div></section>
 <section class="tfgrid" id="tfGrid"></section><div class="panel" id="diagnosticsPanel" style="margin-top:12px"><h2 style="margin:0 0 10px">Diagnostics</h2><details id="wsDiagnostics" style="margin-top:8px"><summary style="cursor:pointer;color:#8fd5ff;font-weight:700">WebSocket diagnostics — identify disconnected batches</summary><div id="wsDiagnosticsBody" class="small" style="margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere">Waiting for socket activity…</div></details>
 <details id="marketCoverageDetails" style="margin-top:10px"><summary style="cursor:pointer;color:#8fd5ff;font-weight:700">15M MARKET COVERAGE DIAGNOSTIC</summary><p class="small">On-demand snapshot using the existing qualified market-wide universe and cached 15m WebSocket data only. No extra REST calls, subscriptions, or continuous polling.</p><button id="run15mCoverageDiagnostic" type="button" class="secondary">Run 15m coverage check</button><div id="coverageSummary" class="small" style="margin-top:8px"></div><div id="coverageMeta" class="small" style="margin:6px 0">Run the check to inspect current coverage.</div><div class="tablewrap" style="max-height:420px;overflow:auto"><table style="min-width:760px"><thead><tr><th>Symbol</th><th>24H change</th><th>Live 15M change</th><th>Status</th><th>Subscription</th><th>Last update</th></tr></thead><tbody id="coverageRows"><tr><td colspan="6">Diagnostic not run.</td></tr></tbody></table></div></details>
-<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--blue);font-weight:700">Scanner diagnostics — timing, API and function health</summary><div class="diaggrid"><div class="diagitem"><div class="diaglabel">Auto scan</div><div class="diagvalue" id="dAuto">Stopped</div></div><div class="diagitem"><div class="diaglabel">Scan state</div><div class="diagvalue" id="dState">Idle</div></div><div class="diagitem"><div class="diaglabel">Live scan elapsed</div><div class="diagvalue" id="dLiveElapsed">—</div></div><div class="diagitem"><div class="diaglabel">Scan progress</div><div class="diagvalue" id="dProgress">—</div></div><div class="diagitem"><div class="diaglabel">Average time / coin</div><div class="diagvalue" id="dAvgCoin">—</div></div><div class="diagitem"><div class="diaglabel">Scan rate (coins / sec)</div><div class="diagvalue" id="dRate">—</div></div><div class="diagitem"><div class="diaglabel">Estimated remaining</div><div class="diagvalue" id="dEta">—</div></div><div class="diagitem"><div class="diaglabel">1-minute candle close test</div><div class="diagvalue" id="dWindow">—</div></div><div class="diagitem"><div class="diaglabel">Last scan duration</div><div class="diagvalue" id="dDuration">—</div></div><div class="diagitem"><div class="diaglabel">Last completed scan</div><div class="diagvalue" id="dLastScan">—</div></div><div class="diagitem"><div class="diaglabel">Next scan</div><div class="diagvalue" id="dNext">—</div></div><div class="diagitem"><div class="diaglabel">Scan cycles completed</div><div class="diagvalue" id="dCycles">0</div></div><div class="diagitem"><div class="diaglabel">Symbols processed</div><div class="diagvalue" id="dSymbols">0</div></div><div class="diagitem"><div class="diaglabel">API requests</div><div class="diagvalue" id="dRequests">0</div></div><div class="diagitem"><div class="diaglabel">Latest API response</div><div class="diagvalue" id="dApiTime">—</div></div><div class="diagitem"><div class="diaglabel">Average / max API time</div><div class="diagvalue" id="dApiAvgMax">—</div></div><div class="diagitem"><div class="diaglabel">API errors</div><div class="diagvalue" id="dApiErrors">0</div></div><div class="diagitem"><div class="diaglabel">Rate-limit responses</div><div class="diagvalue" id="dRateLimits">0</div></div><div class="diagitem"><div class="diaglabel">Binance weight used (1m)</div><div class="diagvalue" id="dWeight">—</div></div><div class="diagitem"><div class="diaglabel">API cache hits / misses</div><div class="diagvalue" id="dCache">0 / 0</div></div><div class="diagitem"><div class="diaglabel">Rate-limit cooldown</div><div class="diagvalue" id="dCooldown">—</div></div><div class="diagitem"><div class="diaglabel">Last HTTP status</div><div class="diagvalue" id="dHttp">—</div></div><div class="diagitem"><div class="diaglabel">Last Retry-After</div><div class="diagvalue" id="dRetry">—</div></div><div class="diagitem"><div class="diaglabel">Last API host</div><div class="diagvalue" id="dHost">—</div></div><div class="diagitem"><div class="diaglabel">Last scan outcome</div><div class="diagvalue" id="dOutcome">Not run yet</div></div><div class="diagitem"><div class="diaglabel">MACD calculations</div><div class="diagvalue" id="dMacd">0</div></div><div class="diagitem"><div class="diaglabel">RSI calculations</div><div class="diagvalue" id="dRsi">0</div></div><div class="diagitem"><div class="diaglabel">HTF confirmation checks</div><div class="diagvalue" id="dHtf">0</div></div><div class="diagitem"><div class="diaglabel">OI reads</div><div class="diagvalue" id="dOi">0</div></div></div><div class="small" id="dNote" style="margin-top:8px">Diagnostics use existing requests only. Request weight is shown when Binance exposes its response header. Endpoint counts identify which API calls are driving usage.</div><div class="small" id="dEndpoints" style="margin-top:5px">Endpoint requests: none yet.</div><div class="scan-universe" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><div class="statusline"><div><b>Selected scan universe</b><div class="small" id="universeMeta">Exact symbols passed to this scan appear here.</div></div><input id="universeSearch" type="search" placeholder="Search selected symbols" aria-label="Search selected coins" style="max-width:260px"></div><div id="universeBreakdown" class="diaggrid" style="margin-top:10px"></div><div class="tablewrap" style="margin-top:8px"><table style="min-width:950px"><thead><tr><th>Rank</th><th>Symbol</th><th id="universeChangeHeading">24h change</th><th>24h quote volume</th><th>Ranked in</th><th>Status</th><th>1m</th><th>3m</th><th>5m</th><th>15m</th></tr></thead><tbody id="universeRows"><tr><td colspan="10" class="empty">Run a scan to list the selected symbols.</td></tr></tbody></table></div><div class="small" style="margin-top:8px">Select a symbol to inspect its timeframe-by-timeframe diagnostic trail. No additional Binance requests are made by this panel.</div><div id="coinTrace" class="diaggrid"></div><div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><b>Universe exclusion audit</b><div class="small" style="margin:5px 0 8px">Checks the four Binance leaderboard symbols against this scan’s existing ticker and exchange-information responses. No additional Binance requests.</div><div class="tablewrap"><table style="min-width:850px"><thead><tr><th>Symbol</th><th>Exchange status</th><th>24H change</th><th>24H quote volume</th><th>24H rank after volume</th><th>Why excluded / status</th></tr></thead><tbody id="universeAuditRows"><tr><td colspan="6" class="empty">Run a scan to audit the comparison symbols.</td></tr></tbody></table></div></div><div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><b>Full Binance Futures instrument inventory</b><div class="small" style="margin:5px 0 8px">Discovers all USDⓈ-M instruments across every contract type and quote asset. COIN-M is not queried or included.</div><div id="marketInventorySummary" class="diaggrid"></div><div class="tablewrap" style="margin-top:8px"><table style="min-width:1100px"><thead><tr><th>Market</th><th>Symbol</th><th>Status</th><th>Contract type</th><th>Base</th><th>Quote</th><th>24H change</th><th>24H volume</th><th>Scanner support</th></tr></thead><tbody id="marketInventoryRows"><tr><td colspan="9" class="empty">Run a scan to discover the futures inventory.</td></tr></tbody></table></div></div></div><div id="stageDiagnostics" class="diaggrid" aria-live="polite"></div></details></div></div>
+<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--blue);font-weight:700">Scanner diagnostics — timing, API and function health</summary><div class="diaggrid"><div class="diagitem"><div class="diaglabel">Auto scan</div><div class="diagvalue" id="dAuto">Stopped</div></div><div class="diagitem"><div class="diaglabel">Scan state</div><div class="diagvalue" id="dState">Idle</div></div><div class="diagitem"><div class="diaglabel">Live scan elapsed</div><div class="diagvalue" id="dLiveElapsed">—</div></div><div class="diagitem"><div class="diaglabel">Scan progress</div><div class="diagvalue" id="dProgress">—</div></div><div class="diagitem"><div class="diaglabel">Average time / coin</div><div class="diagvalue" id="dAvgCoin">—</div></div><div class="diagitem"><div class="diaglabel">Estimated remaining</div><div class="diagvalue" id="dEta">—</div></div><div class="diagitem"><div class="diaglabel">60-second benchmark</div><div class="diagvalue" id="dWindow">—</div></div><div class="diagitem"><div class="diaglabel">Last scan duration</div><div class="diagvalue" id="dDuration">—</div></div><div class="diagitem"><div class="diaglabel">Last completed scan</div><div class="diagvalue" id="dLastScan">—</div></div><div class="diagitem"><div class="diaglabel">Next scan</div><div class="diagvalue" id="dNext">—</div></div><div class="diagitem"><div class="diaglabel">Scan cycles completed</div><div class="diagvalue" id="dCycles">0</div></div><div class="diagitem"><div class="diaglabel">Symbols processed</div><div class="diagvalue" id="dSymbols">0</div></div><div class="diagitem"><div class="diaglabel">API requests</div><div class="diagvalue" id="dRequests">0</div></div><div class="diagitem"><div class="diaglabel">Latest API response</div><div class="diagvalue" id="dApiTime">—</div></div><div class="diagitem"><div class="diaglabel">Average / max API time</div><div class="diagvalue" id="dApiAvgMax">—</div></div><div class="diagitem"><div class="diaglabel">API errors</div><div class="diagvalue" id="dApiErrors">0</div></div><div class="diagitem"><div class="diaglabel">Rate-limit responses</div><div class="diagvalue" id="dRateLimits">0</div></div><div class="diagitem"><div class="diaglabel">Binance weight used (1m)</div><div class="diagvalue" id="dWeight">—</div></div><div class="diagitem"><div class="diaglabel">API cache hits / misses</div><div class="diagvalue" id="dCache">0 / 0</div></div><div class="diagitem"><div class="diaglabel">Rate-limit cooldown</div><div class="diagvalue" id="dCooldown">—</div></div><div class="diagitem"><div class="diaglabel">Last HTTP status</div><div class="diagvalue" id="dHttp">—</div></div><div class="diagitem"><div class="diaglabel">Last Retry-After</div><div class="diagvalue" id="dRetry">—</div></div><div class="diagitem"><div class="diaglabel">Last API host</div><div class="diagvalue" id="dHost">—</div></div><div class="diagitem"><div class="diaglabel">Last scan outcome</div><div class="diagvalue" id="dOutcome">Not run yet</div></div><div class="diagitem"><div class="diaglabel">MACD calculations</div><div class="diagvalue" id="dMacd">0</div></div><div class="diagitem"><div class="diaglabel">RSI calculations</div><div class="diagvalue" id="dRsi">0</div></div><div class="diagitem"><div class="diaglabel">HTF confirmation checks</div><div class="diagvalue" id="dHtf">0</div></div><div class="diagitem"><div class="diaglabel">OI reads</div><div class="diagvalue" id="dOi">0</div></div></div><div class="small" id="dNote" style="margin-top:8px">Diagnostics use existing requests only. Request weight is shown when Binance exposes its response header. Endpoint counts identify which API calls are driving usage.</div><div class="small" id="dEndpoints" style="margin-top:5px">Endpoint requests: none yet.</div><div class="scan-universe" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><div class="statusline"><div><b>Selected scan universe</b><div class="small" id="universeMeta">Exact symbols passed to this scan appear here.</div></div><input id="universeSearch" type="search" placeholder="Search selected symbols" aria-label="Search selected coins" style="max-width:260px"></div><div id="universeBreakdown" class="diaggrid" style="margin-top:10px"></div><div class="tablewrap" style="margin-top:8px"><table style="min-width:950px"><thead><tr><th>Rank</th><th>Symbol</th><th id="universeChangeHeading">24h change</th><th>24h quote volume</th><th>Ranked in</th><th>Status</th><th>1m</th><th>3m</th><th>5m</th><th>15m</th></tr></thead><tbody id="universeRows"><tr><td colspan="10" class="empty">Run a scan to list the selected symbols.</td></tr></tbody></table></div><div class="small" style="margin-top:8px">Select a symbol to inspect its timeframe-by-timeframe diagnostic trail. No additional Binance requests are made by this panel.</div><div id="coinTrace" class="diaggrid"></div><div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><b>Universe exclusion audit</b><div class="small" style="margin:5px 0 8px">Checks the four Binance leaderboard symbols against this scan’s existing ticker and exchange-information responses. No additional Binance requests.</div><div class="tablewrap"><table style="min-width:850px"><thead><tr><th>Symbol</th><th>Exchange status</th><th>24H change</th><th>24H quote volume</th><th>24H rank after volume</th><th>Why excluded / status</th></tr></thead><tbody id="universeAuditRows"><tr><td colspan="6" class="empty">Run a scan to audit the comparison symbols.</td></tr></tbody></table></div></div><div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><b>Full Binance Futures instrument inventory</b><div class="small" style="margin:5px 0 8px">Discovers all USDⓈ-M instruments across every contract type and quote asset. COIN-M is not queried or included.</div><div id="marketInventorySummary" class="diaggrid"></div><div class="tablewrap" style="margin-top:8px"><table style="min-width:1100px"><thead><tr><th>Market</th><th>Symbol</th><th>Status</th><th>Contract type</th><th>Base</th><th>Quote</th><th>24H change</th><th>24H volume</th><th>Scanner support</th></tr></thead><tbody id="marketInventoryRows"><tr><td colspan="9" class="empty">Run a scan to discover the futures inventory.</td></tr></tbody></table></div></div></div><div id="stageDiagnostics" class="diaggrid" aria-live="polite"></div></details></div></div>
 <section id="priceTracker" hidden>
 <div class="pcbox"><h2>Price Change Tracker</h2><div class="small">Independent from Green Tracker. Forming candles are the default for early detection; closed candles are available. Full OI is current open contracts multiplied by mark price, expressed in USDT.</div>
 <div class="pcgrid" style="margin-top:12px">
@@ -452,7 +451,7 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,conf
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
  scheduleSpecialMacdAlertRefresh(renderSpecialMacdBullHistory,candleTime,duration);renderSpecialMacdBullHistory();
- const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected same-timeframe confirmation checkboxes passed. Alert remains for "+specialMacdCandleLimit()+" candles.";
+ const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · same-timeframe Supertrend bullish, DEA above zero and DIF above zero. Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
@@ -468,13 +467,10 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
  scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,candleTime,duration);
  renderSpecialMacdHistory();
- $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected same-timeframe confirmation checkboxes passed. Alert remains for "+specialMacdCandleLimit()+" candles.";
+ $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · same-timeframe Supertrend bearish, DEA below zero and DIF below zero. Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
-function specialMacdConfirmationState(stNow,difNow,deaNow){const enabled=id=>{const el=$(id);return !el||el.checked;};return {bull:(!enabled("specialBullRequireST")||!!(stNow&&stNow.trend===1))&&(!enabled("specialBullRequireDEA")||(Number.isFinite(deaNow)&&deaNow>0))&&(!enabled("specialBullRequireDIF")||(Number.isFinite(difNow)&&difNow>0)),bear:(!enabled("specialBearRequireST")||!!(stNow&&stNow.trend===-1))&&(!enabled("specialBearRequireDEA")||(Number.isFinite(deaNow)&&deaNow<0))&&(!enabled("specialBearRequireDIF")||(Number.isFinite(difNow)&&difNow<0))};}
-function setupSpecialMacdConfirmationCheckboxes(){["specialBullRequireST","specialBullRequireDEA","specialBullRequireDIF","specialBearRequireST","specialBearRequireDEA","specialBearRequireDIF"].forEach(id=>{const el=$(id);if(!el)return;const key="specialMacdConfirm_"+id,saved=localStorage.getItem(key);if(saved==="0")el.checked=false;else if(saved==="1")el.checked=true;el.addEventListener("change",()=>localStorage.setItem(key,el.checked?"1":"0"));});}
-setupSpecialMacdConfirmationCheckboxes();
-function processSpecialMacdKline(symbol,tf,k){const state=specialMacdStates.get(symbol),history=specialMacdHistories.get(symbol),rows=history&&history[tf];if(!state||!Array.isArray(rows)||!specialMacdCandidates.has(symbol)||!["1m","3m","5m","15m"].includes(tf))return;/* Only Binance's final kline event is eligible; forming-candle updates are ignored. */if(k.x!==true)return;const candleTime=Number(k.t),close=Number(k.c);if(!(close>0)||!Number.isFinite(candleTime))return;const last=rows[rows.length-1];/* A closed candle is processed once, in chronological order. */if(last&&candleTime<=Number(last[0]))return;rows.push([candleTime,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]);if(rows.length>150)rows.shift();const macdNow=macd(rows),values=macdNow.hist;if(values.length<2)return;const stNow=supertrendInfo(rows,10,3),difNow=macdNow.dif.at(-1),deaNow=macdNow.dea.at(-1),confirmations=specialMacdConfirmationState(stNow,difNow,deaNow);/* Feed the selected Top Gainers / Worst Losers universe into both shrinking-histogram monitors. The duplicate final row acts as the still-forming candle so the shared detector evaluates the just-closed candle at rows.length-2. */const paddedRows=rows.concat([[candleTime+1,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]]);const shrinkAnalysis={rows:paddedRows,macd:macd(paddedRows)};updateBullishHistogramShrink(symbol,tf,shrinkAnalysis);updateBearishHistogramShrink(symbol,tf,shrinkAnalysis);const current=values[values.length-1],prior=state[tf];const candleOpen=Number(k.o),candleClose=Number(k.c),candleChangePct=candleOpen>0?((candleClose-candleOpen)/candleOpen)*100:NaN;if(Number.isFinite(prior)&&prior<0&&current>=0)fireSpecialMacdBullAlert(symbol,tf,candleTime,current,candleChangePct,confirmations);if(Number.isFinite(prior)&&prior>=0&&current<0)fireSpecialMacdAlert(symbol,tf,candleTime,current,confirmations);state[tf]=current;
+function processSpecialMacdKline(symbol,tf,k){const state=specialMacdStates.get(symbol),history=specialMacdHistories.get(symbol),rows=history&&history[tf];if(!state||!Array.isArray(rows)||!specialMacdCandidates.has(symbol)||!["1m","3m","5m","15m"].includes(tf))return;/* Only Binance's final kline event is eligible; forming-candle updates are ignored. */if(k.x!==true)return;const candleTime=Number(k.t),close=Number(k.c);if(!(close>0)||!Number.isFinite(candleTime))return;const last=rows[rows.length-1];/* A closed candle is processed once, in chronological order. */if(last&&candleTime<=Number(last[0]))return;rows.push([candleTime,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]);if(rows.length>150)rows.shift();const macdNow=macd(rows),values=macdNow.hist;if(values.length<2)return;const stNow=supertrendInfo(rows,10,3),difNow=macdNow.dif.at(-1),deaNow=macdNow.dea.at(-1),confirmations={bull:!!(stNow&&stNow.trend===1&&Number.isFinite(difNow)&&difNow>0&&Number.isFinite(deaNow)&&deaNow>0),bear:!!(stNow&&stNow.trend===-1&&Number.isFinite(difNow)&&difNow<0&&Number.isFinite(deaNow)&&deaNow<0)};/* Feed the selected Top Gainers / Worst Losers universe into both shrinking-histogram monitors. The duplicate final row acts as the still-forming candle so the shared detector evaluates the just-closed candle at rows.length-2. */const paddedRows=rows.concat([[candleTime+1,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]]);const shrinkAnalysis={rows:paddedRows,macd:macd(paddedRows)};updateBullishHistogramShrink(symbol,tf,shrinkAnalysis);updateBearishHistogramShrink(symbol,tf,shrinkAnalysis);const current=values[values.length-1],prior=state[tf];const candleOpen=Number(k.o),candleClose=Number(k.c),candleChangePct=candleOpen>0?((candleClose-candleOpen)/candleOpen)*100:NaN;if(Number.isFinite(prior)&&prior<0&&current>=0)fireSpecialMacdBullAlert(symbol,tf,candleTime,current,candleChangePct,confirmations);if(Number.isFinite(prior)&&prior>=0&&current<0)fireSpecialMacdAlert(symbol,tf,candleTime,current,confirmations);state[tf]=current;
 }
 async function loadSpecialMacdHistory(symbol){if(!specialMacdCandidates.has(symbol)||specialMacdHistories.has(symbol)||specialMacdHistoryLoads.has(symbol))return;specialMacdHistoryLoads.add(symbol);try{const [one,three,five,fifteen]=await Promise.all(["1m","3m","5m","15m"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100")));if(!specialMacdCandidates.has(symbol))return;const closed=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[6])<=Date.now()):[];const histories={"1m":closed(one),"3m":closed(three),"5m":closed(five),"15m":closed(fifteen)};if(!Object.values(histories).every(rows=>rows.length>=35))throw new Error("Insufficient completed 1m/3m/5m/15m candle history");specialMacdHistories.set(symbol,histories);specialMacdStates.set(symbol,{"1m":macd(histories["1m"]).hist.at(-1),"3m":macd(histories["3m"]).hist.at(-1),"5m":macd(histories["5m"]).hist.at(-1),"15m":macd(histories["15m"]).hist.at(-1)});$("specialMacdStatus").textContent="Loaded completed 1m/3m/5m/15m MACD history for "+specialMacdHistories.size+" qualifying market-wide coins; waiting for candle closes.";}catch(e){$("specialMacdStatus").textContent="Initial completed-candle MACD history unavailable for "+symbol+": "+e.message+"; will retry on the next market refresh.";}finally{specialMacdHistoryLoads.delete(symbol);}}
 function specialMacdMinGain(){const el=$("specialMacdMinGain"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(500,n)):20;}
@@ -811,7 +807,7 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
  }
 }
 
-const diag={cycles:0,symbols:0,totalSymbols:0,loopStartedAt:0,requests:0,failures:0,rateLimits:0,totalApiMs:0,maxApiMs:0,lastApiMs:0,lastHost:"—",lastScanAt:0,lastDuration:0,outcome:"Not run yet",scanStartedAt:0,minuteCloseAt:0,macdRuns:0,rsiRuns:0,htfRuns:0,oiRuns:0,candidates:0,selected:0,stages:{},universe:[],universeAudit:[],marketInventory:[],marketInventorySummary:[],coinTrace:null,weight1m:null,endpointCounts:{},cacheHits:0,cacheMisses:0,cooldownUntil:0,lastHttpStatus:0,lastRetryAfter:"—"};
+const diag={cycles:0,symbols:0,totalSymbols:0,loopStartedAt:0,requests:0,failures:0,rateLimits:0,totalApiMs:0,maxApiMs:0,lastApiMs:0,lastHost:"—",lastScanAt:0,lastDuration:0,outcome:"Not run yet",scanStartedAt:0,macdRuns:0,rsiRuns:0,htfRuns:0,oiRuns:0,candidates:0,selected:0,stages:{},universe:[],universeAudit:[],marketInventory:[],marketInventorySummary:[],coinTrace:null,weight1m:null,endpointCounts:{},cacheHits:0,cacheMisses:0,cooldownUntil:0,lastHttpStatus:0,lastRetryAfter:"—"};
 function resetStages(){diag.stages=Object.fromEntries(TFS.map(tf=>[tf,{cvdReject:0,evaluated:0,rsiPass:0,rsiReject:0,crossover:0,noCrossover:0,deaReject:0,htfReject:0,oiReject:0,results:0,dataErrors:0}]));diag.candidates=0;diag.selected=0;diag.universe=[];diag.universeAudit=[];diag.marketInventory=[];diag.marketInventorySummary=[];diag.universeMode=null;diag.coinTrace=null;}
 function renderUniverse(){
  const body=$("universeRows");if(!body)return;
@@ -843,7 +839,7 @@ function renderUniverse(){
 function renderCoinTrace(){const el=$("coinTrace");if(!el)return;const coin=diag.universe.find(x=>x.symbol===diag.coinTrace);if(!coin){el.innerHTML='<div class="small">Select a symbol above to inspect its scan trail.</div>';return;}el.innerHTML='<div class="diagitem" style="grid-column:1/-1"><b>'+esc(coin.symbol)+'</b> · Rank '+coin.rank+' · '+esc(coin.status)+'</div>'+TFS.map(tf=>{const x=coin.timeframes[tf],items=x.reasons||[x.reason||"Not evaluated"];return '<div class="diagitem"><div class="diaglabel">'+tf+' diagnostic</div><div class="diagvalue">'+esc(x.status)+'</div><div class="small" style="margin-top:5px;line-height:1.7">RSI: '+(Number.isFinite(x.rsi)?x.rsi.toFixed(2):"—")+' (filter: '+esc(x.rsiFilter||"not evaluated")+')<br>Stoch RSI: '+(Number.isFinite(x.stochK)?x.stochK.toFixed(2)+" / "+x.stochD.toFixed(2):"—")+' ('+esc(x.stochStatus||"not evaluated")+')<br>Fresh bullish crossover: '+(x.crossover===null?"Not evaluated":x.crossover?"Passed":"Rejected")+'<br>Candle age: '+(x.candle===null?"—":x.candle)+'<br>DEA: '+esc(x.deaStatus||"Not evaluated")+(Number.isFinite(x.deaValue)?" ("+x.deaValue.toPrecision(5)+")":"")+'<br>HTF: '+esc(x.htfStatus||"Not evaluated")+'<br>OI: '+esc(x.oiStatus||"Not evaluated")+(Number.isFinite(x.oiValue)?" ("+oiDisplay(x.oiValue)+")":"")+'<br>Reasons:<br>'+items.map(v=>'• '+esc(v)).join("<br>")+'</div></div>';}).join("");}
 function renderStages(){const el=$("stageDiagnostics");if(!el)return;const labels=[["evaluated","Evaluated"],["rsiPass","RSI passed"],["rsiReject","RSI rejected"],["stochReject","Stoch RSI rejected"],["crossover","Fresh crossover"],["noCrossover","No crossover in lookback"],["deaReject","DEA rejected"],["htfReject","HTF rejected"],["oiReject","OI rejected"],["dataErrors","Data errors"],["results","Final results"]];el.innerHTML='<div class="diagitem"><div class="diaglabel">Eligible after volume filter</div><div class="diagvalue">'+diag.candidates+'</div></div><div class="diagitem"><div class="diaglabel">Selected for scan</div><div class="diagvalue">'+diag.selected+'</div></div>'+TFS.map(tf=>'<div class="diagitem" style="grid-column:1/-1"><div class="diagvalue">'+tf+'</div><div class="small" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:5px;margin-top:6px">'+labels.map(([key,label])=>'<span>'+label+': <b>'+diag.stages[tf][key]+'</b></span>').join("")+'</div></div>').join("");}
 function formatScanTime(ms){if(!Number.isFinite(ms)||ms<0)return "—";return ms<1000?Math.round(ms)+" ms":(ms/1000).toFixed(1)+" s";}
-function renderDiagnostics(){const set=(id,value,cls)=>{const el=$(id);if(!el)return;el.textContent=value;if(cls)el.className="diagvalue "+cls;};const now=Date.now(),elapsed=busy&&diag.scanStartedAt?now-diag.scanStartedAt:diag.lastDuration||0,loopElapsed=busy&&diag.loopStartedAt?now-diag.loopStartedAt:diag.lastLoopDuration||0,avg=diag.symbols>0?loopElapsed/diag.symbols:NaN,rate=loopElapsed>0?diag.symbols/(loopElapsed/1000):NaN,remaining=Math.max(0,diag.totalSymbols-diag.symbols),eta=Number.isFinite(avg)?avg*remaining:NaN;set("dLiveElapsed",busy&&diag.scanStartedAt?formatScanTime(elapsed):diag.lastDuration?formatScanTime(diag.lastDuration):"—");set("dProgress",diag.totalSymbols?diag.symbols+" / "+diag.totalSymbols+" coins":busy?"Preparing universe…":"—");set("dAvgCoin",Number.isFinite(avg)?formatScanTime(avg):"—");set("dRate",Number.isFinite(rate)?rate.toFixed(2):"—");set("dEta",busy&&Number.isFinite(eta)?formatScanTime(eta):busy?"Waiting for first coin…":"—");let windowText="—",windowClass="";if(diag.minuteCloseAt){if(busy){const untilClose=diag.minuteCloseAt-now;if(untilClose<=0){windowText="Candle close passed by "+formatScanTime(-untilClose);windowClass="diagbad";}else if(Number.isFinite(eta)&&diag.symbols>0&&eta>untilClose){windowText="At risk — ETA "+formatScanTime(eta-untilClose)+" after close";windowClass="diagbad";}else{windowText=formatScanTime(untilClose)+" until close";windowClass="diaggood";}}else if(diag.lastScanAt){const delta=diag.lastScanAt-diag.minuteCloseAt;windowText=delta<=0?"PASS — finished "+formatScanTime(-delta)+" before close":"LATE — finished "+formatScanTime(delta)+" after close";windowClass=delta<=0?"diaggood":"diagbad";}}set("dWindow",windowText,windowClass);set("dAuto",autoActive?"Running":"Stopped",autoActive?"diaggood":"");set("dState",busy?"Scanning":"Idle",busy?"diaggood":"");set("dDuration",diag.lastDuration?formatScanTime(diag.lastDuration):(busy?"In progress":"—"));set("dLastScan",diag.lastScanAt?new Date(diag.lastScanAt).toLocaleTimeString():"—");set("dNext",autoActive&&nextAt?Math.max(0,Math.ceil((nextAt-Date.now())/1000))+" sec":autoActive&&busy?"After current scan":"—");set("dCycles",String(diag.cycles));set("dSymbols",String(diag.symbols));set("dRequests",String(diag.requests));set("dApiTime",diag.lastApiMs?diag.lastApiMs.toFixed(0)+" ms":"—");set("dApiAvgMax",diag.requests?(diag.totalApiMs/diag.requests).toFixed(0)+" / "+diag.maxApiMs.toFixed(0)+" ms":"—");set("dApiErrors",String(diag.failures),diag.failures?"diagbad":"diaggood");set("dRateLimits",String(diag.rateLimits),diag.rateLimits?"diagbad":"");set("dWeight",diag.weight1m===null?"Header unavailable":String(diag.weight1m));set("dCache",diag.cacheHits+" / "+diag.cacheMisses);set("dCooldown",diag.cooldownUntil>Date.now()?Math.ceil((diag.cooldownUntil-Date.now())/1000)+" sec remaining":"Inactive",diag.cooldownUntil>Date.now()?"diagbad":"diaggood");set("dHttp",diag.lastHttpStatus?String(diag.lastHttpStatus):"—",diag.lastHttpStatus===418||diag.lastHttpStatus===429?"diagbad":"");set("dRetry",diag.lastRetryAfter);const ep=$("dEndpoints");if(ep)ep.textContent="Endpoint requests: "+(Object.keys(diag.endpointCounts).length?Object.entries(diag.endpointCounts).map(([k,v])=>k+" "+v).join(" · "):"none yet");set("dHost",diag.lastHost);set("dOutcome",diag.outcome,diag.outcome.startsWith("Complete")?"diaggood":diag.outcome==="Not run yet"?"":"diagbad");set("dMacd",String(diag.macdRuns));set("dRsi",String(diag.rsiRuns));set("dHtf",String(diag.htfRuns));set("dOi",String(diag.oiRuns));}
+function renderDiagnostics(){const set=(id,value,cls)=>{const el=$(id);if(!el)return;el.textContent=value;if(cls)el.className="diagvalue "+cls;};const elapsed=busy&&diag.loopStartedAt?Date.now()-diag.loopStartedAt:diag.lastLoopDuration||0;const avg=diag.symbols>0?elapsed/diag.symbols:NaN;const remaining=Math.max(0,diag.totalSymbols-diag.symbols);const eta=Number.isFinite(avg)?avg*remaining:NaN;set("dLiveElapsed",busy&&diag.loopStartedAt?formatScanTime(elapsed):diag.lastLoopDuration?formatScanTime(diag.lastLoopDuration):"—");set("dProgress",diag.totalSymbols?diag.symbols+" / "+diag.totalSymbols+" coins":busy?"Preparing universe…":"—");set("dAvgCoin",Number.isFinite(avg)?formatScanTime(avg):"—");set("dEta",busy&&Number.isFinite(eta)?formatScanTime(eta):"—");const within=diag.loopStartedAt||diag.lastLoopDuration;set("dWindow",within?(elapsed<=60000?(busy?"Within 60s":"Completed within 60s"):(busy?"Over 60s":"Exceeded 60s")):"—",within?(elapsed<=60000?"diaggood":"diagbad"):"");set("dAuto",autoActive?"Running":"Stopped",autoActive?"diaggood":"");set("dState",busy?"Scanning":"Idle",busy?"diaggood":"");set("dDuration",diag.lastDuration?formatScanTime(diag.lastDuration):(busy?"In progress":"—"));set("dLastScan",diag.lastScanAt?new Date(diag.lastScanAt).toLocaleTimeString():"—");set("dNext",autoActive&&nextAt?Math.max(0,Math.ceil((nextAt-Date.now())/1000))+" sec":autoActive&&busy?"After current scan":"—");set("dCycles",String(diag.cycles));set("dSymbols",String(diag.symbols));set("dRequests",String(diag.requests));set("dApiTime",diag.lastApiMs?diag.lastApiMs.toFixed(0)+" ms":"—");set("dApiAvgMax",diag.requests?(diag.totalApiMs/diag.requests).toFixed(0)+" / "+diag.maxApiMs.toFixed(0)+" ms":"—");set("dApiErrors",String(diag.failures),diag.failures?"diagbad":"diaggood");set("dRateLimits",String(diag.rateLimits),diag.rateLimits?"diagbad":"");set("dWeight",diag.weight1m===null?"Header unavailable":String(diag.weight1m));set("dCache",diag.cacheHits+" / "+diag.cacheMisses);set("dCooldown",diag.cooldownUntil>Date.now()?Math.ceil((diag.cooldownUntil-Date.now())/1000)+" sec remaining":"Inactive",diag.cooldownUntil>Date.now()?"diagbad":"diaggood");set("dHttp",diag.lastHttpStatus?String(diag.lastHttpStatus):"—",diag.lastHttpStatus===418||diag.lastHttpStatus===429?"diagbad":"");set("dRetry",diag.lastRetryAfter);const ep=$("dEndpoints");if(ep)ep.textContent="Endpoint requests: "+(Object.keys(diag.endpointCounts).length?Object.entries(diag.endpointCounts).map(([k,v])=>k+" "+v).join(" · "):"none yet");set("dHost",diag.lastHost);set("dOutcome",diag.outcome,diag.outcome.startsWith("Complete")?"diaggood":diag.outcome==="Not run yet"?"":"diagbad");set("dMacd",String(diag.macdRuns));set("dRsi",String(diag.rsiRuns));set("dHtf",String(diag.htfRuns));set("dOi",String(diag.oiRuns));}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let diagnosticsRenderPending=false,scanClockTimer=null;
 function queueDiagnosticsRender(){if(diagnosticsRenderPending)return;diagnosticsRenderPending=true;setTimeout(()=>{diagnosticsRenderPending=false;renderDiagnostics();},150);}
@@ -1037,10 +1033,10 @@ function renderTopMomentum(rows){
 
 async function scan(){
  if(busy){$("status").textContent="Previous scan is still running; this cycle will be skipped to avoid overlapping Binance requests.";return;}
- busy=true;diag.scanStartedAt=Date.now();diag.minuteCloseAt=(Math.floor(diag.scanStartedAt/60000)+1)*60000;diag.symbols=0;diag.totalSymbols=0;diag.loopStartedAt=0;diag.lastLoopDuration=0;diag.outcome="Scanning";if(scanClockTimer!==null)clearInterval(scanClockTimer);scanClockTimer=setInterval(()=>{if(busy)renderDiagnostics();},250);resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
+ busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.totalSymbols=0;diag.loopStartedAt=0;diag.lastLoopDuration=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[],momentumData=[],output={bull:Object.fromEntries(TFS.map(tf=>[tf,[]])),bear:Object.fromEntries(TFS.map(tf=>[tf,[]]))};
  try{
-  const tickers=await universe();diag.totalSymbols=tickers.length;diag.symbols=0;diag.loopStartedAt=Date.now();diag.lastLoopDuration=0;renderDiagnostics();
+  const tickers=await universe();diag.totalSymbols=tickers.length;diag.symbols=0;diag.loopStartedAt=Date.now();diag.lastLoopDuration=0;scanClockTimer=setInterval(()=>{if(busy)renderDiagnostics();},250);renderDiagnostics();
   const cvdTfs=new Set([...document.querySelectorAll("#cvdChecks input:checked")].map(x=>x.id.replace("cvdConfirm_",""))),cvdBars=Math.max(1,Math.min(50,Number($("cvdBars").value)||5)),cvdMin=Number($("cvdMin").value)||0,cvdMaxRaw=$("cvdMax").value.trim(),cvdMax=cvdMaxRaw===""?null:Number(cvdMaxRaw);const htfConfig={};for(const row of document.querySelectorAll("#htfChecks .htf-row")){const enabled=row.querySelector(".htf-enable");if(!enabled||!enabled.checked)continue;const conditions=[...row.querySelectorAll("[data-condition]:checked")].map(x=>x.dataset.condition);if(conditions.length)htfConfig[enabled.value]=conditions;}const deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),stFlipDisplay=$("stFlipEnabled").checked,minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols for bullish signals…";
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
@@ -1745,197 +1741,5 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 #specialGainersRows li::marker{color:#4ade80;font-weight:900}
 #specialLosersRows li::marker{color:#fb7185;font-weight:900}
 </style>
-
-
-<!-- MM HOME + CONSOLIDATED SCANNER WORKSPACE -->
-<style>
-#mmLandingPage[hidden],#mmScannerWorkspace[hidden]{display:none!important}
-#mmLandingPage{margin:14px 0 22px;padding:clamp(18px,4vw,42px);border:1px solid #28516a;border-radius:18px;background:radial-gradient(ellipse at 85% 0%,#16445a 0,#0b1b2b 42%,#07111b 100%);box-shadow:0 12px 34px #0008}
-.mm-home-kicker{color:#68d5ff;font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
-.mm-home-title{margin:10px 0 8px;color:#f5cf42;font-size:clamp(28px,5vw,48px);line-height:1.08;font-weight:950}
-.mm-home-copy{max-width:720px;color:#c4d5e2;font-size:14px;line-height:1.65}
-.mm-home-actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
-.mm-home-actions button{width:auto;min-width:170px;padding:12px 18px}
-.mm-home-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:24px}
-.mm-home-card{padding:14px;border:1px solid #25475b;border-radius:12px;background:#091724}
-.mm-home-card b{display:block;margin-bottom:6px;color:#e9f7ff;font-size:13px}
-.mm-home-card span{color:#9eb4c5;font-size:12px;line-height:1.5}
-#mmLandingPage .mm-home-note{margin-top:22px;color:#8fa9bb;font-size:11px}
-#mmHomeNav.active,#greenTabBtn.active{background:linear-gradient(135deg,#087e48,#12c968)!important;color:#03140b!important;border-color:#28f080!important}
-#candleMonitorNav{display:none!important}
-@media(max-width:700px){#mmHomeNav{order:-1}.mm-home-grid{grid-template-columns:1fr}.mm-home-actions button{width:100%}}
-</style>
-<script>
-/* Home screen + consolidated scanner workspace.
-   Presentation-only reorganisation: existing scanner engines, IDs, handlers,
-   saved settings, alert conditions and API schedules are retained. */
-(function(){
- const $=id=>document.getElementById(id);
- const main=document.querySelector("main");
- const header=main?.querySelector(".v2-header");
- const nav=header?.querySelector(".v2-nav");
- const green=$("greenTrackerView");
- const candle=$("candleMonitorView");
- const price=$("priceTracker");
- if(!main||!header||!nav||!green)return;
-
- let home=$("mmLandingPage");
- if(!home){
-   home=document.createElement("section");
-   home.id="mmLandingPage";
-   home.innerHTML='<div class="mm-home-kicker">MM BINANCE V2 · MARKET INTELLIGENCE</div><div class="mm-home-title">Your market, clearly in view.</div><div class="mm-home-copy">A focused workspace for monitoring Binance USDⓈ-M USDT perpetual markets, spotting momentum changes, and reviewing bullish and bearish signals. Use the Scanner Workspace to open the full monitoring suite.</div><div class="mm-home-actions"><button id="mmLaunchScanner" type="button">Open Scanner Workspace</button><button id="mmOpenPriceChange" class="secondary" type="button">Open Price Change</button></div><div class="mm-home-grid"><div class="mm-home-card"><b>Market monitoring</b><span>Follow market leaders, laggards and live candle activity.</span></div><div class="mm-home-card"><b>Momentum &amp; reversals</b><span>Review MACD histogram behaviour, divergences and reversal stages.</span></div><div class="mm-home-card"><b>Scanner diagnostics</b><span>Inspect scan timing, API health and market coverage.</span></div></div><div class="mm-home-note">Scanner only · No orders are placed. Market data and signals are for monitoring.</div>';
-   header.insertAdjacentElement("afterend",home);
- }
- let workspace=$("mmScannerWorkspace");
- if(!workspace){
-   workspace=document.createElement("section");
-   workspace.id="mmScannerWorkspace";
-   workspace.hidden=true;
-   workspace.setAttribute("aria-label","Scanner Workspace");
-   home.insertAdjacentElement("afterend",workspace);
- }
- // Bring both existing scanner views together. Their original IDs and controls stay intact.
- if(green.parentElement!==workspace)workspace.appendChild(green);
- if(candle&&candle.parentElement!==workspace)workspace.appendChild(candle);
-
- let homeBtn=$("mmHomeNav");
- if(!homeBtn){
-   homeBtn=document.createElement("button");
-   homeBtn.id="mmHomeNav";homeBtn.type="button";homeBtn.className="secondary";
-   homeBtn.textContent="Home";
-   nav.insertBefore(homeBtn,nav.firstChild);
- }
- const scannerBtn=$("greenTabBtn");
- if(scannerBtn)scannerBtn.textContent="Scanner Workspace";
- const candleBtn=$("candleMonitorNav");
- if(candleBtn)candleBtn.hidden=true;
-
- function active(btn){
-   [homeBtn,scannerBtn,$("priceTabBtn")].filter(Boolean).forEach(b=>{
-     const on=b===btn;b.classList.toggle("active",on);b.classList.toggle("secondary",!on);
-   });
- }
- function showHome(){
-   home.hidden=false;workspace.hidden=true;
-   if(price)price.hidden=true;
-   if(green)green.hidden=true;
-   if(candle)candle.hidden=true;
-   active(homeBtn);window.scrollTo({top:0,behavior:"smooth"});
- }
- function showScanner(){
-   home.hidden=true;workspace.hidden=false;
-   if(price)price.hidden=true;
-   if(green)green.hidden=false;
-   if(candle)candle.hidden=false;
-   active(scannerBtn);window.scrollTo({top:0,behavior:"smooth"});
- }
- function showPrice(){
-   home.hidden=true;workspace.hidden=true;
-   if(green)green.hidden=true;
-   if(candle)candle.hidden=true;
-   if(price)price.hidden=false;
-   active($("priceTabBtn"));window.scrollTo({top:0,behavior:"smooth"});
- }
- homeBtn.addEventListener("click",showHome);
- $("mmLaunchScanner")?.addEventListener("click",showScanner);
- $("mmOpenPriceChange")?.addEventListener("click",showPrice);
- scannerBtn?.addEventListener("click",showScanner);
- $("priceTabBtn")?.addEventListener("click",showPrice);
- // Existing shortcut buttons still work, but now open the consolidated workspace first.
- ["priceGainersNav","earlyNav","reversalNav","diagnosticsNav","settingsNav"].forEach(id=>{
-   $(id)?.addEventListener("click",showScanner);
- });
- // Default entry point for every fresh visit is the new landing page.
- showHome();
-})();
-</script>
-
-
-<!-- MM CORRECTED SECTIONS 01-06 ONLY WORKSPACE -->
-<style>
-#mmLandingPage{display:none!important}
-#mmScannerWorkspace{display:contents!important}
-#mmSectionsWorkspace[hidden]{display:none!important}
-#mmSectionsWorkspace{margin-top:10px}
-#mmSectionsWorkspace .mm-section-block{margin:0 0 12px}
-#mmSectionsNav.active{background:linear-gradient(135deg,#087e48,#12c968)!important;color:#03140b!important;border-color:#28f080!important}
-#candleMonitorNav{display:none!important}
-</style>
-<script>
-/* Isolate only numbered Sections 01–06. Keep all other monitors and controls
-   on the main page; preserve original IDs, engines, handlers and settings. */
-(function(){
- const $=id=>document.getElementById(id);
- const main=document.querySelector("main"),header=main?.querySelector(".v2-header"),nav=header?.querySelector(".v2-nav");
- const green=$("greenTrackerView"),price=$("priceTracker"),candle=$("candleMonitorView");
- if(!main||!header||!nav||!green)return;
- const oldHome=$("mmLandingPage"),oldWorkspace=$("mmScannerWorkspace");
- if(oldHome)oldHome.remove();
- if(oldWorkspace){oldWorkspace.hidden=false;oldWorkspace.style.display="contents";}
- green.hidden=false;if(price)price.hidden=true;if(candle)candle.hidden=true;
-
- let workspace=$("mmSectionsWorkspace");
- if(!workspace){workspace=document.createElement("section");workspace.id="mmSectionsWorkspace";workspace.hidden=true;workspace.setAttribute("aria-label","Sections 01 to 06");header.insertAdjacentElement("afterend",workspace);}
- let tab=$("mmSectionsNav");
- if(!tab){tab=document.createElement("button");tab.id="mmSectionsNav";tab.type="button";tab.className="secondary";tab.textContent="Sections 01–06";nav.insertBefore(tab,$("priceGainersNav")||null);}
- const mainTab=$("greenTabBtn");if(mainTab)mainTab.textContent="Main";
- $("mmHomeNav")?.remove();$("candleMonitorNav")?.remove();
-
- function addBlock(node,title,id){
-   if(!node||node===workspace||node.parentElement===workspace)return;
-   const block=document.createElement("section");block.className="mm-section-block";block.id=id;
-   if(title){const h=document.createElement("div");h.className="mm-section-directory-title";h.textContent=title;block.appendChild(h);}
-   workspace.appendChild(block);block.appendChild(node);
- }
- // Section 01 — detach the leaders/laggards list before moving its containing monitor.
- const leaders=$("specialMacdCandidatesList");
- if(leaders)addBlock(leaders,"01  MARKET LEADERS & LAGGARDS","mmSection01Block");
-
- // Section 02 — live bullish/bearish candle and reversal monitor.
- const liveFeed=$("twentyPctFeed");
- const livePanel=liveFeed?.closest(".panel")||liveFeed?.closest("section");
- if(livePanel){livePanel.id="mmSection02LivePanel";addBlock(livePanel,"02  LIVE CANDLE & REVERSAL MONITOR","mmSection02Block");}
-
- // Section 03 — histogram contraction and momentum monitors.
- const bullish=$("bullishHistogramShrinkPanel"),bearish=$("bearishHistogramShrinkPanel");
- if(bullish)addBlock(bullish,"03.1  BULLISH MACD HISTOGRAM CONTRACTION","mmSection031Block");
- if(bearish)addBlock(bearish,"03.2  BEARISH MACD HISTOGRAM CONTRACTION","mmSection032Block");
- const rows=[...document.querySelectorAll(".histogram-monitor-row")];
- const momentum=rows.find(r=>r.querySelector(".histogram-row-title")?.textContent.includes("HISTOGRAM MOMENTUM"));
- if(momentum)addBlock(momentum,"03.3  HISTOGRAM MOMENTUM","mmSection033Block");
-
- // Section 04 — price/histogram divergence.
- const divergence=rows.find(r=>r.querySelector(".histogram-row-title")?.textContent.includes("PRICE / HISTOGRAM DIVERGENCE"));
- if(divergence)addBlock(divergence,"04  PRICE / HISTOGRAM DIVERGENCE","mmSection04Block");
-
- // Section 05 — percentage-change alerts.
- const percentage=rows.find(r=>r.classList.contains("percentage-change-alert-row"));
- if(percentage)addBlock(percentage,"05  PERCENTAGE CHANGE ALERTS","mmSection05Block");
-
- // Section 06 — diagnostics, including the 1-minute candle-close test.
- const diagnostics=$("diagnosticsPanel");
- if(diagnostics)addBlock(diagnostics,"","mmSection06Block");
-
- // Fresh bullish/bearish MACD crossovers, sound toggles and timeframe controls stay on Main.
- const alertCenter=$("v2AlertCenter");
- if(alertCenter&&workspace.contains(alertCenter))green.appendChild(alertCenter);
- if(alertCenter&&!green.contains(alertCenter))green.appendChild(alertCenter);
-
- // Restore any other main-page elements that the previous layout placed in the old Candle Monitor.
- const dashboard=$("v2TopDashboard"),momentumPanel=$("topMomentumPanel"),results=$("tfGrid");
- [dashboard,momentumPanel,results].forEach(node=>{if(node&&!green.contains(node))green.appendChild(node);});
-
- const buttons=[...nav.querySelectorAll("button")];
- function setActive(active){buttons.forEach(b=>{const on=b===active;b.classList.toggle("active",on);b.classList.toggle("secondary",!on);});}
- function showMain(){workspace.hidden=true;green.hidden=false;if(price)price.hidden=true;if(candle)candle.hidden=true;setActive(mainTab);window.scrollTo({top:0,behavior:"smooth"});}
- function showSections(){green.hidden=true;if(price)price.hidden=true;workspace.hidden=false;if(candle)candle.hidden=true;setActive(tab);window.scrollTo({top:0,behavior:"smooth"});}
- function showPrice(){green.hidden=true;workspace.hidden=true;if(price)price.hidden=false;if(candle)candle.hidden=true;setActive($("priceTabBtn"));window.scrollTo({top:0,behavior:"smooth"});}
- tab.addEventListener("click",showSections);
- mainTab?.addEventListener("click",showMain);
- $("priceTabBtn")?.addEventListener("click",showPrice);
- ["priceGainersNav","earlyNav","reversalNav","diagnosticsNav","settingsNav"].forEach(id=>$(id)?.addEventListener("click",showMain,{capture:true}));
- showMain();
-})();
-</script>
 
 </body></html>
