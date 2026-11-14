@@ -1064,7 +1064,7 @@ async function scan(){
    await monitorReversalAlerts(t.symbol,getMacdAnalysis);
    coinRecord.status="Scanned";diag.symbols=++processedCount;const uiNow=Date.now();if(processedCount===tickers.length||uiNow-lastUiUpdate>=500){lastUiUpdate=uiNow;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+processedCount+"/"+tickers.length+" symbols; collecting directional signals…";}
   }};
-  await Promise.all(Array.from({length:4},()=>scanWorker()));
+  await Promise.all(Array.from({length:6},()=>scanWorker()));
   renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Finalizing "+tickers.length+" scanned symbols…";renderTopMomentum(momentumData);for(const tf of TFS){output.bull[tf].sort((a,b)=>a.age-b.age);output.bear[tf].sort((a,b)=>a.age-b.age);render("bull",tf,output.bull[tf],errors.length);render("bear",tf,output.bear[tf],errors.length);}
   const totals={bull:TFS.reduce((n,tf)=>n+output.bull[tf].length,0),bear:TFS.reduce((n,tf)=>n+output.bear[tf].length,0)};
   $("status").className=errors.length?"status error":"status ok";
