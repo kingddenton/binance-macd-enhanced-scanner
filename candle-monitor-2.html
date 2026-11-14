@@ -1891,7 +1891,7 @@ html,body{min-height:100%;}body{padding:8px!important}
  ['wsDiagnostics','marketCoverageDetails','stageDiagnostics'].forEach(id=>{const el=$(id);if(el)el.remove();});
  // Hide unrelated legacy settings panels only.
  const excluded=['filtersContent','volumeControlsTab'];
- excluded.forEach(id=>{const el=$(id);if(el)el.remove();});
+ excluded.forEach(id=>{const el=$(id);if(el){el.hidden=true;el.setAttribute('aria-hidden','true');}});
  const nav=document.querySelector('.v2-header .v2-nav');if(nav)nav.remove();
  const brand=document.querySelector('.v2-header .v2-brand');if(brand)brand.remove();
  const oldHeader=document.querySelector('.v2-header');if(oldHeader)oldHeader.style.display='none';
