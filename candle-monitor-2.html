@@ -1030,7 +1030,7 @@ async function scan(){
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
   const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key))candleCache.set(key,request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100"));return candleCache.get(key);};
   const getMacdAnalysis=async(symbol,tf)=>{const key=symbol+"|"+tf;if(!macdCache.has(key))macdCache.set(key,(async()=>{const rows=await getCandles(symbol,tf);return {rows,macd:macd(rows)};})());return macdCache.get(key);};
-  let nextScanIndex=0,processedCount=0,markMapPromise=null;
+  let nextScanIndex=0,processedCount=0,markMapPromise=null,lastUiUpdate=0;
   const scanWorker=async()=>{while(true){const si=nextScanIndex++;if(si>=tickers.length)return;
    const t=tickers[si],coinRecord=diag.universe[si];
    await Promise.all(TFS.map(tf=>getMacdAnalysis(t.symbol,tf).catch(()=>null)));
@@ -1062,10 +1062,10 @@ async function scan(){
    }
    try{const r1=await getCandles(t.symbol,"1m");update20PctCandleOpens(t.symbol,r1);}catch(e){/* Live candle monitor data unavailable for this symbol. */}
    await monitorReversalAlerts(t.symbol,getMacdAnalysis);
-   coinRecord.status="Scanned";diag.symbols=++processedCount;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+processedCount+"/"+tickers.length+" symbols; collecting directional signals…";
+   coinRecord.status="Scanned";diag.symbols=++processedCount;const uiNow=Date.now();if(processedCount===tickers.length||uiNow-lastUiUpdate>=500){lastUiUpdate=uiNow;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+processedCount+"/"+tickers.length+" symbols; collecting directional signals…";}
   }};
   await Promise.all(Array.from({length:3},()=>scanWorker()));
-  renderTopMomentum(momentumData);for(const tf of TFS){output.bull[tf].sort((a,b)=>a.age-b.age);output.bear[tf].sort((a,b)=>a.age-b.age);render("bull",tf,output.bull[tf],errors.length);render("bear",tf,output.bear[tf],errors.length);}
+  renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Finalizing "+tickers.length+" scanned symbols…";renderTopMomentum(momentumData);for(const tf of TFS){output.bull[tf].sort((a,b)=>a.age-b.age);output.bear[tf].sort((a,b)=>a.age-b.age);render("bull",tf,output.bull[tf],errors.length);render("bear",tf,output.bear[tf],errors.length);}
   const totals={bull:TFS.reduce((n,tf)=>n+output.bull[tf].length,0),bear:TFS.reduce((n,tf)=>n+output.bear[tf].length,0)};
   $("status").className=errors.length?"status error":"status ok";
   $("status").textContent="Scan complete: "+tickers.length+" symbols checked; "+totals.bull+" bullish and "+totals.bear+" bearish MACD crossover timeframe signals found."+(errors.length?" "+errors.length+" request errors; first: "+errors[0]:"");
