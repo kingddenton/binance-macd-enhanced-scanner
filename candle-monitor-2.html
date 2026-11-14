@@ -565,7 +565,7 @@ async function processSpecialMacdKline(symbol,tf,k){
    const missing=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&startTime="+(lastTime+intervalMs)+"&endTime="+(candleTime-1)+"&limit=1000");
    if(!Array.isArray(missing))throw new Error("Invalid REST candle recovery response");
    const ordered=missing.filter(row=>Number(row[6])<=Date.now()&&Number(row[0])>lastTime&&Number(row[0])<candleTime).sort((a,b)=>Number(a[0])-Number(b[0]));
-   for(const row of ordered){processSpecialMacdClosedRow(symbol,tf,row);lastTime=Number(row[0]);}
+   for(const row of ordered){const rowTime=Number(row[0]);if(rowTime-lastTime!==intervalMs)break;processSpecialMacdClosedRow(symbol,tf,row);lastTime=rowTime;}
    if(candleTime-lastTime>intervalMs){
     const status=$("specialMacdStatus");if(status)status.textContent="MACD recovery gap remains for "+symbol+" "+tf+"; latest candle held back until every missing completed candle is recovered.";return;
    }
