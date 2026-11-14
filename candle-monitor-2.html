@@ -797,15 +797,21 @@ function renderBearishHistogramShrink(tf){
 function updateBullishHistogramShrink(symbol,tf,analysis){
  if(!HISTOGRAM_SHRINK_TFS.includes(tf)||!analysis?.rows||!analysis?.macd?.hist)return;
  const rows=analysis.rows,hist=analysis.macd.hist,i=rows.length-2;
- if(i<2||i>=hist.length||!rows[i])return;
+ if(i<3||i>=hist.length||!rows[i])return;
  const candleTime=Number(rows[i][0]),key=symbol+"|"+tf;
  if(!Number.isFinite(candleTime)||histogramShrinkLastCandle.get(key)===candleTime)return;
  histogramShrinkLastCandle.set(key,candleTime);
- const current=Number(hist[i]),previous=Number(hist[i-1]),before=Number(hist[i-2]);
- if(![current,previous,before].every(Number.isFinite))return;
- // First contraction: positive histogram was expanding, then shrinks while remaining above zero.
- if(!(before>0&&previous>before&&current>0&&current<previous))return;
- const list=histogramShrinkHistory[tf],existing=list.findIndex(item=>item.symbol===symbol);if(existing>=0)list.splice(existing,1);
+ const values=[Number(hist[i-3]),Number(hist[i-2]),Number(hist[i-1]),Number(hist[i])];
+ if(!values.every(Number.isFinite))return;
+ // Alert only after three consecutive completed-candle contractions while the histogram remains positive.
+ const confirmed=values[0]>values[1]&&values[1]>values[2]&&values[2]>values[3]&&values[3]>0;
+ const list=histogramShrinkHistory[tf],existing=list.findIndex(item=>item.symbol===symbol);
+ if(!confirmed){
+  if(existing>=0){list.splice(existing,1);renderHistogramShrink(tf);}
+  return;
+ }
+ if(existing>=0)list.splice(existing,1);
+ const previous=values[2],current=values[3];
  list.unshift({symbol,candleTime,histogram:current,shrinkPct:((previous-current)/previous)*100});
  if(list.length>5)list.length=5;
  renderHistogramShrink(tf);
@@ -814,15 +820,21 @@ function updateBullishHistogramShrink(symbol,tf,analysis){
 function updateBearishHistogramShrink(symbol,tf,analysis){
  if(!HISTOGRAM_SHRINK_TFS.includes(tf)||!analysis?.rows||!analysis?.macd?.hist)return;
  const rows=analysis.rows,hist=analysis.macd.hist,i=rows.length-2;
- if(i<2||i>=hist.length||!rows[i])return;
+ if(i<3||i>=hist.length||!rows[i])return;
  const candleTime=Number(rows[i][0]),key=symbol+"|"+tf;
  if(!Number.isFinite(candleTime)||histogramBearShrinkLastCandle.get(key)===candleTime)return;
  histogramBearShrinkLastCandle.set(key,candleTime);
- const current=Number(hist[i]),previous=Number(hist[i-1]),before=Number(hist[i-2]);
- if(![current,previous,before].every(Number.isFinite))return;
- // Mirror image: negative histogram was deepening, then contracts toward zero but remains negative.
- if(!(before<0&&previous<before&&current<0&&current>previous))return;
- const list=histogramBearShrinkHistory[tf],existing=list.findIndex(item=>item.symbol===symbol);if(existing>=0)list.splice(existing,1);
+ const values=[Number(hist[i-3]),Number(hist[i-2]),Number(hist[i-1]),Number(hist[i])];
+ if(!values.every(Number.isFinite))return;
+ // Alert only after three consecutive completed-candle contractions toward zero while remaining negative.
+ const confirmed=values[0]<values[1]&&values[1]<values[2]&&values[2]<values[3]&&values[3]<0;
+ const list=histogramBearShrinkHistory[tf],existing=list.findIndex(item=>item.symbol===symbol);
+ if(!confirmed){
+  if(existing>=0){list.splice(existing,1);renderBearishHistogramShrink(tf);}
+  return;
+ }
+ if(existing>=0)list.splice(existing,1);
+ const previous=values[2],current=values[3];
  list.unshift({symbol,candleTime,histogram:current,shrinkPct:((Math.abs(previous)-Math.abs(current))/Math.abs(previous))*100});
  if(list.length>5)list.length=5;
  renderBearishHistogramShrink(tf);
