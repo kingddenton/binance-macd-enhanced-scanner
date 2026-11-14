@@ -198,7 +198,18 @@ main{max-width:1800px;width:100%}
 #bearishHistogramShrinkPanel .live-candle-column h4{background:#075b42!important;color:#eafff5!important;border:1px solid #39d99b!important}
 #bullishHistogramShrinkPanel .histogram-row-title{color:#ff8795!important}
 #bearishHistogramShrinkPanel .histogram-row-title{color:#68e6a2!important}
-</style></head><body><main>
+</style></head><body>
+<script>
+/* Capture startup failures before the scanner's main scripts initialize. */
+(function(){
+ const queue=window.__cm2EarlyErrors=window.__cm2EarlyErrors||[];
+ const save=message=>{queue.push(new Date().toLocaleTimeString()+" — "+message);if(queue.length>40)queue.shift();};
+ window.addEventListener("error",event=>save("EARLY JAVASCRIPT ERROR: "+(event.message||"Unknown error")+(event.filename?" · "+event.filename.split("/").pop():"")+(event.lineno?":"+event.lineno:"")),true);
+ window.addEventListener("unhandledrejection",event=>{const reason=event.reason;save("EARLY UNHANDLED PROMISE: "+(reason&&reason.message||String(reason)));});
+ window.__cm2EarlyLog=save;
+})();
+</script>
+<main>
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥10% / 4H)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button><div id="marketwide5mVolumeSetting" class="saved-settings-volume"><label for="marketwide5mMinVolume">Market-wide 3m min 24h volume (USDT)</label><input id="marketwide5mMinVolume" type="number" min="0" step="100000" value="2000000" style="width:120px"></div></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="row actions"><button id="autoBtn" class="secondary">Start auto-scan</button><button id="scanBtn">Scan once</button><button id="clearDisplayBtn" class="secondary" type="button">Clear display</button></div>
 <div class="controls" style="margin-top:8px"><div><div><label>Candle count</label><input id="eventBars" type="number" min="1" max="100" step="1" value="5"></div></div></div><div class="controls">
@@ -1957,6 +1968,8 @@ html,body{min-height:100%;}body{padding:8px!important}
    if(!log)return;
    log.textContent=(stamp+' — '+message+'\n'+log.textContent).slice(0,5000);
  };
+ // Display errors caught before this diagnostic panel was created.
+ (window.__cm2EarlyErrors||[]).slice().reverse().forEach(message=>write(message));
  window.__cm2Diag=write;
  const scanButton=$('scanBtn');
  if(scanButton)scanButton.addEventListener('click',()=>write('Scan once tap received by the page.'),true);
