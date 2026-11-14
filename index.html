@@ -1818,9 +1818,18 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
  // The Settings/filter workspace remains on the original tab, not in the monitor.
  const settingsNav=$('settingsNav');
  if(settingsNav)settingsNav.setAttribute('aria-label','Settings');
- // Candle Monitor_2 shows only its Sections 01–06 workspace and the scan/action
- // controls intentionally assigned to it; no momentum, market-wide alert,
- // timeframe MACD grid, or settings/filter panels are copied into it.
+ // Keep the collapsible Volume controls group in the original Green Tracker
+ // workspace only. Hide it while Candle Monitor_2 is active, then restore it.
+ const volumeGroup=$('volumeControlsTab');
+ const greenTab=$('greenTabBtn');
+ const monitorTab=$('candleMonitor2Nav');
+ const syncVolumeVisibility=()=>{
+   if(volumeGroup)volumeGroup.hidden=!!(monitorTab&&monitorTab.classList.contains('active'));
+ };
+ if(monitorTab)monitorTab.addEventListener('click',syncVolumeVisibility);
+ if(greenTab)greenTab.addEventListener('click',()=>{if(volumeGroup)volumeGroup.hidden=false;});
+ syncVolumeVisibility();
+ // Candle Monitor_2 shows Sections 01–06 and only its required scan controls.
 })();
 </script>
 
