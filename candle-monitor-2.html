@@ -453,8 +453,9 @@ function renderSpecialMacdHistory(){
   for(const item of items){
    const card=document.createElement("div");card.className="live-candle-card live-candle-red";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";
    const title=document.createElement("strong");title.textContent=item.symbol;
+   const change=document.createElement("span"),change24h=Number(item.change);change.textContent=Number.isFinite(change24h)?(change24h>0?"+":"")+change24h.toFixed(2)+"%":"—";change.style.color=Number.isFinite(change24h)&&change24h>0?"#4ade80":Number.isFinite(change24h)&&change24h<0?"#fb7185":"inherit";change.style.fontWeight="700";change.style.fontSize="12px";change.style.whiteSpace="nowrap";
    const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(limit,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/"+limit;detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";
-   card.append(title,detail);column.appendChild(card);
+   card.append(title,change,detail);column.appendChild(card);
   }
  });
 }
@@ -466,7 +467,7 @@ function renderSpecialMacdBullHistory(){
   if(heading)heading.classList.toggle("reversal-heading-active",tf===bullMacdLatestHeadingTf&&now<bullMacdHeadingBlinkUntil);
   column.replaceChildren();
   if(!items.length){const empty=document.createElement("div");empty.className="live-candle-empty";empty.textContent="No confirmed bullish crosses.";column.appendChild(empty);return;}
-  for(const item of items){const card=document.createElement("div");card.className="live-candle-card live-candle-green";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";const title=document.createElement("strong");title.textContent=item.symbol;const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(limit,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/"+limit;detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";card.append(title,detail);column.appendChild(card);}
+  for(const item of items){const card=document.createElement("div");card.className="live-candle-card live-candle-green";card.style.display="flex";card.style.justifyContent="space-between";card.style.alignItems="center";card.style.gap="8px";card.style.padding="5px 7px";card.style.marginTop="4px";const title=document.createElement("strong");title.textContent=item.symbol;const change=document.createElement("span"),change24h=Number(item.change);change.textContent=Number.isFinite(change24h)?(change24h>0?"+":"")+change24h.toFixed(2)+"%":"—";change.style.color=Number.isFinite(change24h)&&change24h>0?"#4ade80":Number.isFinite(change24h)&&change24h<0?"#fb7185":"inherit";change.style.fontWeight="700";change.style.fontSize="12px";change.style.whiteSpace="nowrap";const detail=document.createElement("span");const duration=durations[tf],count=Math.max(1,Math.min(limit,Math.floor((now-item.candleTime-duration)/duration)+1));detail.textContent=count+"/"+limit;detail.style.fontSize="11px";detail.style.whiteSpace="nowrap";card.append(title,change,detail);column.appendChild(card);}
  });
 }
 function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.2;}
