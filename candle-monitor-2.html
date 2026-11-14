@@ -1894,6 +1894,11 @@ html,body{min-height:100%;}body{padding:8px!important}
  const earlyFeed=$('earlyMomentumFeed');
  const earlyPanel=earlyFeed?.closest('.alert-tier');
  if(earlyPanel)earlyPanel.remove();
+ // Remove the confirmed-signal and MACD crossover alert tiers from this independent workspace.
+ ['CONFIRMED ALERTS','MACD CROSSOVER ALERTS'].forEach(title=>{
+   const panel=Array.from(view.querySelectorAll('.alert-tier')).find(el=>el.querySelector('.alert-tier-title')?.textContent.includes(title));
+   if(panel)panel.remove();
+ });
  // Remove the overbought / reversal watch from this independent workspace too.
  const reversalPanel=Array.from(view.querySelectorAll('.alert-tier')).find(el=>el.querySelector('.alert-tier-title')?.textContent.includes('OVERBOUGHT / REVERSAL WATCH'));
  if(reversalPanel)reversalPanel.remove();
