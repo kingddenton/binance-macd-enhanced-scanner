@@ -1678,4 +1678,51 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 })();
 </script>
 
+
+<!-- MM Live numbered section headings: display-only; scanner logic and alert conditions unchanged. -->
+<style>
+.mm-section-number{display:inline-block;margin-right:7px;padding:3px 7px;border:1px solid #4b7890;border-radius:6px;background:#102b3b;color:#9fe5ff;font-size:11px;font-weight:950;letter-spacing:.5px;vertical-align:middle;font-variant-numeric:tabular-nums}
+.histogram-row-title .mm-section-number{font-size:10px}
+.mm-section-directory-title{margin:0 0 7px;color:#dff5ff;font-size:13px;font-weight:950;letter-spacing:.45px}
+</style>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ function prefix(el,num){
+   if(!el||el.querySelector(':scope > .mm-section-number'))return;
+   const badge=document.createElement('span');
+   badge.className='mm-section-number';
+   badge.textContent=num;
+   el.insertBefore(badge,el.firstChild);
+ }
+ // 01 — Top gainers and losers used by the market/reversal universe.
+ const leaders=$('specialMacdCandidatesList');
+ if(leaders&&!$('mmSection01Title')){
+   const h=document.createElement('div');
+   h.id='mmSection01Title';h.className='mm-section-directory-title';
+   h.textContent='01  MARKET LEADERS & LAGGARDS';
+   leaders.parentNode.insertBefore(h,leaders);
+ }
+ // 02 — Live forming-candle bullish and bearish alerts.
+ const liveTitle=[...document.querySelectorAll('b')].find(el=>el.textContent.trim()==='🚨 LIVE BULLISH CANDLE MONITOR');
+ if(liveTitle){liveTitle.textContent='02  🚨 LIVE BULLISH & BEARISH CANDLE ALERTS';}
+ // 03 — MACD histogram contraction and momentum monitors.
+ prefix($('bullishHistogramShrinkPanel')?.querySelector('.histogram-row-title'),'03.1');
+ prefix($('bearishHistogramShrinkPanel')?.querySelector('.histogram-row-title'),'03.2');
+ const histogramRows=[...document.querySelectorAll('.histogram-monitor-row')];
+ const momentumRow=histogramRows.find(el=>el.querySelector('.histogram-row-title')?.textContent.includes('HISTOGRAM MOMENTUM'));
+ prefix(momentumRow?.querySelector('.histogram-row-title'),'03.3');
+ // 04 — Price / histogram divergence.
+ const divergenceRow=histogramRows.find(el=>el.querySelector('.histogram-row-title')?.textContent.includes('PRICE / HISTOGRAM DIVERGENCE'));
+ prefix(divergenceRow?.querySelector('.histogram-row-title'),'04');
+ // 05 — Percentage-change monitors.
+ const pctRow=histogramRows.find(el=>el.classList.contains('percentage-change-alert-row'));
+ prefix(pctRow?.querySelector('.histogram-row-title'),'05');
+ // 06 — Scanner diagnostics.
+ const diagnostics=$('diagnosticsPanel');
+ const diagnosticsTitle=diagnostics?.querySelector('h2');
+ if(diagnosticsTitle)diagnosticsTitle.textContent='06  SCANNER DIAGNOSTICS';
+})();
+</script>
+
 </body></html>
