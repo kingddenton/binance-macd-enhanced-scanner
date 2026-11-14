@@ -1361,8 +1361,10 @@ function pcAutoToggle(){if(pcAutoOn){pcAutoOn=false;if(pcTimer)clearTimeout(pcTi
 function pcTab(name){const g=name==="green";$("greenTrackerView").hidden=!g;$("priceTracker").hidden=g;$("greenTabBtn").classList.toggle("active",g);$("priceTabBtn").classList.toggle("active",!g);$("greenTabBtn").classList.toggle("secondary",!g);$("priceTabBtn").classList.toggle("secondary",g);}
 $("greenTabBtn").addEventListener("click",()=>pcTab("green"));$("priceTabBtn").addEventListener("click",()=>pcTab("price"));$("pcScan").addEventListener("click",pcRun);$("pcAuto").addEventListener("click",pcAutoToggle);pcInit();restoreLastSettings();$("run15mCoverageDiagnostic").addEventListener("click",render15mCoverageDiagnostic);
 
+if(!window.__CM2_PRICE_TRACKER_ONLY__){
 $("eventBars")?.addEventListener("change",()=>{const el=$("eventBars");el.value=String(specialMacdCandleLimit());renderSpecialMacdHistory();renderSpecialMacdBullHistory();});
 syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain","specialMacdTopGainers","specialMacdWorstLosers","specialMacdMinVolume"].forEach(id=>$(id).addEventListener("input",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();}));$("specialMacdUniverseMode").addEventListener("change",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();});/* Removed MM Live special-MACD fallback and legacy stream-status timers from this independent page. */$("universeSearch").addEventListener("input",renderUniverse);buildPanels();if(!$("showOiDollar").checked)document.querySelectorAll(".oi-dollar-cell").forEach(el=>el.hidden=true);renderDiagnostics();renderUniverse();
+}
 })();
 </script>
 <script>
@@ -2049,6 +2051,7 @@ html,body{min-height:100%;}body{padding:8px!important}
 </script>
 
 
+<script>window.__CM2_PRICE_TRACKER_ONLY__=true;</script>
 <!-- Standalone Candle Monitor_2 now uses Price Change Tracker as its only scanner.
      The Price Change Tracker controls and selection rules are preserved unchanged. -->
 <style>
