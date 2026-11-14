@@ -254,7 +254,7 @@ main{max-width:1800px;width:100%}
 </section>
 <div class="panel" style="margin-top:12px;border-color:#d99a32;background:#171f2d">
  <div class="statusline"><div><b style="color:#ffd166">🚨 LIVE BULLISH CANDLE MONITOR</b><div class="small">Market-wide: eligible USDT perpetuals with 24h quote volume ≥ $2M. Live forming-candle change measured from each candle's open. Yellow +15% minimum trigger on all timeframes; green stronger alert (+20% on 30m/1H); red +40% extreme alert. Reversal columns: selected 24h universe (positive gainers and negative losers) with ≥$2M quote volume; completed-candle 1m/3m/5m MACD reversals.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggle20PctSound" class="secondary" type="button" style="width:auto">Live candle alert sound: OFF</button><button id="toggleSpecialMacdSound" class="secondary" type="button" style="width:auto">Special reversal alarm: OFF</button></div></div>
- <div class="controls" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label for="specialMacdUniverseMode">Reversal universe mode</label><select id="specialMacdUniverseMode"><option value="threshold">Percentage threshold</option><option value="ranking">Top gainers / worst losers</option></select></div><div id="specialThresholdControls"><label for="specialMacdMinGain">Minimum absolute 24h price change (%) — both directions</label><input id="specialMacdMinGain" type="number" min="0" max="500" step="0.5" value="20"></div><div id="specialRankingControls" hidden><label for="specialMacdTopGainers">Top 24h gainers</label><input id="specialMacdTopGainers" type="number" min="1" max="1000" step="1" value="10"><label for="specialMacdWorstLosers" style="margin-top:7px">Worst 24h losers</label><input id="specialMacdWorstLosers" type="number" min="1" max="1000" step="1" value="10"></div><div><label for="specialMacdMinVolume">Minimum 24h quote volume (USDT)</label><input id="specialMacdMinVolume" type="number" min="0" step="100000" value="2000000"></div><div><label for="specialBullMinCandleChange">Live bullish monitor — minimum candle change (%)</label><input id="specialBullMinCandleChange" type="number" min="0" max="100" step="0.05" value="0.2"></div></div>
+ <div class="controls" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label for="specialMacdUniverseMode">Reversal universe mode</label><select id="specialMacdUniverseMode"><option value="threshold">Percentage threshold</option><option value="ranking" selected>Top gainers / worst losers</option></select></div><div id="specialThresholdControls"><label for="specialMacdMinGain">Minimum absolute 24h price change (%) — both directions</label><input id="specialMacdMinGain" type="number" min="0" max="500" step="0.5" value="20"></div><div id="specialRankingControls" hidden><label for="specialMacdTopGainers">Top 24h gainers</label><input id="specialMacdTopGainers" type="number" min="1" max="1000" step="1" value="10"><label for="specialMacdWorstLosers" style="margin-top:7px">Worst 24h losers</label><input id="specialMacdWorstLosers" type="number" min="1" max="1000" step="1" value="10"></div><div><label for="specialMacdMinVolume">Minimum 24h quote volume (USDT)</label><input id="specialMacdMinVolume" type="number" min="0" step="100000" value="2000000"></div><div><label for="specialBullMinCandleChange">Live bullish monitor — minimum candle change (%)</label><input id="specialBullMinCandleChange" type="number" min="0" max="100" step="0.05" value="0.2"></div></div>
  <div class="live-candle-scroll special-alert-scroll" style="overflow-x:auto;margin-top:10px"><div class="special-alert-layout" id="twentyPctFeed">
   <div class="special-direction-group special-bull-group"><div class="special-group-title">🟢 BULLISH CROSS</div><div class="special-group-columns">
    <section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_1m">1M</h3><div class="live-candle-items" data-special-bull-tf="1m">No bullish crosses yet.</div></section><section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_3m">3M</h3><div class="live-candle-items" data-special-bull-tf="3m">No bullish crosses yet.</div></section>
@@ -920,79 +920,19 @@ async function universe(){
  const highNow=Date.now();for(const ticker of all){if(!eligible.has(ticker.symbol))continue;const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh)fresh24hHighUntil.set(ticker.symbol,highNow+300000);previous24hHigh.set(ticker.symbol,currentHigh);}}
  for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
  const minVol=Math.max(0,Number($("minVol").value)||0),max=Math.max(1,Math.min(100,Number($("scanCount").value)||20));
- let list=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol);
- const mode=$("universe").value,match=mode.match(/^gainers(4h|6h|12h)$/),period=match?match[1]:null;
- if(mode==="gainersMultiPositive")list=list.filter(t=>Number(t.priceChangePercent)>0);
+ // The main scanner now uses the same symmetrical universe as the reversal monitor.
+ // Only active USDⓈ-M USDT perpetuals are candidates; no rolling 1m history ranking across the full market.
+ const scannerEligible=new Set(ex.symbols.filter(x=>x.status==="TRADING"&&x.contractType==="PERPETUAL"&&x.quoteAsset==="USDT").map(x=>x.symbol));
+ const list=all.filter(t=>scannerEligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol);
  diag.candidates=list.length;
- let selected=[];
- if(mode==="gainersMulti"||mode==="gainersMultiPositive"){
-  const ttl=300000,now=Date.now(),serverData=await request("/fapi/v1/time"),serverTime=Number(serverData.serverTime);
-  const targets={1:serverTime-3600000,4:serverTime-4*3600000,6:serverTime-6*3600000,12:serverTime-12*3600000},historyStart=targets[12]-120000;
-  $("status").textContent="Ranking "+list.length+" eligible coins with "+(mode==="gainersMultiPositive"?"positive 24H change ":"")+"across rolling 1H, 4H, 6H and 12H performance. Cached readings are reused for 5 minutes.";
-  let nextUniverseIndex=0,completedUniverseCount=0;
-  const processUniverseCoin=async()=>{
-   while(true){
-    const i=nextUniverseIndex++;if(i>=list.length)return;
-    const t=list[i],key=t.symbol+"|rolling-1h-4h-6h-12h",cached=universePeriodCache.get(key);
-    if(cached&&now-cached.at<ttl){diag.cacheHits++;Object.assign(t,cached.values);}
-    else{
-     diag.cacheMisses++;
-     try{
-      const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval=1m&startTime="+Math.floor(historyStart)+"&limit=723");
-      const current=Number(t.lastPrice),values={};
-      for(const hours of [1,4,6,12]){
-       const target=targets[hours],valid=rows.filter(k=>Number(k[6])<=target),ref=valid[valid.length-1],open=Number(ref&&ref[4]);
-       values["rolling"+hours+"h"]=open>0&&Number.isFinite(current)?((current-open)/open)*100:NaN;
-      }
-      Object.assign(t,values);universePeriodCache.set(key,{values,at:now});
-     }catch(e){t.rolling1h=t.rolling4h=t.rolling6h=t.rolling12h=NaN;}
-    }
-    completedUniverseCount++;
-    if(completedUniverseCount%20===0||completedUniverseCount===list.length)$("status").textContent="Rolling performance ranking: "+completedUniverseCount+" / "+list.length+" eligible coins checked…";
-   }
-  };
-  await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,list.length)},()=>processUniverseCoin()));
-  const ranked={};
-  for(const hours of [1,4,6,12]){
-   const field="rolling"+hours+"h";
-   ranked[hours]=list.filter(t=>Number.isFinite(t[field])).sort((a,b)=>b[field]-a[field]).slice(0,max);
-  }
-  const union=new Map();
-  for(const hours of [1,4,6,12])for(const t of ranked[hours]){if(!union.has(t.symbol))union.set(t.symbol,t);t.universePeriods=t.universePeriods||[];if(!t.universePeriods.includes(hours))t.universePeriods.push(hours);}
-  selected=[...union.values()].sort((a,b)=>Math.max(b.rolling1h,b.rolling4h,b.rolling6h,b.rolling12h)-Math.max(a.rolling1h,a.rolling4h,a.rolling6h,a.rolling12h)).slice(0,max);
- }else if(mode==="gainers24h1plus"){
-  selected=list.filter(t=>Number(t.priceChangePercent)>=1).sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent)).slice(0,max);
-  $("status").textContent="Selecting the top "+max+" eligible USDT perpetual coins with 24H price change ≥ +1%, ranked by 24H price performance.";
- }else{
-  if(period){
-   const ttl=300000;
-   $("status").textContent="Ranking all "+list.length+" eligible coins by "+period+" price gainers. Cached values are reused for 5 minutes.";
-   let nextPeriodIndex=0,completedPeriodCount=0;
-   const processPeriodCoin=async()=>{
-    while(true){
-     const i=nextPeriodIndex++;if(i>=list.length)return;
-     const t=list[i],key=t.symbol+"|"+period,cached=universePeriodCache.get(key);
-     if(cached&&Date.now()-cached.at<ttl){diag.cacheHits++;t.universeChange=cached.change;}
-     else{
-      diag.cacheMisses++;
-      try{
-       const rows=await request("/fapi/v1/klines?symbol="+t.symbol+"&interval="+period+"&limit=1");
-       const open=Number(rows&&rows[0]&&rows[0][1]),last=Number(t.lastPrice);
-       const change=open>0&&Number.isFinite(last)?((last-open)/open)*100:NaN;
-       t.universeChange=change;if(Number.isFinite(change))universePeriodCache.set(key,{change,at:Date.now()});
-      }catch(e){t.universeChange=NaN;}
-     }
-     completedPeriodCount++;
-     if(completedPeriodCount%25===0||completedPeriodCount===list.length)$("status").textContent="Ranking "+period+" gainers: "+completedPeriodCount+" / "+list.length+" eligible coins checked…";
-    }
-   };
-   await Promise.all(Array.from({length:Math.min(MAX_CONCURRENT_REQUESTS,list.length)},()=>processPeriodCoin()));
-   list.sort((a,b)=>(Number.isFinite(b.universeChange)?b.universeChange:-Infinity)-(Number.isFinite(a.universeChange)?a.universeChange:-Infinity));
-  }else if(mode==="gainers")list.sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));
-  else if(mode==="volume")list.sort((a,b)=>Number(b.quoteVolume)-Number(a.quoteVolume));
-  else list.sort((a,b)=>Number(b.quoteVolume)-Number(a.quoteVolume));
-  selected=list.slice(0,max);
- }
+ $("status").textContent="Building the symmetrical Top gainers / Worst losers universe from "+list.length+" eligible USDT perpetuals…";
+ setSpecialMacdCandidates(list);
+ const mode="symmetrical",period=null;
+ const tickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
+ let selected=[...specialMacdCandidates.keys()].map(symbol=>tickerBySymbol.get(symbol)).filter(Boolean);
+ // Threshold mode retains its existing threshold behavior and the scanner's coin-count cap.
+ if($("specialMacdUniverseMode")?.value!=="ranking")selected=selected.slice(0,max);
+ $("status").textContent="Symmetrical universe ready: "+selected.length+" coins (Top gainers + Worst losers).";
  const auditSymbols=["SOXLUSDT","MVLLUSDT","COHRUSDT","KORUUSDT"],exchangeBySymbol=new Map(ex.symbols.map(x=>[x.symbol,x])),tickerBySymbol=new Map(all.map(x=>[x.symbol,x]));
  const volumeRanked=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol).slice().sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));
  const auditSelected=new Set(selected.map(t=>t.symbol));
