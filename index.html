@@ -452,7 +452,7 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,conf
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
  scheduleSpecialMacdAlertRefresh(renderSpecialMacdBullHistory,candleTime,duration);renderSpecialMacdBullHistory();
- const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · same-timeframe Supertrend bullish, DEA above zero and DIF above zero. Alert remains for "+specialMacdCandleLimit()+" candles.";
+ const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected same-timeframe confirmation checkboxes passed. Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
@@ -468,7 +468,7 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
  scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,candleTime,duration);
  renderSpecialMacdHistory();
- $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · same-timeframe Supertrend bearish, DEA below zero and DIF below zero. Alert remains for "+specialMacdCandleLimit()+" candles.";
+ $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected same-timeframe confirmation checkboxes passed. Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
 function specialMacdConfirmationState(stNow,difNow,deaNow){const enabled=id=>{const el=$(id);return !el||el.checked;};return {bull:(!enabled("specialBullRequireST")||!!(stNow&&stNow.trend===1))&&(!enabled("specialBullRequireDEA")||(Number.isFinite(deaNow)&&deaNow>0))&&(!enabled("specialBullRequireDIF")||(Number.isFinite(difNow)&&difNow>0)),bear:(!enabled("specialBearRequireST")||!!(stNow&&stNow.trend===-1))&&(!enabled("specialBearRequireDEA")||(Number.isFinite(deaNow)&&deaNow<0))&&(!enabled("specialBearRequireDIF")||(Number.isFinite(difNow)&&difNow<0))};}
