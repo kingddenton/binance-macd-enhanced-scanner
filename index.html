@@ -1850,4 +1850,92 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 })();
 </script>
 
+
+<!-- MM CORRECTED SECTIONS 01-06 ONLY WORKSPACE -->
+<style>
+#mmLandingPage{display:none!important}
+#mmScannerWorkspace{display:contents!important}
+#mmSectionsWorkspace[hidden]{display:none!important}
+#mmSectionsWorkspace{margin-top:10px}
+#mmSectionsWorkspace .mm-section-block{margin:0 0 12px}
+#mmSectionsNav.active{background:linear-gradient(135deg,#087e48,#12c968)!important;color:#03140b!important;border-color:#28f080!important}
+#candleMonitorNav{display:none!important}
+</style>
+<script>
+/* Isolate only numbered Sections 01–06. Keep all other monitors and controls
+   on the main page; preserve original IDs, engines, handlers and settings. */
+(function(){
+ const $=id=>document.getElementById(id);
+ const main=document.querySelector("main"),header=main?.querySelector(".v2-header"),nav=header?.querySelector(".v2-nav");
+ const green=$("greenTrackerView"),price=$("priceTracker"),candle=$("candleMonitorView");
+ if(!main||!header||!nav||!green)return;
+ const oldHome=$("mmLandingPage"),oldWorkspace=$("mmScannerWorkspace");
+ if(oldHome)oldHome.remove();
+ if(oldWorkspace){oldWorkspace.hidden=false;oldWorkspace.style.display="contents";}
+ green.hidden=false;if(price)price.hidden=true;if(candle)candle.hidden=true;
+
+ let workspace=$("mmSectionsWorkspace");
+ if(!workspace){workspace=document.createElement("section");workspace.id="mmSectionsWorkspace";workspace.hidden=true;workspace.setAttribute("aria-label","Sections 01 to 06");header.insertAdjacentElement("afterend",workspace);}
+ let tab=$("mmSectionsNav");
+ if(!tab){tab=document.createElement("button");tab.id="mmSectionsNav";tab.type="button";tab.className="secondary";tab.textContent="Sections 01–06";nav.insertBefore(tab,$("priceGainersNav")||null);}
+ const mainTab=$("greenTabBtn");if(mainTab)mainTab.textContent="Main";
+ $("mmHomeNav")?.remove();$("candleMonitorNav")?.remove();
+
+ function addBlock(node,title,id){
+   if(!node||node===workspace||node.parentElement===workspace)return;
+   const block=document.createElement("section");block.className="mm-section-block";block.id=id;
+   if(title){const h=document.createElement("div");h.className="mm-section-directory-title";h.textContent=title;block.appendChild(h);}
+   workspace.appendChild(block);block.appendChild(node);
+ }
+ // Section 01 — detach the leaders/laggards list before moving its containing monitor.
+ const leaders=$("specialMacdCandidatesList");
+ if(leaders)addBlock(leaders,"01  MARKET LEADERS & LAGGARDS","mmSection01Block");
+
+ // Section 02 — live bullish/bearish candle and reversal monitor.
+ const liveFeed=$("twentyPctFeed");
+ const livePanel=liveFeed?.closest(".panel")||liveFeed?.closest("section");
+ if(livePanel){livePanel.id="mmSection02LivePanel";addBlock(livePanel,"02  LIVE CANDLE & REVERSAL MONITOR","mmSection02Block");}
+
+ // Section 03 — histogram contraction and momentum monitors.
+ const bullish=$("bullishHistogramShrinkPanel"),bearish=$("bearishHistogramShrinkPanel");
+ if(bullish)addBlock(bullish,"03.1  BULLISH MACD HISTOGRAM CONTRACTION","mmSection031Block");
+ if(bearish)addBlock(bearish,"03.2  BEARISH MACD HISTOGRAM CONTRACTION","mmSection032Block");
+ const rows=[...document.querySelectorAll(".histogram-monitor-row")];
+ const momentum=rows.find(r=>r.querySelector(".histogram-row-title")?.textContent.includes("HISTOGRAM MOMENTUM"));
+ if(momentum)addBlock(momentum,"03.3  HISTOGRAM MOMENTUM","mmSection033Block");
+
+ // Section 04 — price/histogram divergence.
+ const divergence=rows.find(r=>r.querySelector(".histogram-row-title")?.textContent.includes("PRICE / HISTOGRAM DIVERGENCE"));
+ if(divergence)addBlock(divergence,"04  PRICE / HISTOGRAM DIVERGENCE","mmSection04Block");
+
+ // Section 05 — percentage-change alerts.
+ const percentage=rows.find(r=>r.classList.contains("percentage-change-alert-row"));
+ if(percentage)addBlock(percentage,"05  PERCENTAGE CHANGE ALERTS","mmSection05Block");
+
+ // Section 06 — diagnostics, including the 1-minute candle-close test.
+ const diagnostics=$("diagnosticsPanel");
+ if(diagnostics)addBlock(diagnostics,"","mmSection06Block");
+
+ // Fresh bullish/bearish MACD crossovers, sound toggles and timeframe controls stay on Main.
+ const alertCenter=$("v2AlertCenter");
+ if(alertCenter&&workspace.contains(alertCenter))green.appendChild(alertCenter);
+ if(alertCenter&&!green.contains(alertCenter))green.appendChild(alertCenter);
+
+ // Restore any other main-page elements that the previous layout placed in the old Candle Monitor.
+ const dashboard=$("v2TopDashboard"),momentumPanel=$("topMomentumPanel"),results=$("tfGrid");
+ [dashboard,momentumPanel,results].forEach(node=>{if(node&&!green.contains(node))green.appendChild(node);});
+
+ const buttons=[...nav.querySelectorAll("button")];
+ function setActive(active){buttons.forEach(b=>{const on=b===active;b.classList.toggle("active",on);b.classList.toggle("secondary",!on);});}
+ function showMain(){workspace.hidden=true;green.hidden=false;if(price)price.hidden=true;if(candle)candle.hidden=true;setActive(mainTab);window.scrollTo({top:0,behavior:"smooth"});}
+ function showSections(){green.hidden=true;if(price)price.hidden=true;workspace.hidden=false;if(candle)candle.hidden=true;setActive(tab);window.scrollTo({top:0,behavior:"smooth"});}
+ function showPrice(){green.hidden=true;workspace.hidden=true;if(price)price.hidden=false;if(candle)candle.hidden=true;setActive($("priceTabBtn"));window.scrollTo({top:0,behavior:"smooth"});}
+ tab.addEventListener("click",showSections);
+ mainTab?.addEventListener("click",showMain);
+ $("priceTabBtn")?.addEventListener("click",showPrice);
+ ["priceGainersNav","earlyNav","reversalNav","diagnosticsNav","settingsNav"].forEach(id=>$(id)?.addEventListener("click",showMain,{capture:true}));
+ showMain();
+})();
+</script>
+
 </body></html>
