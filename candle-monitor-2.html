@@ -810,7 +810,7 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
 const diag={cycles:0,symbols:0,totalSymbols:0,loopStartedAt:0,requests:0,failures:0,rateLimits:0,totalApiMs:0,maxApiMs:0,lastApiMs:0,lastHost:"—",lastScanAt:0,lastDuration:0,outcome:"Not run yet",scanStartedAt:0,macdRuns:0,rsiRuns:0,htfRuns:0,oiRuns:0,candidates:0,selected:0,stages:{},universe:[],universeAudit:[],marketInventory:[],marketInventorySummary:[],coinTrace:null,weight1m:null,endpointCounts:{},cacheHits:0,cacheMisses:0,cooldownUntil:0,lastHttpStatus:0,lastRetryAfter:"—"};
 function resetStages(){diag.stages=Object.fromEntries(TFS.map(tf=>[tf,{cvdReject:0,evaluated:0,rsiPass:0,rsiReject:0,crossover:0,noCrossover:0,deaReject:0,htfReject:0,oiReject:0,results:0,dataErrors:0}]));diag.candidates=0;diag.selected=0;diag.universe=[];diag.universeAudit=[];diag.marketInventory=[];diag.marketInventorySummary=[];diag.universeMode=null;diag.coinTrace=null;}
 function renderUniverse(){
- const body=$("universeRows");if(!body)return;
+ const body=$("universeRows");if(!body||!$("universeMeta"))return;
  const mode=diag.universeMode||$("universe").value,period=mode==="gainers4h"?"4h":mode==="gainers6h"?"6h":mode==="gainers12h"?"12h":mode==="gainers"?"24h":"";
  const heading=$("universeChangeHeading");if(heading)heading.textContent=period?period+" change":(mode==="gainersMulti"||mode==="gainersMultiPositive")?"Best rolling change":"24h change";
  const q=($("universeSearch")?.value||"").trim().toUpperCase(),rows=diag.universe.filter(x=>!q||x.symbol.includes(q));
