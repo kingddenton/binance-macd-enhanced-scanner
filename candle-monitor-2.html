@@ -850,6 +850,7 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
    }
   }catch(e){/* Reversal monitoring is isolated; the main scan continues. */}
  }
+ return analyses.every(item=>!!item.analysis);
 }
 
 const diag={cycles:0,symbols:0,totalSymbols:0,loopStartedAt:0,requests:0,failures:0,rateLimits:0,totalApiMs:0,maxApiMs:0,lastApiMs:0,totalResponseBytes:0,lastResponseBytes:0,lastTransferMbps:0,peakTransferMbps:0,transferSamples:0,totalBodyDownloadMs:0,lastBodyDownloadMs:0,maxBodyDownloadMs:0,totalHeaderMs:0,maxHeaderMs:0,queueWaitTotalMs:0,queueWaitMaxMs:0,requestBusyMs:0,maxActiveRequests:0,lastHost:"—",lastScanAt:0,lastDuration:0,outcome:"Not run yet",scanStartedAt:0,macdRuns:0,rsiRuns:0,htfRuns:0,oiRuns:0,candidates:0,selected:0,stages:{},universe:[],universeAudit:[],marketInventory:[],marketInventorySummary:[],coinTrace:null,weight1m:null,endpointCounts:{},cacheHits:0,cacheMisses:0,cooldownUntil:0,lastHttpStatus:0,lastRetryAfter:"—"};
@@ -1061,16 +1062,25 @@ async function scan(){
      }
     }catch(e){diag.stages[tf].dataErrors++;const trace=coinRecord.timeframes[tf];trace.status="Error";trace.reason=e.message;trace.reasons=[ "Data/request error: "+e.message ];trace.htfStatus=trace.htfStatus||"Not evaluated";trace.oiStatus=trace.oiStatus||"Not evaluated";errors.push(t.symbol+" "+tf+": "+e.message);}
    }
-   try{const r1=await getCandles(t.symbol,"1m");update20PctCandleOpens(t.symbol,r1);}catch(e){/* Live candle monitor data unavailable for this symbol. */}
-   await monitorReversalAlerts(t.symbol,getMacdAnalysis);
-   coinRecord.status="Scanned";diag.symbols=++processedCount;const uiNow=Date.now();if(processedCount===tickers.length||uiNow-lastUiUpdate>=500){lastUiUpdate=uiNow;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+processedCount+"/"+tickers.length+" symbols; collecting directional signals…";}
+   try{const r1=await getCandles(t.symbol,"1m");update20PctCandleOpens(t.symbol,r1);}catch(e){/* The core 1m evaluation above records any required candle-data failure. */}
+   let reversalComplete=false;try{reversalComplete=await monitorReversalAlerts(t.symbol,getMacdAnalysis);}catch(e){errors.push(t.symbol+" reversal monitor: "+e.message);}
+   const coreErrors=TFS.filter(tf=>coinRecord.timeframes[tf]?.status==="Error").length;
+   const hasProcessingError=coreErrors>0||!reversalComplete;
+   coinRecord.status=coreErrors===TFS.length?"Failed":hasProcessingError?"Partially processed":"Fully processed";
+   diag.symbols=++processedCount;
+   diag.fullyProcessed=(diag.fullyProcessed||0)+(coinRecord.status==="Fully processed"?1:0);
+   diag.partiallyProcessed=(diag.partiallyProcessed||0)+(coinRecord.status==="Partially processed"?1:0);
+   diag.failed=(diag.failed||0)+(coinRecord.status==="Failed"?1:0);
+   const uiNow=Date.now();if(processedCount===tickers.length||uiNow-lastUiUpdate>=500){lastUiUpdate=uiNow;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+processedCount+"/"+tickers.length+" symbols; collecting directional signals…";}
   }};
   await Promise.all(Array.from({length:6},()=>scanWorker()));
   renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Finalizing "+tickers.length+" scanned symbols…";renderTopMomentum(momentumData);for(const tf of TFS){output.bull[tf].sort((a,b)=>a.age-b.age);output.bear[tf].sort((a,b)=>a.age-b.age);render("bull",tf,output.bull[tf],errors.length);render("bear",tf,output.bear[tf],errors.length);}
   const totals={bull:TFS.reduce((n,tf)=>n+output.bull[tf].length,0),bear:TFS.reduce((n,tf)=>n+output.bear[tf].length,0)};
   $("status").className=errors.length?"status error":"status ok";
-  $("status").textContent="Scan complete: "+tickers.length+" symbols checked; "+totals.bull+" bullish and "+totals.bear+" bearish MACD crossover timeframe signals found."+(errors.length?" "+errors.length+" request errors; first: "+errors[0]:"");
-  diag.outcome=errors.length?"Complete with "+errors.length+" request errors":"Complete — "+totals.bull+" bullish / "+totals.bear+" bearish crossovers";
+  const fully=diag.fullyProcessed||0,partial=diag.partiallyProcessed||0,failed=diag.failed||0,accounted=fully+partial+failed;
+  const coverage="Processing: "+fully+" fully processed, "+partial+" partially processed, "+failed+" failed; "+(tickers.length-accounted)+" unaccounted.";
+  $("status").textContent="Scan complete: "+tickers.length+" selected; "+coverage+" "+totals.bull+" bullish and "+totals.bear+" bearish MACD crossover timeframe signals found."+(errors.length?" "+errors.length+" errors; first: "+errors[0]:"");
+  diag.outcome=coverage+" "+(errors.length?errors.length+" errors":"No recorded errors")+"; "+totals.bull+" bullish / "+totals.bear+" bearish crossovers";
  }catch(e){window.__cm2Diag?.("SCAN ERROR: "+(e&&e.message||String(e)));diag.outcome="Failed: "+e.message;$("status").className="status error";$("status").textContent="Scan stopped: "+e.message;}
  finally{if(scanClockTimer!==null){clearInterval(scanClockTimer);scanClockTimer=null;}if(diag.loopStartedAt)diag.lastLoopDuration=Date.now()-diag.loopStartedAt;busy=false;diag.cycles++;diag.lastScanAt=Date.now();diag.lastDuration=Date.now()-diag.scanStartedAt;renderDiagnostics();renderStages();$("scanBtn").disabled=false;}
 }
