@@ -341,7 +341,7 @@ const hosts=["https://fapi.binance.com","https://fapi1.binance.com","https://fap
 let hostIndex=0,lastRequest=0,activeRequests=0,pendingRequests=[],requestPumpTimer=null,timer=null,busy=false,countdownTimer=null,nextAt=0,autoActive=false,exchangeInfoCache=null,exchangeInfoAt=0,exchangeInfoPromise=null;
 const MAX_CONCURRENT_REQUESTS=6,MIN_REQUEST_START_GAP_MS=100;
 const previous24hHigh=new Map(),fresh24hHighUntil=new Map(),universePeriodCache=new Map(),rollingOiHistory=new Map();
-const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
+const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map();const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
 function playAlertTone(tier,direction,tf){
  const soundKey=(tier==="confirmed"?"confirmed":"crossover")+(direction==="bull"?"Bull":"Bear");const timeframeCheckbox=$("alert"+tf);if(!alertSoundEnabled[soundKey]||(timeframeCheckbox&&!timeframeCheckbox.checked))return;
  try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
@@ -516,9 +516,55 @@ function specialMacdConfirmations(st,dif,dea){
  const bearDIF=!specialMacdConfirmationEnabled("confirmBearDIF")||(Number.isFinite(dif)&&dif<0);
  return {bull:bullST&&bullDEA&&bullDIF,bear:bearST&&bearDEA&&bearDIF};
 }
-function processSpecialMacdKline(symbol,tf,k){const state=specialMacdStates.get(symbol),history=specialMacdHistories.get(symbol),rows=history&&history[tf];if(!state||!Array.isArray(rows)||!specialMacdCandidates.has(symbol)||!["1m","3m","5m","15m"].includes(tf))return;/* Only Binance's final kline event is eligible; forming-candle updates are ignored. */if(k.x!==true)return;const candleTime=Number(k.t),close=Number(k.c);if(!(close>0)||!Number.isFinite(candleTime))return;const last=rows[rows.length-1];/* A closed candle is processed once, in chronological order. */if(last&&candleTime<=Number(last[0]))return;rows.push([candleTime,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]);if(rows.length>150)rows.shift();const macdNow=macd(rows),values=macdNow.hist;if(values.length<2)return;const stNow=supertrendInfo(rows,10,3),difNow=macdNow.dif.at(-1),deaNow=macdNow.dea.at(-1),confirmations=specialMacdConfirmations(stNow,difNow,deaNow);/* Feed the selected Top Gainers / Worst Losers universe into both shrinking-histogram monitors. The duplicate final row acts as the still-forming candle so the shared detector evaluates the just-closed candle at rows.length-2. */const paddedRows=rows.concat([[candleTime+1,k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B]]);const shrinkAnalysis={rows:paddedRows,macd:macd(paddedRows)};updateBullishHistogramShrink(symbol,tf,shrinkAnalysis);updateBearishHistogramShrink(symbol,tf,shrinkAnalysis);const current=values[values.length-1],prior=state[tf];const candleOpen=Number(k.o),candleClose=Number(k.c),candleChangePct=candleOpen>0?((candleClose-candleOpen)/candleOpen)*100:NaN;if(Number.isFinite(prior)&&prior<0&&current>=0)fireSpecialMacdBullAlert(symbol,tf,candleTime,current,candleChangePct,confirmations);if(Number.isFinite(prior)&&prior>=0&&current<0)fireSpecialMacdAlert(symbol,tf,candleTime,current,confirmations);state[tf]=current;
+function specialMacdRowFromKline(k){return [Number(k.t),k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B];}
+function processSpecialMacdClosedRow(symbol,tf,row){
+ const state=specialMacdStates.get(symbol),history=specialMacdHistories.get(symbol),rows=history&&history[tf];
+ if(!state||!Array.isArray(rows)||!specialMacdCandidates.has(symbol)||!["1m","3m","5m","15m"].includes(tf))return;
+ const candleTime=Number(row[0]),close=Number(row[4]);if(!(close>0)||!Number.isFinite(candleTime))return;
+ const last=rows[rows.length-1];if(last&&candleTime<=Number(last[0]))return;
+ rows.push(row);if(rows.length>150)rows.shift();
+ const macdNow=macd(rows),values=macdNow.hist;if(values.length<2)return;
+ const stNow=supertrendInfo(rows,10,3),difNow=macdNow.dif.at(-1),deaNow=macdNow.dea.at(-1),confirmations=specialMacdConfirmations(stNow,difNow,deaNow);
+ const paddedRows=rows.concat([[candleTime+1,row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11]]]);
+ const shrinkAnalysis={rows:paddedRows,macd:macd(paddedRows)};
+ updateBullishHistogramShrink(symbol,tf,shrinkAnalysis);updateBearishHistogramShrink(symbol,tf,shrinkAnalysis);
+ const current=values[values.length-1],prior=state[tf],candleOpen=Number(row[1]),candleClose=Number(row[4]),candleChangePct=candleOpen>0?((candleClose-candleOpen)/candleOpen)*100:NaN;
+ // Strict zero-crossing rules agreed for completed candles.
+ if(Number.isFinite(prior)&&prior<=0&&current>0)fireSpecialMacdBullAlert(symbol,tf,candleTime,current,candleChangePct,confirmations);
+ if(Number.isFinite(prior)&&prior>=0&&current<0)fireSpecialMacdAlert(symbol,tf,candleTime,current,confirmations);
+ state[tf]=current;
 }
-async function loadSpecialMacdHistory(symbol){if(!specialMacdCandidates.has(symbol)||specialMacdHistories.has(symbol)||specialMacdHistoryLoads.has(symbol))return;specialMacdHistoryLoads.add(symbol);try{const [one,three,five,fifteen]=await Promise.all(["1m","3m","5m","15m"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100")));if(!specialMacdCandidates.has(symbol))return;const closed=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[6])<=Date.now()):[];const histories={"1m":closed(one),"3m":closed(three),"5m":closed(five),"15m":closed(fifteen)};if(!Object.values(histories).every(rows=>rows.length>=35))throw new Error("Insufficient completed 1m/3m/5m/15m candle history");specialMacdHistories.set(symbol,histories);specialMacdStates.set(symbol,{"1m":macd(histories["1m"]).hist.at(-1),"3m":macd(histories["3m"]).hist.at(-1),"5m":macd(histories["5m"]).hist.at(-1),"15m":macd(histories["15m"]).hist.at(-1)});$("specialMacdStatus").textContent="Loaded completed 1m/3m/5m/15m MACD history for "+specialMacdHistories.size+" qualifying market-wide coins; waiting for candle closes.";}catch(e){$("specialMacdStatus").textContent="Initial completed-candle MACD history unavailable for "+symbol+": "+e.message+"; will retry on the next market refresh.";}finally{specialMacdHistoryLoads.delete(symbol);}}
+async function processSpecialMacdKline(symbol,tf,k){
+ if(!specialMacdCandidates.has(symbol)||!["1m","3m","5m","15m"].includes(tf)||k.x!==true)return;
+ const incoming=specialMacdRowFromKline(k),candleTime=incoming[0];if(!(Number(incoming[4])>0)||!Number.isFinite(candleTime))return;
+ const key=symbol+"|"+tf;
+ if(!specialMacdHistories.has(symbol)||!specialMacdStates.has(symbol)){
+  const pending=specialMacdPending.get(key)||[];if(!pending.some(row=>Number(row[0])===candleTime)){pending.push(incoming);pending.sort((a,b)=>a[0]-b[0]);if(pending.length>100)pending.shift();specialMacdPending.set(key,pending);}
+  loadSpecialMacdHistory(symbol);return;
+ }
+ const previous=specialMacdQueues.get(key)||Promise.resolve();
+ const task=previous.catch(()=>{}).then(async()=>{
+  if(!specialMacdCandidates.has(symbol))return;
+  const history=specialMacdHistories.get(symbol),rows=history&&history[tf];if(!Array.isArray(rows)||!rows.length)return;
+  let lastTime=Number(rows[rows.length-1][0]);if(candleTime<=lastTime)return;
+  const intervalMs=({"1m":60000,"3m":180000,"5m":300000,"15m":900000})[tf];
+  // Recover all missing completed candles before processing the arriving candle.
+  if(candleTime-lastTime>intervalMs){
+   const missing=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&startTime="+(lastTime+intervalMs)+"&endTime="+(candleTime-1)+"&limit=1000");
+   if(!Array.isArray(missing))throw new Error("Invalid REST candle recovery response");
+   const ordered=missing.filter(row=>Number(row[6])<=Date.now()&&Number(row[0])>lastTime&&Number(row[0])<candleTime).sort((a,b)=>Number(a[0])-Number(b[0]));
+   for(const row of ordered){processSpecialMacdClosedRow(symbol,tf,row);lastTime=Number(row[0]);}
+   if(candleTime-lastTime>intervalMs){
+    const status=$("specialMacdStatus");if(status)status.textContent="MACD recovery gap remains for "+symbol+" "+tf+"; REST did not return every missing candle. Alerts for that gap may be incomplete.";
+   }
+  }
+  processSpecialMacdClosedRow(symbol,tf,incoming);
+ });
+ specialMacdQueues.set(key,task);
+ try{await task;}catch(e){const status=$("specialMacdStatus");if(status)status.textContent="MACD candle recovery failed for "+symbol+" "+tf+": "+e.message+"; retrying on subsequent stream/fallback updates.";}
+ finally{if(specialMacdQueues.get(key)===task)specialMacdQueues.delete(key);}
+}
+async function loadSpecialMacdHistory(symbol){if(!specialMacdCandidates.has(symbol)||specialMacdHistories.has(symbol)||specialMacdHistoryLoads.has(symbol))return;specialMacdHistoryLoads.add(symbol);try{const [one,three,five,fifteen]=await Promise.all(["1m","3m","5m","15m"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100")));if(!specialMacdCandidates.has(symbol))return;const closed=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[6])<=Date.now()):[];const histories={"1m":closed(one),"3m":closed(three),"5m":closed(five),"15m":closed(fifteen)};if(!Object.values(histories).every(rows=>rows.length>=35))throw new Error("Insufficient completed 1m/3m/5m/15m candle history");specialMacdHistories.set(symbol,histories);specialMacdStates.set(symbol,{"1m":macd(histories["1m"]).hist.at(-1),"3m":macd(histories["3m"]).hist.at(-1),"5m":macd(histories["5m"]).hist.at(-1),"15m":macd(histories["15m"]).hist.at(-1)});for(const tf of ["1m","3m","5m","15m"]){const key=symbol+"|"+tf,pending=specialMacdPending.get(key)||[];specialMacdPending.delete(key);for(const row of pending)processSpecialMacdClosedRow(symbol,tf,row);} $("specialMacdStatus").textContent="Loaded completed 1m/3m/5m/15m MACD history for "+specialMacdHistories.size+" qualifying market-wide coins; waiting for candle closes.";}catch(e){$("specialMacdStatus").textContent="Initial completed-candle MACD history unavailable for "+symbol+": "+e.message+"; will retry on the next market refresh.";}finally{specialMacdHistoryLoads.delete(symbol);}}
 function specialMacdMinGain(){const el=$("specialMacdMinGain"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(500,n)):20;}
 function specialMacdMinVolume(){const el=$("specialMacdMinVolume"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,n):2000000;}
 function getSpecialRollingMetric(symbol){
