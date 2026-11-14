@@ -928,8 +928,8 @@ async function universe(){
  $("status").textContent="Building the symmetrical Top gainers / Worst losers universe from "+list.length+" eligible USDT perpetuals…";
  setSpecialMacdCandidates(list);
  const mode="symmetrical",period=null;
- const tickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
- let selected=[...specialMacdCandidates.keys()].map(symbol=>tickerBySymbol.get(symbol)).filter(Boolean);
+ const selectedTickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
+ let selected=[...specialMacdCandidates.keys()].map(symbol=>selectedTickerBySymbol.get(symbol)).filter(Boolean);
  // Threshold mode retains its existing threshold behavior and the scanner's coin-count cap.
  if($("specialMacdUniverseMode")?.value!=="ranking")selected=selected.slice(0,max);
  $("status").textContent="Symmetrical universe ready: "+selected.length+" coins (Top gainers + Worst losers).";
