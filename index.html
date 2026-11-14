@@ -1742,4 +1742,55 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 #specialLosersRows li::marker{color:#fb7185;font-weight:900}
 </style>
 
+
+<!-- Candle Monitor_2: a second navigation entry to the same live Sections 01–06 workspace.
+     Reuses the existing live DOM and controls to avoid duplicate IDs or split alert state. -->
+<style>
+#candleMonitor2Nav.active{background:#087f5b!important;color:#fff}
+</style>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const nav=document.querySelector(".v2-header .v2-nav");
+ const view=$("candleMonitorView");
+ const existing=$("candleMonitorNav");
+ const green=$("greenTrackerView");
+ const price=$("priceTracker");
+ if(!nav||!view||!existing||!green)return;
+ let tab=$("candleMonitor2Nav");
+ if(!tab){
+   tab=document.createElement("button");
+   tab.id="candleMonitor2Nav";
+   tab.type="button";
+   tab.className="secondary";
+   tab.textContent="Candle Monitor_2";
+   nav.insertBefore(tab,nav.firstChild);
+ }
+ const setActive=active=>{
+   nav.querySelectorAll("button").forEach(button=>{
+     const on=button===active;
+     button.classList.toggle("active",on);
+     button.classList.toggle("secondary",!on);
+   });
+ };
+ const openWorkspace=()=>{
+   green.hidden=true;
+   if(price)price.hidden=true;
+   view.hidden=false;
+   setActive(tab);
+   window.scrollTo({top:0,behavior:"smooth"});
+ };
+ tab.addEventListener("click",openWorkspace);
+ // Keep the two navigation entries and all other tabs visually synchronized.
+ nav.addEventListener("click",event=>{
+   const button=event.target.closest("button");
+   if(button)setActive(button);
+ },true);
+ // Candle Monitor_2 is the first/default opening tab. Its Sections 01–06,
+ // universe controls, candle count, volume threshold and live alerts all
+ // remain the existing functioning elements; no scanner logic is changed.
+ openWorkspace();
+})();
+</script>
+
 </body></html>
