@@ -555,7 +555,7 @@ async function processSpecialMacdKline(symbol,tf,k){
    const ordered=missing.filter(row=>Number(row[6])<=Date.now()&&Number(row[0])>lastTime&&Number(row[0])<candleTime).sort((a,b)=>Number(a[0])-Number(b[0]));
    for(const row of ordered){processSpecialMacdClosedRow(symbol,tf,row);lastTime=Number(row[0]);}
    if(candleTime-lastTime>intervalMs){
-    const status=$("specialMacdStatus");if(status)status.textContent="MACD recovery gap remains for "+symbol+" "+tf+"; REST did not return every missing candle. Alerts for that gap may be incomplete.";
+    const status=$("specialMacdStatus");if(status)status.textContent="MACD recovery gap remains for "+symbol+" "+tf+"; latest candle held back until every missing completed candle is recovered.";return;
    }
   }
   processSpecialMacdClosedRow(symbol,tf,incoming);
@@ -580,7 +580,7 @@ function syncSpecialMacdCandidates(){
   if(mode==="ranking"){gainers=eligible.filter(([,v])=>v.change>0).sort((a,b)=>b[1].change-a[1].change).slice(0,specialMacdRankCount("specialMacdTopGainers"));losers=eligible.filter(([,v])=>v.change<0).sort((a,b)=>a[1].change-b[1].change).slice(0,specialMacdRankCount("specialMacdWorstLosers"));}
   else{gainers=eligible.filter(([,v])=>v.change>=specialMacdMinGain()).sort((a,b)=>b[1].change-a[1].change);losers=eligible.filter(([,v])=>v.change<=-specialMacdMinGain()).sort((a,b)=>a[1].change-b[1].change);}
   const next=new Map();for(const [symbol,item] of [...gainers,...losers])next.set(symbol,item);
-  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));specialMacdCandidates=next;for(const symbol of [...specialMacdHistories.keys()])if(!next.has(symbol)){specialMacdHistories.delete(symbol);specialMacdStates.delete(symbol);}
+  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));specialMacdCandidates=next;/* Retain per-symbol candle history/state when a symbol temporarily leaves the ranked universe; on re-entry REST catch-up can replay missed candles instead of restarting from a new baseline. */
   if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
   for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
   const modeLabel=mode==="ranking"?"Top "+specialMacdRankCount("specialMacdTopGainers")+" gainers / Worst "+specialMacdRankCount("specialMacdWorstLosers")+" losers":"24h threshold ±"+specialMacdMinGain()+"%";
