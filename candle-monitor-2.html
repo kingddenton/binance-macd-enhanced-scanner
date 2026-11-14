@@ -1883,7 +1883,16 @@ html,body{min-height:100%;}body{padding:8px!important}
  // Clear the inherited MACD alert-feed container from Candle Monitor_2.
  const macdFeedHeading=Array.from(view.querySelectorAll('b')).find(el=>el.textContent.trim()==='MACD alert feeds');
  const macdFeedPanel=macdFeedHeading?.closest('.panel');
- if(macdFeedPanel)macdFeedPanel.remove();
+ if(macdFeedPanel){
+   // Keep the timeframe checkbox values available to scan(), without showing the removed alert-feed controls.
+   const runtimeRow=macdFeedPanel.querySelector('#alert1m')?.closest('.row');
+   if(runtimeRow){
+     let runtime=$('cm2ScanRuntimeSettings');
+     if(!runtime){runtime=document.createElement('div');runtime.id='cm2ScanRuntimeSettings';runtime.hidden=true;view.appendChild(runtime);}
+     runtime.appendChild(runtimeRow);
+   }
+   macdFeedPanel.remove();
+ }
  // Remove every inherited diagnostic panel from this workspace; a new dedicated
  // Candle Monitor_2 diagnostic will be built separately without altering scan logic.
  const oldDiagnostics=$('diagnosticsPanel');
