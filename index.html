@@ -1793,4 +1793,35 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 })();
 </script>
 
+
+<!-- Candle Monitor_2 cleanup: keep the original momentum, market-wide alert,
+     MACD grid and scanner settings in the original Green Tracker workspace only. -->
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const original=$('greenTrackerView');
+ const monitor=$('candleMonitorView');
+ if(!original||!monitor)return;
+ // These are intentionally excluded from Candle Monitor_2. If a prior layout
+ // change ever places one inside the new monitor, return it to the original page.
+ const excluded=[
+   $('topMomentumPanel'),
+   $('marketwide5mPanel'),
+   $('tfGrid'),
+   original.querySelector('.saved-settings'),
+   $('filtersContent'),
+   $('volumeControlsTab')
+ ].filter(Boolean);
+ excluded.forEach(el=>{
+   if(monitor.contains(el))original.appendChild(el);
+ });
+ // The Settings/filter workspace remains on the original tab, not in the monitor.
+ const settingsNav=$('settingsNav');
+ if(settingsNav)settingsNav.setAttribute('aria-label','Settings');
+ // Candle Monitor_2 shows only its Sections 01–06 workspace and the scan/action
+ // controls intentionally assigned to it; no momentum, market-wide alert,
+ // timeframe MACD grid, or settings/filter panels are copied into it.
+})();
+</script>
+
 </body></html>
