@@ -1033,7 +1033,7 @@ function renderTopMomentum(rows){
 
 async function scan(){
  if(busy){$("status").textContent="Previous scan is still running; this cycle will be skipped to avoid overlapping Binance requests.";return;}
- busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
+ busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.totalSymbols=0;diag.loopStartedAt=0;diag.lastLoopDuration=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[],momentumData=[],output={bull:Object.fromEntries(TFS.map(tf=>[tf,[]])),bear:Object.fromEntries(TFS.map(tf=>[tf,[]]))};
  try{
   const tickers=await universe();diag.totalSymbols=tickers.length;diag.symbols=0;diag.loopStartedAt=Date.now();diag.lastLoopDuration=0;scanClockTimer=setInterval(()=>{if(busy)renderDiagnostics();},250);renderDiagnostics();
