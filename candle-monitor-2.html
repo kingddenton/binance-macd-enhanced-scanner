@@ -213,7 +213,7 @@ main{max-width:1800px;width:100%}
 <header class="v2-header"><div class="v2-brand"><div class="v2-mark">◆</div><div><h1>MM Binance V2</h1><div class="v2-subtitle">MACD · RSI · Supertrend · OI · CVD · StochRSI</div></div></div><nav class="v2-nav"><button id="greenTabBtn" class="active" type="button">▥ Green Tracker</button><button id="priceGainersNav" type="button" class="secondary">Price Gainers</button><button id="priceTabBtn" type="button" class="secondary">Price Change</button><button id="earlyNav" type="button" class="secondary">Early Momentum</button><button id="reversalNav" type="button" class="secondary">Reversal (≥10% / 4H)</button><button id="diagnosticsNav" type="button" class="secondary">Diagnostics</button><button id="settingsNav" type="button" class="secondary" aria-label="Settings">⚙</button><button id="fullscreenNav" type="button" class="secondary" aria-label="Fullscreen">⛶</button></nav></header><div id="greenTrackerView"><div class="sub">Bullish MACD signals across 1m, 3m, 5m and 15m, with optional indicator tracking and higher-timeframe confirmation. Binance USDⓈ-M USDT perpetuals only. Scanner only; no orders are placed.</div>
 <section class="panel"><div class="row" style="margin-top:0;margin-bottom:12px"><button id="toggleFiltersBtn" class="secondary" type="button" aria-expanded="true">Hide filters ▲</button></div><div id="filtersContent"><div class="panel saved-settings" style="margin:0 0 10px;padding:8px;background:#0c1728"><div class="saved-settings-head"><label for="profileName">Saved settings</label><span class="small">Save and restore every scanner setting and alarm</span></div><div class="saved-settings-controls"><input id="profileName" type="text" maxlength="50" placeholder="Optional name — defaults to Current settings"><button id="saveProfileBtn" type="button">Save all settings</button><select id="savedProfiles" aria-label="Saved settings"><option value="">Choose setup</option></select><button id="deleteProfileBtn" type="button" class="secondary">Delete</button><div id="marketwide5mVolumeSetting" class="saved-settings-volume"><label for="marketwide5mMinVolume">Market-wide 3m min 24h volume (USDT)</label><input id="marketwide5mMinVolume" type="number" min="0" step="100000" value="2000000" style="width:120px"></div></div><div id="profileStatus" class="small saved-settings-status" role="status">Saved settings stay in this browser on this device.</div></div><div class="row actions"><button id="autoBtn" class="secondary">Start auto-scan</button><button id="scanBtn">Scan once</button><button id="clearDisplayBtn" class="secondary" type="button">Clear display</button></div>
 <div class="controls" style="margin-top:8px"><div><div><label>Candle count</label><input id="eventBars" type="number" min="1" max="100" step="1" value="5"></div></div></div><div class="controls">
-<div><label>Market universe</label><select id="universe"><option value="gainersMulti" selected>Top price performers (1H + 4H + 6H + 12H)</option><option value="gainersMultiPositive">Positive 24H → Top price performers (1H + 4H + 6H + 12H)</option><option value="gainers24h1plus">All coins with 24H change ≥ +1%</option><option value="gainers">Top price gainers (24h)</option><option value="gainers4h">Top price gainers (4h)</option><option value="gainers6h">Top price gainers (6h)</option><option value="gainers12h">Top price gainers (12h)</option><option value="volume">Top 24h quote-volume</option><option value="all">All eligible coins (limited by scan count)</option></select></div>
+<input type="hidden" id="universe" value="gainersMulti">
 <div><label>Number of coins to scan</label><input id="scanCount" type="number" min="1" max="100" step="1" value="20"></div>
 <div><label>Minimum 24h quote volume (USDT)</label><input id="minVol" type="number" min="0" step="100000" value="0"></div>
 <div><label>Minimum current OI value (USDT)</label><input id="minOI" type="number" min="0" step="100000" value="0"><div class="small">0 disables OI filtering.</div><span class="check" style="margin-top:7px"><input id="showOiDollar" type="checkbox" checked><label for="showOiDollar">Show OI dollar value</label></span><span class="check" style="margin-top:7px"><input id="excludeNegativeBullOi" type="checkbox"><label for="excludeNegativeBullOi">Bullish Primary MACD: exclude negative rolling OI</label></span><div class="small">Only affects bullish results; bearish results are unchanged. Negative OI readings are excluded; unavailable readings are not treated as negative.</div></div>
@@ -1361,10 +1361,8 @@ function pcAutoToggle(){if(pcAutoOn){pcAutoOn=false;if(pcTimer)clearTimeout(pcTi
 function pcTab(name){const g=name==="green";$("greenTrackerView").hidden=!g;$("priceTracker").hidden=g;$("greenTabBtn").classList.toggle("active",g);$("priceTabBtn").classList.toggle("active",!g);$("greenTabBtn").classList.toggle("secondary",!g);$("priceTabBtn").classList.toggle("secondary",g);}
 $("greenTabBtn").addEventListener("click",()=>pcTab("green"));$("priceTabBtn").addEventListener("click",()=>pcTab("price"));$("pcScan").addEventListener("click",pcRun);$("pcAuto").addEventListener("click",pcAutoToggle);pcInit();restoreLastSettings();$("run15mCoverageDiagnostic").addEventListener("click",render15mCoverageDiagnostic);
 
-if(!window.__CM2_PRICE_TRACKER_ONLY__){
 $("eventBars")?.addEventListener("change",()=>{const el=$("eventBars");el.value=String(specialMacdCandleLimit());renderSpecialMacdHistory();renderSpecialMacdBullHistory();});
 syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain","specialMacdTopGainers","specialMacdWorstLosers","specialMacdMinVolume"].forEach(id=>$(id).addEventListener("input",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();}));$("specialMacdUniverseMode").addEventListener("change",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();});/* Removed MM Live special-MACD fallback and legacy stream-status timers from this independent page. */$("universeSearch").addEventListener("input",renderUniverse);buildPanels();if(!$("showOiDollar").checked)document.querySelectorAll(".oi-dollar-cell").forEach(el=>el.hidden=true);renderDiagnostics();renderUniverse();
-}
 })();
 </script>
 <script>
@@ -2047,35 +2045,6 @@ html,body{min-height:100%;}body{padding:8px!important}
   ].join('\n');
  }
  update();setInterval(update,500);
-})();
-</script>
-
-
-<script>window.__CM2_PRICE_TRACKER_ONLY__=true;</script>
-<!-- Standalone Candle Monitor_2 now uses Price Change Tracker as its only scanner.
-     The Price Change Tracker controls and selection rules are preserved unchanged. -->
-<style>
-#candleMonitorView,#cm2StartupDiag,#cm2PerfPanel{display:none!important}
-#priceTracker{display:block!important;margin:0 auto;max-width:1700px}
-#priceTracker .pcbox{display:block!important}
-#cm2PriceTrackerHeader{max-width:1700px;margin:0 auto 10px;padding:8px 2px}
-#cm2PriceTrackerHeader h1{margin:0;color:#f5c842;font-size:clamp(21px,3vw,29px)}
-#cm2PriceTrackerHeader .small{margin-top:4px}
-</style>
-<script>
-(function(){
- const $=id=>document.getElementById(id);
- const tracker=$('priceTracker');
- if(!tracker)return;
- const header=document.createElement('header');
- header.id='cm2PriceTrackerHeader';
- header.innerHTML='<h1>Candle Monitor_2</h1><div class="small">Price Change Tracker · USDⓈ-M USDT perpetuals</div>';
- tracker.parentNode.insertBefore(header,tracker);
- tracker.hidden=false;
- tracker.style.display='block';
- const monitor=$('candleMonitorView');
- if(monitor)monitor.hidden=true;
- ['cm2StartupDiag','cm2PerfPanel'].forEach(id=>{const el=$(id);if(el)el.remove();});
 })();
 </script>
 
