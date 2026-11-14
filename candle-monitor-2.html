@@ -1894,7 +1894,10 @@ html,body{min-height:100%;}body{padding:8px!important}
  const earlyFeed=$('earlyMomentumFeed');
  const earlyPanel=earlyFeed?.closest('.alert-tier');
  if(earlyPanel)earlyPanel.remove();
- // The original Green Tracker page retains both alert features and their logic.
+ // Remove the overbought / reversal watch from this independent workspace too.
+ const reversalPanel=Array.from(view.querySelectorAll('.alert-tier')).find(el=>el.querySelector('.alert-tier-title')?.textContent.includes('OVERBOUGHT / REVERSAL WATCH'));
+ if(reversalPanel)reversalPanel.remove();
+ // The original Green Tracker page retains these alert features and their logic.
  // No scan is started automatically. The independent scanner starts only on user action.
 })();
 </script>
