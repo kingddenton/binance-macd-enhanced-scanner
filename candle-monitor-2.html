@@ -860,7 +860,7 @@ function renderUniverse(){
  const mode=diag.universeMode||$("universe").value,period=mode==="gainers4h"?"4h":mode==="gainers6h"?"6h":mode==="gainers12h"?"12h":mode==="gainers"?"24h":"";
  const heading=$("universeChangeHeading");if(heading)heading.textContent=period?period+" change":(mode==="gainersMulti"||mode==="gainersMultiPositive")?"Best rolling change":"24h change";
  const q=($("universeSearch")?.value||"").trim().toUpperCase(),rows=diag.universe.filter(x=>!q||x.symbol.includes(q));
- $("universeMeta").textContent=diag.universe.length+" exact selected symbols · "+diag.universe.filter(x=>x.status==="Scanned").length+" scanned · "+diag.universe.filter(x=>x.status==="Pending").length+" pending";
+ $("universeMeta").textContent=diag.universe.length+" exact selected symbols · "+diag.universe.filter(x=>["Fully processed","Partially processed","Failed"].includes(x.status)).length+" processed · "+diag.universe.filter(x=>x.status==="Pending").length+" pending";
  const breakdown=$("universeBreakdown");
  if(breakdown){
   if(mode==="gainersMulti"||mode==="gainersMultiPositive"){
@@ -1023,7 +1023,7 @@ function renderTopMomentum(rows){
 async function scan(){
  window.__cm2Diag?.("scan() entered.");
  if(busy){$("status").textContent="Previous scan is still running; this cycle will be skipped to avoid overlapping Binance requests.";return;}
- busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.totalSymbols=0;diag.loopStartedAt=0;diag.lastLoopDuration=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
+ busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.fullyProcessed=0;diag.partiallyProcessed=0;diag.failed=0;diag.totalSymbols=0;diag.loopStartedAt=0;diag.lastLoopDuration=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[],momentumData=[],output={bull:Object.fromEntries(TFS.map(tf=>[tf,[]])),bear:Object.fromEntries(TFS.map(tf=>[tf,[]]))};
  try{
   const tickers=await universe();diag.totalSymbols=tickers.length;diag.symbols=0;diag.loopStartedAt=Date.now();diag.lastLoopDuration=0;scanClockTimer=setInterval(()=>{if(busy)renderDiagnostics();},250);renderDiagnostics();
@@ -1080,7 +1080,7 @@ async function scan(){
   const fully=diag.fullyProcessed||0,partial=diag.partiallyProcessed||0,failed=diag.failed||0,accounted=fully+partial+failed;
   const coverage="Processing: "+fully+" fully processed, "+partial+" partially processed, "+failed+" failed; "+(tickers.length-accounted)+" unaccounted.";
   $("status").textContent="Scan complete: "+tickers.length+" selected; "+coverage+" "+totals.bull+" bullish and "+totals.bear+" bearish MACD crossover timeframe signals found."+(errors.length?" "+errors.length+" errors; first: "+errors[0]:"");
-  diag.outcome=coverage+" "+(errors.length?errors.length+" errors":"No recorded errors")+"; "+totals.bull+" bullish / "+totals.bear+" bearish crossovers";
+  diag.outcome="Complete — "+coverage+" "+(errors.length?errors.length+" errors":"No recorded errors")+"; "+totals.bull+" bullish / "+totals.bear+" bearish crossovers";
  }catch(e){window.__cm2Diag?.("SCAN ERROR: "+(e&&e.message||String(e)));diag.outcome="Failed: "+e.message;$("status").className="status error";$("status").textContent="Scan stopped: "+e.message;}
  finally{if(scanClockTimer!==null){clearInterval(scanClockTimer);scanClockTimer=null;}if(diag.loopStartedAt)diag.lastLoopDuration=Date.now()-diag.loopStartedAt;busy=false;diag.cycles++;diag.lastScanAt=Date.now();diag.lastDuration=Date.now()-diag.scanStartedAt;renderDiagnostics();renderStages();$("scanBtn").disabled=false;}
 }
