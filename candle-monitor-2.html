@@ -858,6 +858,7 @@ function request(url,baseOverride=null){
   let last;
   const endpoint=(url.split("?")[0].split("/").pop()||"unknown");
   const requestHosts=baseOverride?[baseOverride]:hosts;for(let n=0;n<requestHosts.length;n++){const base=requestHosts[baseOverride?0:(hostIndex+n)%requestHosts.length],reqAt=performance.now();diag.requests++;diag.endpointCounts[endpoint]=(diag.endpointCounts[endpoint]||0)+1;try{
+   window.__cm2Diag?.("Binance request started: "+endpoint+" via "+base.replace("https://","")+".");
    const res=await fetch(base+url,{cache:"no-store"}),elapsed=performance.now()-reqAt;
    diag.lastApiMs=elapsed;diag.totalApiMs+=elapsed;diag.maxApiMs=Math.max(diag.maxApiMs,elapsed);diag.lastHost=base.replace("https://","");diag.lastHttpStatus=res.status;
    const usedWeight=res.headers.get("x-mbx-used-weight-1m");if(usedWeight!==null&&Number.isFinite(Number(usedWeight)))diag.weight1m=Number(usedWeight);
@@ -892,7 +893,9 @@ async function getExchangeInfo(){
  exchangeInfoPromise=request("/fapi/v1/exchangeInfo").then(data=>{exchangeInfoCache=data;exchangeInfoAt=Date.now();return data;}).finally(()=>{exchangeInfoPromise=null;});return exchangeInfoPromise;
 }
 async function universe(){
+ window.__cm2Diag?.("Universe loading: requesting Binance 24h tickers and exchange information.");
  const [all,ex]=await Promise.all([request("/fapi/v1/ticker/24hr"),getExchangeInfo()]);
+ window.__cm2Diag?.("Universe loaded: "+all.length+" ticker records; "+ex.symbols.length+" exchange symbols.");
  const eligible=new Set(ex.symbols.filter(s=>s.status==="TRADING").map(s=>s.symbol));
  const usdTickerBySymbol=new Map(all.map(t=>[t.symbol,t]));
  const inventory=[];
@@ -1032,6 +1035,7 @@ function renderTopMomentum(rows){
 }
 
 async function scan(){
+ window.__cm2Diag?.("scan() entered.");
  if(busy){$("status").textContent="Previous scan is still running; this cycle will be skipped to avoid overlapping Binance requests.";return;}
  busy=true;diag.scanStartedAt=Date.now();diag.symbols=0;diag.totalSymbols=0;diag.loopStartedAt=0;diag.lastLoopDuration=0;diag.outcome="Scanning";resetStages();renderDiagnostics();renderStages();$("scanBtn").disabled=true;$("status").className="status";$("status").textContent="Loading eligible Binance contracts…";
  const errors=[],momentumData=[],output={bull:Object.fromEntries(TFS.map(tf=>[tf,[]])),bear:Object.fromEntries(TFS.map(tf=>[tf,[]]))};
@@ -1080,7 +1084,7 @@ async function scan(){
   $("status").className=errors.length?"status error":"status ok";
   $("status").textContent="Scan complete: "+tickers.length+" symbols checked; "+totals.bull+" bullish and "+totals.bear+" bearish MACD crossover timeframe signals found."+(errors.length?" "+errors.length+" request errors; first: "+errors[0]:"");
   diag.outcome=errors.length?"Complete with "+errors.length+" request errors":"Complete — "+totals.bull+" bullish / "+totals.bear+" bearish crossovers";
- }catch(e){diag.outcome="Failed: "+e.message;$("status").className="status error";$("status").textContent="Scan stopped: "+e.message;}
+ }catch(e){window.__cm2Diag?.("SCAN ERROR: "+(e&&e.message||String(e)));diag.outcome="Failed: "+e.message;$("status").className="status error";$("status").textContent="Scan stopped: "+e.message;}
  finally{if(scanClockTimer!==null){clearInterval(scanClockTimer);scanClockTimer=null;}if(diag.loopStartedAt)diag.lastLoopDuration=Date.now()-diag.loopStartedAt;busy=false;diag.cycles++;diag.lastScanAt=Date.now();diag.lastDuration=Date.now()-diag.scanStartedAt;renderDiagnostics();renderStages();$("scanBtn").disabled=false;}
 }
 
@@ -1927,6 +1931,52 @@ html,body{min-height:100%;}body{padding:8px!important}
  if(reversalPanel)reversalPanel.remove();
  // The original Green Tracker page retains these alert features and their logic.
  // No scan is started automatically. The independent scanner starts only on user action.
+})();
+</script>
+
+
+<!-- Candle Monitor_2 startup diagnostics: reports button receipt, scanner entry, API activity and uncaught errors. -->
+<style>
+#cm2StartupDiag{margin:6px 0 10px;padding:8px 10px;border:1px solid #557080;border-radius:8px;background:#0b1b27;color:#d9e8ef;font:11px/1.5 system-ui,sans-serif}
+#cm2StartupDiag strong{color:#8fe3bd}
+#cm2StartupDiagLog{max-height:92px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px;color:#c0d2dc}
+</style>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const view=$('candleMonitorView');
+ if(!view||$('cm2StartupDiag'))return;
+ const panel=document.createElement('div');
+ panel.id='cm2StartupDiag';
+ panel.innerHTML='<strong>Startup check</strong><div id="cm2StartupDiagLog">Page scripts loaded. Tap Scan once to record the startup path.</div>';
+ const header=$('cm2Header');
+ if(header)header.insertAdjacentElement('afterend',panel);else view.insertBefore(panel,view.firstChild);
+ const log=$('cm2StartupDiagLog');
+ const write=(message)=>{
+   const stamp=new Date().toLocaleTimeString();
+   if(!log)return;
+   log.textContent=(stamp+' — '+message+'\n'+log.textContent).slice(0,5000);
+ };
+ window.__cm2Diag=write;
+ const scanButton=$('scanBtn');
+ if(scanButton)scanButton.addEventListener('click',()=>write('Scan once tap received by the page.'),true);
+ const autoButton=$('autoBtn');
+ if(autoButton)autoButton.addEventListener('click',()=>write('Auto-scan button tap received by the page.'),true);
+ window.addEventListener('error',event=>{
+   write('JAVASCRIPT ERROR: '+(event.message||'Unknown error')+(event.filename?' · '+event.filename.split('/').pop():'')+(event.lineno?':'+event.lineno:''));
+ });
+ window.addEventListener('unhandledrejection',event=>{
+   const reason=event.reason;
+   write('UNHANDLED PROMISE REJECTION: '+(reason&&reason.message||String(reason)));
+ });
+ const status=$('status');
+ if(status&&window.MutationObserver){
+   let previous='';
+   new MutationObserver(()=>{
+     const value=status.textContent.trim();
+     if(value&&value!==previous){previous=value;write('Scanner status: '+value);}
+   }).observe(status,{childList:true,subtree:true,characterData:true});
+ }
 })();
 </script>
 
