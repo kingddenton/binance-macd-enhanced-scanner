@@ -902,7 +902,7 @@ async function universe(){
  const countTypes=arr=>{const m=new Map();for(const x of arr){const k=x.contractType||"UNSPECIFIED";m.set(k,(m.get(k)||0)+1);}return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0]));};
  const usdTypes=countTypes(activeUsd);
  diag.marketInventorySummary=[{label:"USDⓈ-M trading instruments",value:activeUsd.length},{label:"USDⓈ-M contract types",value:usdTypes.map(x=>x[0]+" ("+x[1]+")").join(" · ")||"None"},{label:"Total USDⓈ-M inventory records",value:inventory.length},{label:"Eligible for scanner (all quote assets / all contract types)",value:eligible.size}];
- const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);setSpecialMacdCandidates(all.filter(t=>eligible.has(t.symbol)));startMarketwide5m(ex.symbols,all);
+ const alertWatchlist=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=2000000);set20PctWatchUniverse(alertWatchlist);
  const highNow=Date.now();for(const ticker of all){if(!eligible.has(ticker.symbol))continue;const currentHigh=Number(ticker.highPrice),lastHigh=previous24hHigh.get(ticker.symbol);if(Number.isFinite(currentHigh)&&currentHigh>0){if(lastHigh!==undefined&&currentHigh>lastHigh)fresh24hHighUntil.set(ticker.symbol,highNow+300000);previous24hHigh.set(ticker.symbol,currentHigh);}}
  for(const [symbol,expires] of fresh24hHighUntil){if(expires<=highNow)fresh24hHighUntil.delete(symbol);}
  const minVol=Math.max(0,Number($("minVol").value)||0),max=Math.max(1,Math.min(100,Number($("scanCount").value)||20));
@@ -1230,7 +1230,10 @@ $("marketwide5mExpand").addEventListener("click",()=>{marketwide5mExpanded=!mark
 /* Move the existing minimum-volume control into one compact Volume tab without changing its ID or value. */
 const minVolControl=$("minVol"),pcMinVolControl=$("pcMinVol");if(minVolControl&&$("volumeControlsBody")){const label=minVolControl.parentElement.querySelector("label");if(label)label.textContent="Green Tracker — minimum 24h quote volume (USDT)";$("volumeControlsBody").appendChild(minVolControl.parentElement);}if(pcMinVolControl&&$("volumeControlsBody")){const label=pcMinVolControl.parentElement.querySelector("label");if(label)label.textContent="Price Change — minimum 24h quote volume (USDT)";$("volumeControlsBody").appendChild(pcMinVolControl.parentElement);}
 
-const PROFILE_STORAGE_KEY="mmGreenTrackerSettingsV1";
+const PROFILE_STORAGE_KEY="candleMonitor2SettingsV1";
+// One-time copy of existing saved profiles so Candle Monitor_2 starts with the current settings,
+// then keeps its future settings separate from the original Green Tracker.
+try{if(!localStorage.getItem(PROFILE_STORAGE_KEY)){const legacy=localStorage.getItem("mmGreenTrackerSettingsV1");if(legacy)localStorage.setItem(PROFILE_STORAGE_KEY,legacy);const last=localStorage.getItem("mmGreenTrackerSettingsV1:last");if(last)localStorage.setItem(PROFILE_STORAGE_KEY+":last",last);}}catch(e){}
 function readProfiles(){try{const value=JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY)||"{}");return value&&typeof value==="object"&&!Array.isArray(value)?value:{};}catch(e){return {};}}
 function refreshProfileList(selected=""){const select=$("savedProfiles"),profiles=readProfiles();select.innerHTML='<option value="">Select saved settings</option>';Object.keys(profiles).sort((a,b)=>a.localeCompare(b)).forEach(name=>{const option=document.createElement("option");option.value=name;option.textContent=name;select.appendChild(option);});if(selected&&profiles[selected])select.value=selected;}
 function captureSettings(){
@@ -1244,7 +1247,7 @@ function applySettings(settings){
  const snd=settings.__sounds||{};if("twentyPctSoundEnabled" in snd)twentyPctSoundEnabled=Boolean(snd.twentyPctSoundEnabled);if("specialMacdSoundEnabled" in snd)specialMacdSoundEnabled=Boolean(snd.specialMacdSoundEnabled);if("earlyMomentumSound" in snd)earlyMomentumSound=Boolean(snd.earlyMomentumSound);if("marketwide5mSoundOn" in snd)marketwide5mSoundOn=Boolean(snd.marketwide5mSoundOn);
  if(snd.alertSoundEnabled)Object.keys(alertSoundEnabled).forEach(k=>{if(k in snd.alertSoundEnabled)alertSoundEnabled[k]=Boolean(snd.alertSoundEnabled[k]);});
  const ui=settings.__ui||{};if(ui.activeTab)pcTab(ui.activeTab);if(typeof ui.filtersHidden==="boolean"){$("filtersContent").hidden=ui.filtersHidden;$("toggleFiltersBtn").textContent=ui.filtersHidden?"Show filters ▼":"Hide filters ▲";$("toggleFiltersBtn").setAttribute("aria-expanded",String(!ui.filtersHidden));}
- syncSavedSoundUi();if(marketwide5mExchangeSymbols.length)startMarketwide5m(marketwide5mExchangeSymbols,marketwide5mTickers);
+ syncSavedSoundUi();/* Candle Monitor_2 does not start the removed market-wide 3m alert monitor. */
 }
 function syncSavedSoundUi(){
  const items=[["toggle20PctSound","Live candle alert sound: ",twentyPctSoundEnabled],["toggleSpecialMacdSound","Special reversal alarm: ",specialMacdSoundEnabled],["toggleEarlyMomentumSound","Early Momentum sound: ",earlyMomentumSound],["marketwide5mSound","Sound: ",marketwide5mSoundOn],["toggleConfirmedBullSound","Confirmed bullish alert: ",alertSoundEnabled.confirmedBull],["toggleConfirmedBearSound","Confirmed bearish alert: ",alertSoundEnabled.confirmedBear],["toggleCrossoverBearSound","Bearish MACD crossover: ",alertSoundEnabled.crossoverBear]];
@@ -1344,7 +1347,7 @@ function pcTab(name){const g=name==="green";$("greenTrackerView").hidden=!g;$("p
 $("greenTabBtn").addEventListener("click",()=>pcTab("green"));$("priceTabBtn").addEventListener("click",()=>pcTab("price"));$("pcScan").addEventListener("click",pcRun);$("pcAuto").addEventListener("click",pcAutoToggle);pcInit();restoreLastSettings();$("run15mCoverageDiagnostic").addEventListener("click",render15mCoverageDiagnostic);
 
 $("eventBars")?.addEventListener("change",()=>{const el=$("eventBars");el.value=String(specialMacdCandleLimit());renderSpecialMacdHistory();renderSpecialMacdBullHistory();});
-syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain","specialMacdTopGainers","specialMacdWorstLosers","specialMacdMinVolume"].forEach(id=>$(id).addEventListener("input",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();}));$("specialMacdUniverseMode").addEventListener("change",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();});specialFallbackTimer=setInterval(specialCandidateRestFallback,60000);setInterval(()=>{const now=Date.now();if(twentyPctWatchSymbols.size&&twentyPctLastMessageAt&&now-twentyPctLastMessageAt>30000){const status=$("twentyPctStatus");if(status)status.textContent="LIVE STREAM STALE — no candle updates for "+Math.round((now-twentyPctLastMessageAt)/1000)+"s; reconnecting if the socket closes.";}},15000);$("universeSearch").addEventListener("input",renderUniverse);buildPanels();if(!$("showOiDollar").checked)document.querySelectorAll(".oi-dollar-cell").forEach(el=>el.hidden=true);renderDiagnostics();renderUniverse();
+syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain","specialMacdTopGainers","specialMacdWorstLosers","specialMacdMinVolume"].forEach(id=>$(id).addEventListener("input",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();}));$("specialMacdUniverseMode").addEventListener("change",()=>{syncSpecialMacdUniverseControls();syncSpecialMacdCandidates();});/* Removed MM Live special-MACD fallback and legacy stream-status timers from this independent page. */$("universeSearch").addEventListener("input",renderUniverse);buildPanels();if(!$("showOiDollar").checked)document.querySelectorAll(".oi-dollar-cell").forEach(el=>el.hidden=true);renderDiagnostics();renderUniverse();
 })();
 </script>
 <script>
