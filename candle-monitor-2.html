@@ -1633,7 +1633,7 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
 /* Independent display controls. Hiding a panel never pauses its data engine. */
 (function(){
  const $=id=>document.getElementById(id);
- const storageKey='mmLivePanelCollapse_v1';
+ const storageKey='candleMonitor2PanelCollapse_v1';
  let saved={};
  try{saved=JSON.parse(localStorage.getItem(storageKey)||'{}')||{};}catch(_){}
  function attach(key,label,target,host){
