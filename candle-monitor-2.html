@@ -1878,7 +1878,16 @@ html,body{min-height:100%;}body{padding:8px!important}
  if($('priceTracker'))$('priceTracker').hidden=true;
  view.hidden=false;
  ['topMomentumPanel','marketwide5mPanel','tfGrid','v2TopDashboard'].forEach(id=>{const el=$(id);if(el)el.remove();});
- // Keep Section 06 diagnostic live and visible; hide unrelated legacy panels only.
+ // Clear the inherited MACD alert-feed container from Candle Monitor_2.
+ const macdFeedHeading=Array.from(view.querySelectorAll('b')).find(el=>el.textContent.trim()==='MACD alert feeds');
+ const macdFeedPanel=macdFeedHeading?.closest('.panel');
+ if(macdFeedPanel)macdFeedPanel.remove();
+ // Remove every inherited diagnostic panel from this workspace; a new dedicated
+ // Candle Monitor_2 diagnostic will be built separately without altering scan logic.
+ const oldDiagnostics=$('diagnosticsPanel');
+ if(oldDiagnostics)oldDiagnostics.remove();
+ ['wsDiagnostics','marketCoverageDetails','stageDiagnostics'].forEach(id=>{const el=$(id);if(el)el.remove();});
+ // Hide unrelated legacy settings panels only.
  const excluded=['filtersContent','volumeControlsTab'];
  excluded.forEach(id=>{const el=$(id);if(el)el.remove();});
  const nav=document.querySelector('.v2-header .v2-nav');if(nav)nav.remove();
