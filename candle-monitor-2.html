@@ -997,7 +997,8 @@ async function scan(){
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
   const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key))candleCache.set(key,request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100"));return candleCache.get(key);};
   const getMacdAnalysis=async(symbol,tf)=>{const key=symbol+"|"+tf;if(!macdCache.has(key))macdCache.set(key,(async()=>{const rows=await getCandles(symbol,tf);return {rows,macd:macd(rows)};})());return macdCache.get(key);};
-  for(let si=0;si<tickers.length;si++){
+  let nextScanIndex=0,processedCount=0,markMapPromise=null;
+  const scanWorker=async()=>{while(true){const si=nextScanIndex++;if(si>=tickers.length)return;
    const t=tickers[si],coinRecord=diag.universe[si];
    await Promise.all(TFS.map(tf=>getMacdAnalysis(t.symbol,tf).catch(()=>null)));
    let oneMinuteCandleTime=NaN;
@@ -1015,7 +1016,7 @@ async function scan(){
       const stRequired=$("stConfirm_"+tf).checked,stData=stRequired?supertrendInfo(rows):null,stOK=!stRequired||(!!stData&&stData.trend===1);trace.stStatus=stRequired?(stOK?"Passed — bullish":"Rejected — not bullish"):"Disabled";if(stRequired&&!stOK)reasons.push("Supertrend not bullish");if(stochEnabled){if(!stochKValid)throw new Error("Stoch RSI K% threshold must be between 1 and 100.");if(!stochDValid)throw new Error("Stoch RSI D% threshold must be between 1 and 100.");if(!stochOK){reasons.push("Stoch RSI rejected: "+(!stochKOK?"K% "+(stoch?stoch.k.toFixed(2):"unavailable")+" above threshold "+stochKThreshold:"")+( !stochKOK&&!stochDOK?" and ":"")+(!stochDOK?"D% "+(stoch?stoch.d.toFixed(2):"unavailable")+" above threshold "+stochDThreshold:""));diag.stages[tf].stochReject=(diag.stages[tf].stochReject||0)+1;}else reasons.push("Stoch RSI passed"+(stochKEnabled?" (K% "+stoch.k.toFixed(2)+")":"")+(stochDEnabled?" (D% "+stoch.d.toFixed(2)+")":""));}const localPassed=age>=0&&rsiOK&&deaOK&&stOK&&stochOK;let htfOK=true,oi=NaN;
       if(localPassed){
        if(Object.keys(htfConfig).length){const key=t.symbol;if(!confirmCache.has(key))confirmCache.set(key,confirmAll(t.symbol,htfConfig,getMacdAnalysis));const confirmation=await confirmCache.get(key);htfOK=confirmation.bull;trace.htf=htfOK;trace.htfStatus=htfOK?"Passed":"Rejected — "+confirmation.failures.join("; ");if(!htfOK){diag.stages[tf].htfReject++;reasons.push(...confirmation.failures);}else reasons.push("Higher-timeframe confirmations passed");}else{trace.htf=null;trace.htfStatus="Disabled";}
-       if(htfOK){if(!markMap){const markRows=await request("/fapi/v1/premiumIndex");markMap=new Map(markRows.map(p=>[p.symbol,Number(p.markPrice)]));}if(!oiCache.has(t.symbol)){oiCache.set(t.symbol,await oiValue(t.symbol,markMap));recordRollingOi(t.symbol,oiCache.get(t.symbol));}oi=oiCache.get(t.symbol);trace.oiValue=oi;const oiOK=minOI<=0||oi>=minOI;trace.oi=oiOK;trace.oiStatus=oiOK?(minOI>0?"Passed":"Disabled"):"Rejected";if(!oiOK){diag.stages[tf].oiReject++;reasons.push("OI "+oiDisplay(oi)+" below minimum "+oiDisplay(minOI));}else if(minOI>0)reasons.push("OI passed ("+oiDisplay(oi)+" ≥ "+oiDisplay(minOI)+")");}
+       if(htfOK){if(!markMap){if(!markMapPromise)markMapPromise=request("/fapi/v1/premiumIndex").then(markRows=>new Map(markRows.map(p=>[p.symbol,Number(p.markPrice)])));markMap=await markMapPromise;}if(!oiCache.has(t.symbol)){oiCache.set(t.symbol,await oiValue(t.symbol,markMap));recordRollingOi(t.symbol,oiCache.get(t.symbol));}oi=oiCache.get(t.symbol);trace.oiValue=oi;const oiOK=minOI<=0||oi>=minOI;trace.oi=oiOK;trace.oiStatus=oiOK?(minOI>0?"Passed":"Disabled"):"Rejected";if(!oiOK){diag.stages[tf].oiReject++;reasons.push("OI "+oiDisplay(oi)+" below minimum "+oiDisplay(minOI));}else if(minOI>0)reasons.push("OI passed ("+oiDisplay(oi)+" ≥ "+oiDisplay(minOI)+")");}
        else{trace.oi=null;trace.oiStatus="Not evaluated — higher-timeframe confirmation failed";}
       }else{trace.htf=null;trace.htfStatus="Not evaluated — earlier required checks failed";trace.oi=null;trace.oiStatus="Not evaluated — earlier required checks failed";}
       const oiChange=Number.isFinite(oi)?rollingOiChange(t.symbol,oi,Number(tf.slice(0,-1))):NaN,excludeNegativeBullOi=$("excludeNegativeBullOi").checked,negativeOiRejected=excludeNegativeBullOi&&Number.isFinite(oiChange)&&oiChange<0;if(negativeOiRejected){trace.oiStatus="Rejected — negative rolling OI ("+oiChange.toFixed(2)+"%)";reasons.push("Negative rolling OI change ("+oiChange.toFixed(2)+"%)");diag.stages[tf].oiReject++;}trace.reasons=reasons;trace.reason=reasons.join("; ");const passed=localPassed&&htfOK&&(minOI<=0||Number.isFinite(oi)&&oi>=minOI)&&!negativeOiRejected;
@@ -1028,8 +1029,9 @@ async function scan(){
    }
    try{const r1=await getCandles(t.symbol,"1m");update20PctCandleOpens(t.symbol,r1);}catch(e){/* Live candle monitor data unavailable for this symbol. */}
    await monitorReversalAlerts(t.symbol,getMacdAnalysis);
-   coinRecord.status="Scanned";diag.symbols=si+1;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+(si+1)+"/"+tickers.length+" symbols; collecting directional signals…";
-  }
+   coinRecord.status="Scanned";diag.symbols=++processedCount;renderUniverse();renderDiagnostics();renderStages();$("status").textContent="Scanned "+processedCount+"/"+tickers.length+" symbols; collecting directional signals…";
+  }};
+  await Promise.all(Array.from({length:3},()=>scanWorker()));
   renderTopMomentum(momentumData);for(const tf of TFS){output.bull[tf].sort((a,b)=>a.age-b.age);output.bear[tf].sort((a,b)=>a.age-b.age);render("bull",tf,output.bull[tf],errors.length);render("bear",tf,output.bear[tf],errors.length);}
   const totals={bull:TFS.reduce((n,tf)=>n+output.bull[tf].length,0),bear:TFS.reduce((n,tf)=>n+output.bear[tf].length,0)};
   $("status").className=errors.length?"status error":"status ok";
