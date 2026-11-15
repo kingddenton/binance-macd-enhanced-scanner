@@ -480,8 +480,11 @@ function renderSpecialMacdBullHistory(){
  });
 }
 function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.2;}
-function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
+async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
  if(!confirmations||!confirmations.bull)return;
+ // Apply selected 15m bullish HTF confirmations before recording or displaying a special bullish cross.
+ const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bull");
+ if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected 15m bullish confirmation(s) did not pass.";return;}
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;specialMacdBullAlertKeys.add(key);
  const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||(!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
  const durations={"1m":60000,"3m":180000,"5m":300000},duration=durations[tf];if(!duration)return;
