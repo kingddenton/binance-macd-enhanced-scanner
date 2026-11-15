@@ -1989,10 +1989,10 @@ html,body{min-height:100%;}body{padding:8px!important}
  const htfAlertSection=htfAlertPanel.firstElementChild;
  const htfGrid=htfAlertSection.querySelector('#cm2HtfAlertGrid');
  ['1m','3m','5m'].forEach(tf=>['bull','bear'].forEach(side=>{const group=document.createElement('div');group.style.cssText='padding:8px;border:1px solid #29445b;border-radius:8px;min-width:0';group.innerHTML='<div style="font-weight:800;margin-bottom:6px;color:'+(side==='bull'?'#76d99a':'#ff8b8b')+'">'+tf+' '+(side==='bull'?'Bullish':'Bearish')+'</div>'+[['st','Supertrend'],['dea','DEA'],['dif','DIF'],['hist','Histogram']].map(([k,label])=>'<label style="display:flex;align-items:center;gap:5px;margin:5px 0;font-size:11px"><input type="checkbox" data-cm2-htf="'+tf+'-'+side+'-'+k+'">'+label+'</label>').join('');htfGrid.appendChild(group);}));
- controls.insertAdjacentElement('afterend',htfAlertSection);
  htfAlertSection.querySelectorAll('[data-cm2-htf]').forEach(el=>{const key='cm2Htf15m_'+el.dataset.cm2Htf;el.checked=localStorage.getItem(key)==='1';el.addEventListener('change',()=>localStorage.setItem(key,el.checked?'1':'0'));});
 
  header.insertAdjacentElement('afterend',controls);
+ controls.insertAdjacentElement('afterend',htfAlertSection);
  const move=(id,label)=>{
    const el=$(id);if(!el)return;
    const wrapper=el.closest('.controls')?el.parentElement:el.parentElement;
