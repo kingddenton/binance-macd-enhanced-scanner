@@ -929,7 +929,7 @@ async function monitorReversalAlerts(symbol,getMacdAnalysis){
  let fiveMinNegative=false,fiveMinCandleTime=null;
  const analyses=await Promise.all(["5m",...REVERSAL_TFS].map(tf=>getMacdAnalysis(symbol,tf).then(analysis=>({tf,analysis})).catch(()=>({tf,analysis:null}))));
  const byTf=new Map(analyses.map(item=>[item.tf,item.analysis]));
- for(const tf of REVERSAL_TFS){const analysis=byTf.get(tf);if(analysis)updateHistogramMonitor(symbol,tf,analysis);}
+ for(const tf of REVERSAL_TFS){const analysis=byTf.get(tf);if(analysis)await updateHistogramMonitor(symbol,tf,analysis,getMacdAnalysis);}
  try{const fiveMin=byTf.get("5m");if(fiveMin){const fiveMinIndex=fiveMin.macd.hist.length-2;fiveMinNegative=fiveMinIndex>=0&&Number.isFinite(fiveMin.macd.hist[fiveMinIndex])&&fiveMin.macd.hist[fiveMinIndex]<0;if(fiveMinIndex>=0)fiveMinCandleTime=Number(fiveMin.rows[fiveMinIndex][0]);}}catch(e){fiveMinNegative=false;}
  for(const tf of REVERSAL_TFS){
   try{
@@ -1101,7 +1101,14 @@ async function cm2Passes15mAlertConfirmation(symbol,primaryTf,direction,getMacdA
  const selected=[...document.querySelectorAll('[data-cm2-htf^="'+primaryTf+'-'+direction+'-"]:checked')].map(el=>el.dataset.cm2Htf.split('-')[2]);
  if(!selected.length)return true;
  try{
-  const {rows,macd:m}=await getMacdAnalysis(symbol,"15m"),i=m.hist.length-1;
+  let analysis;
+  if(typeof getMacdAnalysis==="function")analysis=await getMacdAnalysis(symbol,"15m");
+  else{
+   const cache=window.__cm2Htf15mFallbackCache||(window.__cm2Htf15mFallbackCache=new Map()),cached=cache.get(symbol);
+   if(cached&&Date.now()-cached.at<5000)analysis=await cached.promise;
+   else{const promise=request("/fapi/v1/klines?symbol="+symbol+"&interval=15m&limit=150").then(rows=>({rows,macd:macd(rows)}));cache.set(symbol,{at:Date.now(),promise});analysis=await promise;}
+  }
+  const {rows,macd:m}=analysis,i=m.hist.length-1;
   if(i<0||!rows?.length)return false;
   for(const condition of selected){
    if(condition==="st"){const st=supertrendInfo(rows);if(!st||st.trend!==(direction==="bull"?1:-1))return false;continue;}
