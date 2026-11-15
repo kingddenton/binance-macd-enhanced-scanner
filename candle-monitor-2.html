@@ -788,15 +788,20 @@ const histogramShrinkLastCandle=new Map(),histogramBearShrinkLastCandle=new Map(
  function shrinkThreshold(input){const value=Number(input?.value);return Number.isFinite(value)&&value>=0&&value<=100?value:10;}
 const histogramShrinkHistory=Object.fromEntries(HISTOGRAM_SHRINK_TFS.map(tf=>[tf,[]]));
 const histogramBearShrinkHistory=Object.fromEntries(HISTOGRAM_SHRINK_TFS.map(tf=>[tf,[]]));
+function shrink24hChangeLabel(symbol){
+ const ticker=specialMacdEligibleTickers.get(symbol);
+ const change=Number(ticker?.priceChangePercent);
+ return Number.isFinite(change)?"24H "+(change>0?"+":"")+change.toFixed(2)+"%":"24H —";
+}
 function renderHistogramShrink(tf){
  const target=$("histShrink_"+tf);if(!target)return;
  const list=histogramShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong>'+esc(item.symbol)+' · BULLISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · down '+item.shrinkPct.toFixed(1)+'% from prior bar</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong>'+esc(item.symbol)+' · '+shrink24hChangeLabel(item.symbol)+' · BULLISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · down '+item.shrinkPct.toFixed(1)+'% from prior bar</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function renderBearishHistogramShrink(tf){
  const target=$("histBearShrink_"+tf);if(!target)return;
  const list=histogramBearShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-green"><strong>'+esc(item.symbol)+' · BEARISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · up '+item.shrinkPct.toFixed(1)+'% toward zero</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-green"><strong>'+esc(item.symbol)+' · '+shrink24hChangeLabel(item.symbol)+' · BEARISH HISTOGRAM SHRINK</strong><span>H '+item.histogram.toPrecision(5)+' · up '+item.shrinkPct.toFixed(1)+'% toward zero</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function updateBullishHistogramShrink(symbol,tf,analysis){
  if(!HISTOGRAM_SHRINK_TFS.includes(tf)||!analysis?.rows||!analysis?.macd?.hist)return;
