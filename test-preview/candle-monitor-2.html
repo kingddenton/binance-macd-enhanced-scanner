@@ -272,12 +272,14 @@ main{max-width:1800px;width:100%}
     <label class="check"><input type="checkbox" id="confirmBullST"> Supertrend bullish</label>
     <label class="check"><input type="checkbox" id="confirmBullDEA"> DEA above zero</label>
     <label class="check"><input type="checkbox" id="confirmBullDIF"> DIF above zero</label>
+    <label class="check"><input type="checkbox" id="specialBull24hDirection"> Require positive 24h price change</label>
    </div>
    <div style="padding:8px;border:1px solid #8b3945;border-radius:8px">
     <b style="color:#fb7185">🔴 Bearish reversal</b>
     <label class="check"><input type="checkbox" id="confirmBearST"> Supertrend bearish</label>
     <label class="check"><input type="checkbox" id="confirmBearDEA"> DEA below zero</label>
     <label class="check"><input type="checkbox" id="confirmBearDIF"> DIF below zero</label>
+    <label class="check"><input type="checkbox" id="specialBear24hDirection"> Require negative 24h price change</label>
    </div>
   </div>
  </div>
@@ -485,8 +487,11 @@ async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePc
  // Apply selected 15m bullish HTF confirmations before recording or displaying a special bullish cross.
  const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bull");
  if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected 15m bullish confirmation(s) did not pass.";return;}
+ const candidate=specialMacdCandidates.get(symbol);
+ if(!candidate)return;
+ if(specialMacdConfirmationEnabled("specialBull24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change>0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · 24h price change is not positive.";return;}
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;specialMacdBullAlertKeys.add(key);
- const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||(!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
+ const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
  const durations={"1m":60000,"3m":180000,"5m":300000},duration=durations[tf];if(!duration)return;
  const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
@@ -502,8 +507,11 @@ async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  // Apply the selected 15m bearish HTF confirmations to every special 1m/3m/5m bearish reversal.
  const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bear");
  if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected 15m bearish confirmation(s) did not pass.";return;}
+ const candidate=specialMacdCandidates.get(symbol);
+ if(!candidate)return;
+ if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
- const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||(!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
+ const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
