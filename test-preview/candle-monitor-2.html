@@ -843,9 +843,8 @@ async function updateBullishHistogramShrink(symbol,tf,analysis,getMacdAnalysis){
  const shrinkPct=Math.min(step1Pct,step2Pct,step3Pct);
  const confirmed=values[0]>values[1]&&values[1]>values[2]&&values[2]>values[3]&&values[3]>0;
  const qualifies=confirmed&&shrinkPct>=shrinkThreshold(bullShrinkMinInput);
- const htfPass=qualifies?await cm2Passes15mAlertConfirmation(symbol,tf,'bull',getMacdAnalysis):false;
  const list=histogramShrinkHistory[tf],existing=list.findIndex(item=>item.symbol===symbol);
- if(!qualifies||!htfPass){
+ if(!qualifies){
   if(existing>=0){list.splice(existing,1);renderHistogramShrink(tf);}
   return;
  }
@@ -873,9 +872,8 @@ async function updateBearishHistogramShrink(symbol,tf,analysis,getMacdAnalysis){
  const shrinkPct=Math.min(step1Pct,step2Pct,step3Pct);
  const confirmed=values[0]<values[1]&&values[1]<values[2]&&values[2]<values[3]&&values[3]<0;
  const qualifies=confirmed&&shrinkPct>=shrinkThreshold(bearShrinkMinInput);
- const htfPass=qualifies?await cm2Passes15mAlertConfirmation(symbol,tf,'bear',getMacdAnalysis):false;
  const list=histogramBearShrinkHistory[tf],existing=list.findIndex(item=>item.symbol===symbol);
- if(!qualifies||!htfPass){
+ if(!qualifies){
   if(existing>=0){list.splice(existing,1);renderBearishHistogramShrink(tf);}
   return;
  }
