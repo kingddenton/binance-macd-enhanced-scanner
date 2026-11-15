@@ -782,8 +782,8 @@ function flashHistogramHeading(prefix,tf,side){
 }
 const HISTOGRAM_SHRINK_TFS=["1m","3m","5m","15m"];
 const histogramShrinkLastCandle=new Map(),histogramBearShrinkLastCandle=new Map();
- const BULL_SHRINK_MIN_KEY="mmBullShrinkMinPct",BEAR_SHRINK_MIN_KEY="mmBearShrinkMinPct";
- function setupShrinkThreshold(id,key){const el=$(id);if(!el)return;const saved=Number(localStorage.getItem(key));if(Number.isFinite(saved)&&saved>=0&&saved<=100)el.value=String(saved);el.addEventListener("change",()=>{const value=Number(el.value);if(Number.isFinite(value)&&value>=0&&value<=100)localStorage.setItem(key,String(value));});return el;}
+ const BULL_SHRINK_MIN_KEY="mmBullShrinkMinPct_v2",BEAR_SHRINK_MIN_KEY="mmBearShrinkMinPct_v2";
+ function setupShrinkThreshold(id,key){const el=$(id);if(!el)return;const raw=localStorage.getItem(key);if(raw!==null&&raw.trim()!==""&&Number.isFinite(Number(raw))&&Number(raw)>=0&&Number(raw)<=100){el.value=String(Number(raw));}else{el.value="10";}el.addEventListener("change",()=>{const value=Number(el.value);if(Number.isFinite(value)&&value>=0&&value<=100)localStorage.setItem(key,String(value));});return el;}
  const bullShrinkMinInput=setupShrinkThreshold("bullShrinkMinPct",BULL_SHRINK_MIN_KEY),bearShrinkMinInput=setupShrinkThreshold("bearShrinkMinPct",BEAR_SHRINK_MIN_KEY);
  function shrinkThreshold(input){const value=Number(input?.value);return Number.isFinite(value)&&value>=0&&value<=100?value:10;}
 const histogramShrinkHistory=Object.fromEntries(HISTOGRAM_SHRINK_TFS.map(tf=>[tf,[]]));
