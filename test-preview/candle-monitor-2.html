@@ -265,6 +265,7 @@ main{max-width:1800px;width:100%}
  <div id="specialMacdConfirmControls" class="panel" style="margin-top:9px;padding:10px;background:#101d2a;border:1px solid #38516a">
   <b style="color:#d9eaff">CROSS / REVERSAL CONFIRMATIONS</b>
   <div class="small" style="margin:4px 0 8px">Each checkbox is independent. Only enabled confirmations are required; uncheck all to use the MACD cross/reversal without extra confirmation filters. Checks use the same candle timeframe as the alert.</div>
+  <div style="margin:8px 0;padding:8px;border:1px solid #536b83;border-radius:8px;background:#0b1725"><b>Normalised MACD magnitude filter — shared across 1m / 3m / 5m</b><div class="row" style="margin-top:7px"><label class="check"><input type="checkbox" id="normMacdDIF"> DIF magnitude</label><label class="check"><input type="checkbox" id="normMacdDEA"> DEA magnitude</label><label class="check"><input type="checkbox" id="normMacdHist"> Histogram magnitude</label><label for="normMacdThreshold" style="margin:0">Minimum magnitude (% of price)</label><input id="normMacdThreshold" type="number" min="0" max="100" step="0.01" value="0.05" style="width:95px"></div><div class="small">For each selected component: |value| ÷ latest candle close × 100 must be at least the threshold. Every selected component must pass (AND). Applies to bullish and bearish special MACD alerts on 1m, 3m and 5m only. All component checkboxes are OFF by default. No extra API calls.</div></div>
   <div class="controls" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
    <div style="padding:8px;border:1px solid #236b4b;border-radius:8px">
     <b style="color:#4ade80">🟢 Bullish cross</b>
@@ -526,6 +527,14 @@ function specialMacdConfirmations(st,dif,dea){
  const bearDIF=!specialMacdConfirmationEnabled("confirmBearDIF")||(Number.isFinite(dif)&&dif<0);
  return {bull:bullST&&bullDEA&&bullDIF,bear:bearST&&bearDEA&&bearDIF};
 }
+function normalisedMacdMagnitudePasses(tf,dif,dea,hist,price){
+ if(!["1m","3m","5m"].includes(tf))return true;
+ const thresholdEl=$("normMacdThreshold"),raw=Number(thresholdEl&&thresholdEl.value),threshold=Number.isFinite(raw)&&raw>=0?raw:0.05;
+ if(!(price>0)||!Number.isFinite(price))return false;
+ const checks=[["normMacdDIF",dif],["normMacdDEA",dea],["normMacdHist",hist]];
+ for(const [id,value] of checks){if(specialMacdConfirmationEnabled(id)&&(!Number.isFinite(value)||(Math.abs(value)/price*100)<threshold))return false;}
+ return true;
+}
 function specialMacdRowFromKline(k){return [Number(k.t),k.o,k.h,k.l,k.c,k.v,k.T,k.q,k.n,k.V,k.Q,k.B];}
 function macdDetectionMode(){return $("macdDetectionMode")?.value==="live"?"live":"closed";}
 async function processSpecialMacdClosedRow(symbol,tf,row){
@@ -540,6 +549,7 @@ async function processSpecialMacdClosedRow(symbol,tf,row){
  const shrinkAnalysis={rows:paddedRows,macd:macd(paddedRows)};
  updateBullishHistogramShrink(symbol,tf,shrinkAnalysis);updateBearishHistogramShrink(symbol,tf,shrinkAnalysis);
  const current=values[values.length-1],prior=state[tf],candleOpen=Number(row[1]),candleClose=Number(row[4]),candleChangePct=candleOpen>0?((candleClose-candleOpen)/candleOpen)*100:NaN;
+ if(!normalisedMacdMagnitudePasses(tf,difNow,deaNow,current,candleClose)){confirmations.bull=false;confirmations.bear=false;}
  // Strict zero-crossing rules agreed for completed candles.
  if(Number.isFinite(prior)&&prior<=0&&current>0)fireSpecialMacdBullAlert(symbol,tf,candleTime,current,candleChangePct,confirmations);
  if(Number.isFinite(prior)&&prior>=0&&current<0)await fireSpecialMacdAlert(symbol,tf,candleTime,current,confirmations);
@@ -551,7 +561,8 @@ async function processSpecialMacdKline(symbol,tf,k){
  if(macdDetectionMode()==="live"&&!k.x&&specialMacdHistories.has(symbol)){
   const rows=specialMacdHistories.get(symbol)?.[tf];if(Array.isArray(rows)&&rows.length>=35){
    const liveRows=rows.concat([incoming]),mLive=macd(liveRows),hist=mLive.hist.at(-1),closedPrior=specialMacdStates.get(symbol)?.[tf],liveKey=symbol+"|"+tf+"|"+candleTime,priorLive=specialMacdLiveStates.get(liveKey);
-   const prior=Number.isFinite(priorLive)?priorLive:closedPrior,st=supertrendInfo(liveRows,10,3),confirm=specialMacdConfirmations(st,mLive.dif.at(-1),mLive.dea.at(-1)),open=Number(incoming[1]),close=Number(incoming[4]),pct=open>0?(close/open-1)*100:NaN;
+   const prior=Number.isFinite(priorLive)?priorLive:closedPrior,st=supertrendInfo(liveRows,10,3),liveDif=mLive.dif.at(-1),liveDea=mLive.dea.at(-1),confirm=specialMacdConfirmations(st,liveDif,liveDea),open=Number(incoming[1]),close=Number(incoming[4]),pct=open>0?(close/open-1)*100:NaN;
+   if(!normalisedMacdMagnitudePasses(tf,liveDif,liveDea,hist,close)){confirm.bull=false;confirm.bear=false;}
    if(Number.isFinite(prior)&&prior<=0&&hist>0)fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,pct,confirm);
    if(Number.isFinite(prior)&&prior>=0&&hist<0)await fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirm);
    specialMacdLiveStates.set(liveKey,hist);
