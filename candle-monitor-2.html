@@ -798,12 +798,12 @@ function shrink24hChangeMarkup(symbol){
 function renderHistogramShrink(tf){
  const target=$("histShrink_"+tf);if(!target)return;
  const list=histogramShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong><span style="color:#fff">'+esc(item.symbol)+'</span> · '+shrink24hChangeMarkup(item.symbol)+'</strong><span>down '+item.shrinkPct.toFixed(1)+'% from prior bar</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong><span style="color:#fff">'+esc(item.symbol)+'</span> · '+shrink24hChangeMarkup(item.symbol)+' · <span style="color:#fff">BULLISH HISTOGRAM SHRINK</span></strong></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function renderBearishHistogramShrink(tf){
  const target=$("histBearShrink_"+tf);if(!target)return;
  const list=histogramBearShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-green"><strong><span style="color:#fff">'+esc(item.symbol)+'</span> · '+shrink24hChangeMarkup(item.symbol)+'</strong><span>up '+item.shrinkPct.toFixed(1)+'% toward zero</span><small>'+new Date(item.candleTime).toLocaleTimeString()+'</small></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-green"><strong><span style="color:#fff">'+esc(item.symbol)+'</span> · '+shrink24hChangeMarkup(item.symbol)+' · <span style="color:#fff">BEARISH HISTOGRAM SHRINK</span></strong></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function updateBullishHistogramShrink(symbol,tf,analysis){
  if(!HISTOGRAM_SHRINK_TFS.includes(tf)||!analysis?.rows||!analysis?.macd?.hist)return;
