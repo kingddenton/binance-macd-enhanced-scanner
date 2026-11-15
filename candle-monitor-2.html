@@ -798,7 +798,7 @@ function shrink24hChangeMarkup(symbol){
 function renderHistogramShrink(tf){
  const target=$("histShrink_"+tf);if(!target)return;
  const list=histogramShrinkHistory[tf];
- target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong><span style="color:#fff">'+esc(item.symbol)+'</span> · '+shrink24hChangeMarkup(item.symbol)+' · <span style="color:#fff">BULLISH HISTOGRAM SHRINK</span></strong></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
+ target.innerHTML=list.length?list.map(item=>'<div class="live-candle-card live-candle-red"><strong><span style="color:#fff">'+esc(item.symbol)+'</span> · '+shrink24hChangeMarkup(item.symbol)+'</strong></div>').join(""):'<div class="live-candle-empty">No alerts yet.</div>';
 }
 function renderBearishHistogramShrink(tf){
  const target=$("histBearShrink_"+tf);if(!target)return;
