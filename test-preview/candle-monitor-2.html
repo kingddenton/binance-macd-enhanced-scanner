@@ -525,27 +525,38 @@ async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePc
 }
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
 async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
- if(!confirmations||!confirmations.bear)return;
- if(!specialMacdBearCandidates.has(symbol))return;
- // Apply the selected 15m bearish HTF confirmations to every special 1m/3m/5m bearish reversal.
- const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bear");
- if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected 15m bearish confirmation(s) did not pass.";return;}
- const candidate=specialMacdCandidates.get(symbol);
- if(!candidate)return;
- if(!specialMacdOiGatePasses(symbol,"bear"))return;
- if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
- const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
- const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
- const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
- specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
- specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
- specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
- if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
- specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
- scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,candleTime,duration);
- renderSpecialMacdHistory();
- $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · enabled confirmations: "+specialMacdConfirmationSummary("bear")+". Alert remains for "+specialMacdCandleLimit()+" candles.";
- playSpecialMacdAlarm();
+  if(!confirmations||!confirmations.bear)return;
+  if(!specialMacdBearCandidates.has(symbol))return;
+  // Reserve the event identity synchronously, before any asynchronous confirmation,
+  // so overlapping WebSocket/fallback updates cannot log the same candle twice.
+  const key=symbol+"|"+tf+"|"+candleTime;
+  if(specialMacdAlertKeys.has(key))return;
+  specialMacdAlertKeys.add(key);
+  let keepKey=false;
+  try{
+   // Apply the selected 15m bearish HTF confirmations to every special 1m/3m/5m bearish reversal.
+   const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bear");
+   if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected 15m bearish confirmation(s) did not pass.";return;}
+   const candidate=specialMacdCandidates.get(symbol);
+   if(!candidate)return;
+   if(!specialMacdOiGatePasses(symbol,"bear"))return;
+   if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
+   const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
+   const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
+   specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
+   specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
+   specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
+   if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
+   specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
+   scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,candleTime,duration);
+   renderSpecialMacdHistory();
+   $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · enabled confirmations: "+specialMacdConfirmationSummary("bear")+". Alert remains for "+specialMacdCandleLimit()+" candles.";
+   playSpecialMacdAlarm();
+   keepKey=true;
+  }finally{
+   // Failed confirmations/filters may retry on a later update; confirmed events stay deduplicated.
+   if(!keepKey)specialMacdAlertKeys.delete(key);
+  }
 }
 function specialMacdConfirmationEnabled(id){const el=document.getElementById(id);return !!(el&&el.checked);}
 function specialMacdConfirmationSummary(side){
