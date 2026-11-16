@@ -1087,15 +1087,45 @@ function renderDiagnostics(){const set=(id,value,cls)=>{const el=$(id);if(!el)re
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let diagnosticsRenderPending=false,scanClockTimer=null;
 function queueDiagnosticsRender(){if(diagnosticsRenderPending)return;diagnosticsRenderPending=true;setTimeout(()=>{diagnosticsRenderPending=false;renderDiagnostics();},150);}
+// Priority tiers: candle data first, ordinary market metadata next, OI history/current snapshots last.
+let consecutivePriorityRequests=0;
+function requestPriority(url){
+ const path=url.split("?")[0];
+ if(path.endsWith("/klines"))return 0;
+ if(path.endsWith("/openInterestHist")||path.endsWith("/openInterest"))return 2;
+ return 1;
+}
+function takeNextRequest(){
+ if(!pendingRequests.length)return null;
+ // Keep the main candle-data queue moving, but allow one background OI job
+ // after every four priority-0/1 jobs so OI monitoring cannot starve.
+ const backgroundIndex=pendingRequests.findIndex(job=>job.priority>=2);
+ let selectedIndex=-1;
+ if(backgroundIndex>=0&&consecutivePriorityRequests>=4){
+  selectedIndex=backgroundIndex;
+  consecutivePriorityRequests=0;
+ }else{
+  let bestPriority=Infinity;
+  for(let i=0;i<pendingRequests.length;i++){
+   if(pendingRequests[i].priority<bestPriority){bestPriority=pendingRequests[i].priority;selectedIndex=i;}
+  }
+  if(selectedIndex>=0){
+   if(pendingRequests[selectedIndex].priority>=2)consecutivePriorityRequests=0;
+   else consecutivePriorityRequests++;
+  }
+ }
+ return selectedIndex<0?null:pendingRequests.splice(selectedIndex,1)[0];
+}
 function pumpRequests(){
  if(requestPumpTimer!==null||activeRequests>=MAX_CONCURRENT_REQUESTS||!pendingRequests.length)return;
  const gap=Math.max(0,MIN_REQUEST_START_GAP_MS-(Date.now()-lastRequest));
  if(gap){requestPumpTimer=setTimeout(()=>{requestPumpTimer=null;pumpRequests();},gap);return;}
- const job=pendingRequests.shift(),startedAt=performance.now();diag.queueWaitTotalMs+=startedAt-job.queuedAt;diag.queueWaitMaxMs=Math.max(diag.queueWaitMaxMs,startedAt-job.queuedAt);activeRequests++;diag.maxActiveRequests=Math.max(diag.maxActiveRequests,activeRequests);lastRequest=Date.now();
+ const job=takeNextRequest();if(!job)return;
+ const startedAt=performance.now();diag.queueWaitTotalMs+=startedAt-job.queuedAt;diag.queueWaitMaxMs=Math.max(diag.queueWaitMaxMs,startedAt-job.queuedAt);activeRequests++;diag.maxActiveRequests=Math.max(diag.maxActiveRequests,activeRequests);lastRequest=Date.now();
  Promise.resolve().then(job.run).then(job.resolve,job.reject).finally(()=>{diag.requestBusyMs+=performance.now()-startedAt;activeRequests--;pumpRequests();});
  pumpRequests();
 }
-function scheduleRequest(run){return new Promise((resolve,reject)=>{pendingRequests.push({run,resolve,reject,queuedAt:performance.now()});pumpRequests();});}
+function scheduleRequest(run,url=""){return new Promise((resolve,reject)=>{pendingRequests.push({run,resolve,reject,queuedAt:performance.now(),priority:requestPriority(url)});pumpRequests();});}
 function responseCacheTtl(url){
  const path=url.split("?")[0],query=new URLSearchParams(url.split("?")[1]||"");
  if(path.endsWith("/klines")&&(query.has("startTime")||query.has("endTime")))return 0;
@@ -1130,7 +1160,7 @@ function request(url,baseOverride=null){
  };
  const requestKey=(baseOverride||"auto")+"|"+url,ttl=responseCacheTtl(url),existing=inFlightRequests.get(requestKey);if(existing){diag.requestDedupHits++;return existing;}
  const now=Date.now(),cached=responseCache.get(requestKey);if(cached&&cached.expiresAt>now){diag.cacheHits++;return Promise.resolve(cached.value);}if(cached)responseCache.delete(requestKey);
- const pending=scheduleRequest(run);inFlightRequests.set(requestKey,pending);if(ttl>0)diag.cacheMisses++;
+ const pending=scheduleRequest(run,url);inFlightRequests.set(requestKey,pending);if(ttl>0)diag.cacheMisses++;
  pending.then(value=>{if(ttl>0){const at=Date.now();for(const [key,item] of responseCache)if(item.expiresAt<=at)responseCache.delete(key);if(responseCache.size>=1200)responseCache.delete(responseCache.keys().next().value);responseCache.set(requestKey,{value,expiresAt:at+ttl});}},()=>{});
  const clearPending=()=>{if(inFlightRequests.get(requestKey)===pending)inFlightRequests.delete(requestKey);};pending.then(clearPending,clearPending);
  return pending;
