@@ -300,11 +300,11 @@ main{max-width:1800px;width:100%}
  <div class="small" style="margin:5px 0 8px">🟢 Bullish: 5m, 15m and 30m OI all positive + 5m MACD histogram positive · 🔴 Bearish: all three OI readings negative + 5m MACD histogram negative</div>
  <div class="histogram-side-columns" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
   <section class="live-candle-column" style="border:1px solid #238b5a;border-radius:8px;padding:8px;background:rgba(35,139,90,.10)">
-   <h4 style="color:#42d392;margin:0 0 7px">🟢 BULLISH OI ALIGNMENT</h4>
+   <h4 id="oiAlignmentBullHeading" style="color:#42d392;margin:0 0 7px">🟢 BULLISH OI ALIGNMENT</h4>
    <div id="oiAlignmentBullRows" class="live-candle-items"><div class="live-candle-empty">No bullish OI alignment alerts yet.</div></div>
   </section>
   <section class="live-candle-column" style="border:1px solid #b84455;border-radius:8px;padding:8px;background:rgba(184,68,85,.10)">
-   <h4 style="color:#ff7185;margin:0 0 7px">🔴 BEARISH OI ALIGNMENT</h4>
+   <h4 id="oiAlignmentBearHeading" style="color:#ff7185;margin:0 0 7px">🔴 BEARISH OI ALIGNMENT</h4>
    <div id="oiAlignmentBearRows" class="live-candle-items"><div class="live-candle-empty">No bearish OI alignment alerts yet.</div></div>
   </section>
  </div>
@@ -1343,6 +1343,26 @@ function renderOiAlignmentAlert(){
  renderSide(bearFeed,"bear","No bearish OI alignment alerts yet.");
  if(status)status.textContent="Valid OI histories processed: "+oiAlignmentScanned+" · OI history errors: "+oiAlignmentDataErrors+" · 5m MACD uses the live/forming candle.";
 }
+function flashOiAlignmentHeading(direction){
+ const heading=$(direction==="bull"?"oiAlignmentBullHeading":"oiAlignmentBearHeading");if(!heading)return;
+ heading.classList.remove("oi-alignment-heading-flash");void heading.offsetWidth;heading.classList.add("oi-alignment-heading-flash");
+ setTimeout(()=>heading.classList.remove("oi-alignment-heading-flash"),5000);
+}
+function playOiAlignmentSound(direction){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+  if(!alertAudioContext)alertAudioContext=new Ctx();
+  if(alertAudioContext.state==="suspended")alertAudioContext.resume();
+  const ctx=alertAudioContext,base=ctx.currentTime;
+  const notes=direction==="bull"?[784,988,1175]:[784,659,523];
+  notes.forEach((frequency,index)=>{
+   const start=base+index*.19,osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type="sine";osc.frequency.setValueAtTime(frequency,start);
+   gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.22,start+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+.34);
+   osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.36);
+  });
+ }catch(e){const status=$("oiAlignmentAlertStatus");if(status)status.textContent="OI alert sound unavailable in this browser; flashing heading remains active.";}
+}
 function evaluateOiAlignmentAlert(symbol,oiRows,liveMacdHist){
  const result=oiAlignmentChanges(oiRows);if(!result||!Number.isFinite(liveMacdHist))return;
  oiAlignmentScanned++;
@@ -1351,6 +1371,7 @@ function evaluateOiAlignmentAlert(symbol,oiRows,liveMacdHist){
  if(direction==="neutral"){oiAlignmentAlertState.set(symbol,"neutral");return;}
  if(previous===direction)return;
  oiAlignmentAlertState.set(symbol,direction);
+ flashOiAlignmentHeading(direction);playOiAlignmentSound(direction);
  oiAlignmentAlertHistory.unshift({symbol,direction,oi5:changes[5],oi15:changes[15],oi30:changes[30],hist:liveMacdHist,at:Date.now(),oiTime:latest.t});
  let keptForDirection=0;for(let i=0;i<oiAlignmentAlertHistory.length;i++){if(oiAlignmentAlertHistory[i].direction===direction&&++keptForDirection>5)oiAlignmentAlertHistory.splice(i--,1);}
  renderOiAlignmentAlert();
@@ -2367,6 +2388,10 @@ html,body{min-height:100%;}body{padding:8px!important}
 #specialOiThresholdPanel label{font-size:11px}
 #specialOiThresholdPanel input{width:100%;min-width:0}
 @media(max-width:650px){#specialOiThresholdPanel .special-oi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#specialOiThresholdPanel .special-oi-side{grid-column:span 2}}
+
+@keyframes oi-alignment-heading-flash{0%,100%{filter:brightness(1);text-shadow:0 0 0 transparent;transform:scale(1)}50%{filter:brightness(1.9);text-shadow:0 0 14px currentColor;transform:scale(1.025)}}
+#oiAlignmentBullHeading.oi-alignment-heading-flash{animation:oi-alignment-heading-flash .65s ease-in-out infinite!important;color:#55f0a5!important}
+#oiAlignmentBearHeading.oi-alignment-heading-flash{animation:oi-alignment-heading-flash .65s ease-in-out infinite!important;color:#ff7185!important}
 </style>
 <script>
 (()=>{
