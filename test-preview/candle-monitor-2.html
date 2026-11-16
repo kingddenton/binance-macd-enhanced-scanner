@@ -490,13 +490,15 @@ function renderSpecialMacdBullHistory(){
 function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.2;}
 function specialMacdOiGatePasses(symbol,side){
  const oi=specialCrossMonitorOi.get(symbol),changes=oi&&oi.changes,age=oi?Date.now()-(oi.updatedAt||0):Infinity;
- const values=changes?["5m","15m","30m"].map(tf=>Number(changes[tf])):[NaN,NaN,NaN];
- const ready=age<=60000&&values.every(Number.isFinite);
- const pass=ready&&(side==="bull"?values.every(value=>value>=0):values.every(value=>value<0));
+ const periods=["5m","15m","30m"],values=changes?periods.map(tf=>Number(changes[tf])):[NaN,NaN,NaN];
+ const thresholds=periods.map(tf=>Number($("specialOi"+(side==="bull"?"Bull":"Bear")+tf+"Threshold")?.value));
+ const ready=age<=60000&&values.every(Number.isFinite)&&thresholds.every(Number.isFinite);
+ const pass=ready&&values.every((value,index)=>side==="bull"?value>=thresholds[index]:value<thresholds[index]);
  if(!pass){
   if(!ready)loadSpecialCrossMonitorOi(symbol);
   const status=$("specialMacdStatus");
-  if(status)status.textContent="BLOCKED "+(side==="bull"?"BULLISH CROSS":"BEARISH REVERSAL")+": "+symbol+" · final OI gate not passed ("+(ready?"5m / 15m / 30m OI direction mismatch":"OI readings missing, invalid, or older than 60 seconds")+").";
+  const reason=!ready?"OI readings or threshold values are missing/invalid, or readings are older than 60 seconds":"5m / 15m / 30m OI did not meet the configured "+(side==="bull"?"minimum bullish":"maximum bearish")+" thresholds";
+  if(status)status.textContent="BLOCKED "+(side==="bull"?"BULLISH CROSS":"BEARISH REVERSAL")+": "+symbol+" · final OI gate not passed ("+reason+").";
  }
  return pass;
 }
@@ -2281,4 +2283,32 @@ html,body{min-height:100%;}body{padding:8px!important}
 
 <style>#cm2OiPanel{grid-column:1/-1;margin:0;padding:9px 10px;border:1px solid #35566b;border-radius:9px;background:#0a1925}#cm2OiPanel summary{cursor:pointer;font-weight:850;color:#aee8ff;font-size:12px}#cm2OiPanel .oi-settings-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:9px;align-items:end}#cm2OiPanel label{font-size:11px}#cm2OiPanel input[type=number]{min-width:0}#cm2OiPanel .oi-enable{display:flex;align-items:center;gap:7px;color:#eaf4fa;font-size:12px}@media(max-width:560px){#cm2OiPanel .oi-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
 <script>(()=>{const controls=document.getElementById("cm2Controls");if(!controls||document.getElementById("cm2OiPanel"))return;const panel=document.createElement("details");panel.id="cm2OiPanel";panel.innerHTML='<summary>Open Interest confirmation · optional final gate</summary><div class="oi-settings-grid"><label class="oi-enable"><input id="cm2OiConfirmEnabled" type="checkbox"> Enable OI confirmation</label><label>Minimum 5m OI change %<input id="cm2Oi5mMin" type="number" step="0.1" value="1"></label><label>Minimum 15m OI change %<input id="cm2Oi15mMin" type="number" step="0.1" value="1"></label><label>Minimum 30m OI change %<input id="cm2Oi30mMin" type="number" step="0.1" value="1"></label></div><div class="small" style="margin-top:7px">All three periods must be strictly greater than their configured minimum. Values remain visible when the gate is OFF. Uses Binance historical OI USD value snapshots (sumOpenInterestValue); unavailable values display as —.</div>';controls.appendChild(panel);const enabled=document.getElementById("cm2OiConfirmEnabled");enabled.checked=localStorage.getItem("cm2OiConfirmEnabled")==="1";enabled.addEventListener("change",()=>localStorage.setItem("cm2OiConfirmEnabled",enabled.checked?"1":"0"));["5m","15m","30m"].forEach(tf=>{const el=document.getElementById("cm2Oi"+tf+"Min"),key="cm2Oi"+tf+"Min",saved=localStorage.getItem(key);if(saved!==null&&Number.isFinite(Number(saved)))el.value=saved;el.addEventListener("change",()=>localStorage.setItem(key,el.value));});})();</script>
+
+<style>
+#specialOiThresholdPanel{grid-column:1/-1;margin:0;padding:9px 10px;border:1px solid #4a6073;border-radius:9px;background:#0a1925}
+#specialOiThresholdPanel summary{cursor:pointer;font-weight:850;color:#f4d58a;font-size:12px}
+#specialOiThresholdPanel .special-oi-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:9px}
+#specialOiThresholdPanel .special-oi-side{grid-column:span 3;padding:8px;border:1px solid #35566b;border-radius:8px;min-width:0}
+#specialOiThresholdPanel .special-oi-side strong{display:block;margin-bottom:7px;font-size:12px}
+#specialOiThresholdPanel label{font-size:11px}
+#specialOiThresholdPanel input{width:100%;min-width:0}
+@media(max-width:650px){#specialOiThresholdPanel .special-oi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#specialOiThresholdPanel .special-oi-side{grid-column:span 2}}
+</style>
+<script>
+(()=>{
+ const controls=document.getElementById("cm2Controls");
+ if(!controls||document.getElementById("specialOiThresholdPanel"))return;
+ const panel=document.createElement("details");
+ panel.id="specialOiThresholdPanel";
+ panel.open=true;
+ const makeSide=(side,title)=>'<div class="special-oi-side"><strong style="color:'+(side==="Bull"?"#76e3a4":"#ff8b9b")+'">'+title+'</strong><div class="special-oi-grid">'+["5m","15m","30m"].map(tf=>'<label>'+tf+' '+(side==="Bull"?"minimum":"maximum")+' OI change (%)<input type="number" step="0.1" id="specialOi'+side+tf+'Threshold" value="0"></label>').join("")+'</div></div>';
+ panel.innerHTML='<summary>Special MACD alerts · editable OI thresholds</summary><div class="special-oi-grid">'+makeSide("Bull","BULLISH CROSS · OI must be ≥ threshold")+makeSide("Bear","BEARISH REVERSAL · OI must be < threshold")+'</div><div class="small" style="margin-top:8px">Each timeframe is configured independently for each direction. All three readings must pass. Defaults preserve the current rules: bullish ≥ 0% and bearish < 0%. Values are saved on this device.</div>';
+ controls.appendChild(panel);
+ ["Bull","Bear"].forEach(side=>["5m","15m","30m"].forEach(tf=>{
+  const id="specialOi"+side+tf+"Threshold",el=document.getElementById(id),key="specialMacd_"+id,saved=localStorage.getItem(key);
+  if(saved!==null&&Number.isFinite(Number(saved)))el.value=saved;
+  el.addEventListener("change",()=>localStorage.setItem(key,el.value));
+ }));
+})();
+</script>
 </body></html>
