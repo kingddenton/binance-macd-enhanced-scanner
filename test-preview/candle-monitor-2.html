@@ -454,7 +454,7 @@ function scheduleSpecialMacdAlertRefresh(renderFn,candleTime,duration){const now
 function renderSpecialMacdHistory(){
   const feed=$("twentyPctFeed");if(!feed)return;
   const durations={"1m":60000,"3m":180000,"5m":300000,"15m":900000},now=Date.now(),limit=specialMacdCandleLimit();
-  const active=specialMacdHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,5);
+  const active=specialMacdHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,10);
  specialMacdHistory=active;
  feed.querySelectorAll("[data-special-tf]").forEach(column=>{
   const tf=column.dataset.specialTf,items=active.filter(x=>x.tf===tf),heading=$("specialHeading_"+tf);
@@ -472,7 +472,7 @@ function renderSpecialMacdHistory(){
 }
 function renderSpecialMacdBullHistory(){
   const feed=$("twentyPctFeed");if(!feed)return;const durations={"1m":60000,"3m":180000,"5m":300000,"15m":900000},now=Date.now(),limit=specialMacdCandleLimit();
-  const active=specialMacdBullHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,5);specialMacdBullHistory=active;
+  const active=specialMacdBullHistory.filter(item=>durations[item.tf]&&now<item.candleTime+limit*durations[item.tf]).slice(0,10);specialMacdBullHistory=active;
  feed.querySelectorAll("[data-special-bull-tf]").forEach(column=>{
   const tf=column.dataset.specialBullTf,items=active.filter(x=>x.tf===tf),heading=$("specialBullHeading_"+tf);
   if(heading)heading.classList.toggle("reversal-heading-active",tf===bullMacdLatestHeadingTf&&now<bullMacdHeadingBlinkUntil);
@@ -488,7 +488,7 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,conf
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;specialMacdBullAlertKeys.add(key);
  const durations={"1m":60000,"3m":180000,"5m":300000,"15m":900000},duration=durations[tf];if(!duration)return;
  const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
- specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
+ specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,10);
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
  scheduleSpecialMacdAlertRefresh(renderSpecialMacdBullHistory,candleTime,duration);renderSpecialMacdBullHistory();
@@ -502,7 +502,7 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume())return;specialMacdAlertKeys.add(key);
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000,"15m":900000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
- specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000,"15m":900000}[item.tf]||0)).slice(0,5);
+ specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000,"15m":900000}[item.tf]||0)).slice(0,10);
  specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
  if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
