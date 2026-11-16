@@ -2403,11 +2403,13 @@ html,body{min-height:100%;}body{padding:8px!important}
  const autoButton=$('autoBtn');
  if(autoButton)autoButton.addEventListener('click',()=>write('Auto-scan button tap received by the page.'),true);
  window.addEventListener('error',event=>{
-   write('JAVASCRIPT ERROR: '+(event.message||'Unknown error')+(event.filename?' · '+event.filename.split('/').pop():'')+(event.lineno?':'+event.lineno:''));
+   const location=event.filename?(event.filename.split('/').pop()+(event.lineno?':'+event.lineno:'')+(event.colno?':'+event.colno:'')):'unknown location';
+   const stack=event.error&&event.error.stack?' · '+String(event.error.stack).split('\\n').slice(0,5).join(' | '):'';
+   write('JAVASCRIPT ERROR: '+(event.message||'Unknown error')+' · '+location+stack);
  });
  window.addEventListener('unhandledrejection',event=>{
-   const reason=event.reason;
-   write('UNHANDLED PROMISE REJECTION: '+(reason&&reason.message||String(reason)));
+   const reason=event.reason,stack=reason&&reason.stack?' · '+String(reason.stack).split('\\n').slice(0,5).join(' | '):'';
+   write('UNHANDLED PROMISE REJECTION: '+(reason&&reason.message||String(reason))+stack);
  });
  const status=$('status');
  if(status&&window.MutationObserver){
