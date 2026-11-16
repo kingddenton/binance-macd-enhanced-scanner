@@ -381,7 +381,7 @@ let hostIndex=0,lastRequest=0,activeRequests=0,pendingRequests=[],requestPumpTim
 const MAX_CONCURRENT_REQUESTS=10,MIN_REQUEST_START_GAP_MS=75; // Controlled throughput test: 10 in-flight max, ~13.3 request starts/sec.
 const inFlightRequests=new Map(),responseCache=new Map(); // Share in-flight requests and briefly reuse fresh market-data responses across monitors.
 const previous24hHigh=new Map(),fresh24hHighUntil=new Map(),universePeriodCache=new Map(),rollingOiHistory=new Map();
-const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialAlertDiagnostic=new Map();let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialRsiRetryTimers=new Map(),specialRsiRetryAttempts=new Map(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
+const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialAlertDiagnostic=new Map();let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
 function playAlertTone(tier,direction,tf){
  const soundKey=(tier==="confirmed"?"confirmed":"crossover")+(direction==="bull"?"Bull":"Bear");const timeframeCheckbox=$("alert"+tf);if(!alertSoundEnabled[soundKey]||(timeframeCheckbox&&!timeframeCheckbox.checked))return;
  try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
@@ -695,15 +695,14 @@ function specialRsiValue(rows){
  return avgDown===0?(avgUp===0?50:100):100-(100/(1+avgUp/avgDown));
 }
 function specialRsiGateEnabled(id){return !!$(id)?.checked;}
-function specialRsiGateStatus(symbol,side){
+function specialRsiGatePass(symbol,side){
  const data=specialRsiRows.get(symbol)||{},checks=side==="bull"?[["1h","specialBullRsi1hEnabled","specialBullRsi1hThreshold",true],["4h","specialBullRsi4hEnabled","specialBullRsi4hThreshold",true]]:[["1h","specialBearRsi1hEnabled","specialBearRsi1hThreshold",false],["4h","specialBearRsi4hEnabled","specialBearRsi4hThreshold",false]];
- for(const [tf,enabledId,thresholdId,above] of checks){if(!specialRsiGateEnabled(enabledId))continue;const value=specialRsiValue(data[tf]),threshold=Number($(thresholdId)?.value);if(!Number.isFinite(value)||!Number.isFinite(threshold))return "PENDING";if(above?value<=threshold:value>=threshold)return "FAIL";}
- return "PASS";
+ for(const [tf,enabledId,thresholdId,above] of checks){if(!specialRsiGateEnabled(enabledId))continue;const value=specialRsiValue(data[tf]),threshold=Number($(thresholdId)?.value);if(!Number.isFinite(value)||!Number.isFinite(threshold)||(above?value<=threshold:value>=threshold))return false;}
+ return true;
 }
-function specialRsiGatePass(symbol,side){return specialRsiGateStatus(symbol,side)==="PASS";}
 function renderSpecialRsiRows(rowsId,metaId,rows,side){
  const body=$(rowsId),meta=$(metaId);if(meta)meta.textContent=rows.length+" RSI-qualified · live 1H / 4H RSI · "+(side==="bull"?"bullish cross only":"bearish reversal only");
- if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>{const data=specialRsiRows.get(symbol)||{},r1=specialRsiValue(data["1h"]),r4=specialRsiValue(data["4h"]);return '<li class="'+(side==="bull"?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>1H '+(Number.isFinite(r1)?r1.toFixed(1):"—")+' · 4H '+(Number.isFinite(r4)?r4.toFixed(1):"—")+' · '+(Number.isFinite(Number(item?.change))?(Number(item.change)>0?"+":"")+Number(item.change).toFixed(2):"—")+'%</span></li>';}).join(""):'<li class="small">No coins currently pass the enabled RSI checks.</li>';
+ if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>{const data=specialRsiRows.get(symbol)||{},r1=specialRsiValue(data["1h"]),r4=specialRsiValue(data["4h"]);return '<li class="'+(side==="bull"?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>1H '+(Number.isFinite(r1)?r1.toFixed(1):"—")+' · 4H '+(Number.isFinite(r4)?r4.toFixed(1):"—")+' · '+(item.change>0?"+":"")+item.change.toFixed(2)+'%</span></li>';}).join(""):'<li class="small">No coins currently pass the enabled RSI checks.</li>';
 }
 async function loadSpecialCrossMonitorOi(symbol){
  if(specialCrossMonitorOiLoads.has(symbol))return;specialCrossMonitorOiLoads.add(symbol);
@@ -745,7 +744,7 @@ function renderSpecialAlertDiagnostic(){
  const byCoin=side=>{const grouped=new Map();for(const x of specialAlertDiagnostic.values()){if(x.side!==side)continue;if(!grouped.has(x.symbol))grouped.set(x.symbol,{});grouped.get(x.symbol)[x.tf]=x;}return [...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));};
  const render=(id,side)=>{const body=$(id);if(!body)return;const rows=byCoin(side);body.innerHTML=rows.length?rows.map(([symbol,tfRows])=>{const data=specialRsiRows.get(symbol)||{},r1=specialRsiValue(data["1h"]),r4=specialRsiValue(data["4h"]),rsi=(Number.isFinite(r1)?r1.toFixed(1):"—")+" / "+(Number.isFinite(r4)?r4.toFixed(1):"—");const cell=tf=>{const x=tfRows[tf]||{status:"WAITING",reason:"Awaiting timeframe data."};return '<td><b>'+esc(x.status)+'</b><div class="small">'+esc(x.reason)+'</div></td>';};return '<tr><td><b>'+esc(symbol)+'</b></td><td>'+rsi+'</td>'+cell("1m")+cell("3m")+cell("5m")+'</tr>';}).join(""):'<tr><td colspan="5" class="small">No coins currently selected on this side.</td></tr>';};
  render("specialAlertDiagnosticBull","bull");render("specialAlertDiagnosticBear","bear");
- const meta=$("specialAlertDiagnosticMeta");if(meta){meta.textContent=byCoin("bull").length+" gainers evaluated · "+byCoin("bear").length+" losers evaluated (includes RSI-disqualified candidates)";}
+ const meta=$("specialAlertDiagnosticMeta");if(meta){meta.textContent=byCoin("bull").length+" selected gainers · "+byCoin("bear").length+" selected losers";}
 }
 function syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear){
  const keep=new Set();const add=(side,items,candidates)=>{for(const [symbol,item] of items){const passed=candidates.has(symbol),rsiData=specialRsiRows.get(symbol)||{},checks=side==="bull"?[["1h","specialBullRsi1hEnabled","specialBullRsi1hThreshold",true],["4h","specialBullRsi4hEnabled","specialBullRsi4hThreshold",true]]:[["1h","specialBearRsi1hEnabled","specialBearRsi1hThreshold",false],["4h","specialBearRsi4hEnabled","specialBearRsi4hThreshold",false]];let reason="RSI passed; waiting for 1m / 3m / 5m MACD event.",status="WAITING";if(!passed){const active=checks.filter(([tf,en])=>specialRsiGateEnabled(en)).map(([tf,en,th,above])=>({tf,value:specialRsiValue(rsiData[tf]),threshold:Number($(th)?.value),above}));const missing=active.find(x=>!Number.isFinite(x.value)||!Number.isFinite(x.threshold));const failed=active.find(x=>Number.isFinite(x.value)&&Number.isFinite(x.threshold)&&(x.above?x.value<=x.threshold:x.value>=x.threshold));if(missing){status="PENDING";reason="Waiting for valid "+missing.tf.toUpperCase()+" RSI data / threshold; not yet disqualified.";}else if(failed){status="DISQUALIFIED";reason="RSI "+failed.tf.toUpperCase()+" "+failed.value.toFixed(1)+(failed.above?" is not above ":" is not below ")+failed.threshold+".";}else{status="DISQUALIFIED";reason="Side-specific RSI qualification failed.";}}
@@ -756,65 +755,29 @@ function syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear){
 }
 function syncSpecialMacdCandidates(){
  const eligible=[];for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol),volume=Number(t.quoteVolume);if(d&&Number.isFinite(volume)&&volume>=specialMacdMinVolume())eligible.push([symbol,{...d,quoteVolume:volume}]);}
- const mode=$("specialMacdUniverseMode")?.value||"threshold",bullTarget=specialMacdRankCount("specialMacdTopGainers"),bearTarget=specialMacdRankCount("specialMacdWorstLosers");
- let gainers=[],losers=[];
- if(mode==="ranking"){gainers=eligible.filter(([,v])=>v.change>0).sort((a,b)=>b[1].change-a[1].change);losers=eligible.filter(([,v])=>v.change<0).sort((a,b)=>a[1].change-b[1].change);}
+ const mode=$("specialMacdUniverseMode")?.value||"threshold";let gainers=[],losers=[];
+ if(mode==="ranking"){gainers=eligible.filter(([,v])=>v.change>0).sort((a,b)=>b[1].change-a[1].change).slice(0,specialMacdRankCount("specialMacdTopGainers"));losers=eligible.filter(([,v])=>v.change<0).sort((a,b)=>a[1].change-b[1].change).slice(0,specialMacdRankCount("specialMacdWorstLosers"));}
  else{gainers=eligible.filter(([,v])=>v.change>=specialMacdMinGain()).sort((a,b)=>b[1].change-a[1].change);losers=eligible.filter(([,v])=>v.change<=-specialMacdMinGain()).sort((a,b)=>a[1].change-b[1].change);}
- const evaluate=(side,items,target)=>{
-  const chosen=new Map(),evaluated=[],batch=[];
-  for(const entry of items){
-   if(chosen.size>=target)break;
-   const [symbol]=entry;evaluated.push(entry);
-   const gate=specialRsiGateStatus(symbol,side);
-   if(gate==="PASS"){chosen.set(symbol,entry);continue;}
-   if(gate==="FAIL")continue;
-   batch.push(symbol);
-   break;
-  }
-  return {chosen,evaluated,batch};
- };
- const bullResult=evaluate("bull",gainers,bullTarget),bearResult=evaluate("bear",losers,bearTarget);
- const bull=bullResult.chosen,bear=bearResult.chosen,next=new Map([...bull,...bear]);
- const diagnosticGainers=new Map(bullResult.evaluated),diagnosticLosers=new Map(bearResult.evaluated);
- const diagnosticRanked=new Map([...diagnosticGainers,...diagnosticLosers]);
+ const ranked=new Map([...gainers,...losers]),bull=new Map(gainers.filter(([symbol])=>specialRsiGatePass(symbol,"bull"))),bear=new Map(losers.filter(([symbol])=>specialRsiGatePass(symbol,"bear"))),next=new Map([...bull,...bear]);
+ const rankedChanged=ranked.size!==specialMacdRankedCandidates.size||[...ranked.keys()].some(symbol=>!specialMacdRankedCandidates.has(symbol));
  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
- specialMacdRankedCandidates=next;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
- syncSpecialAlertDiagnostic(diagnosticRanked,diagnosticGainers,diagnosticLosers,bull,bear);
- if(bullResult.batch.length||bearResult.batch.length){
-  for(const symbol of [...bullResult.batch,...bearResult.batch])if(specialRsiLoads.size<3&&!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
- }
+ specialMacdRankedCandidates=ranked;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
+ syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear);
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
+ for(const symbol of ranked.keys())if(!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
- const modeLabel=mode==="ranking"?"Top "+bullTarget+" RSI-qualified gainers / Worst "+bearTarget+" RSI-qualified losers":"24h threshold ±"+specialMacdMinGain()+"%";
- const renderSide=(rowsId,metaId,rows,empty,target)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" RSI-qualified selected / "+target+" target · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(Number.isFinite(Number(item?.change))?(Number(item.change)>0?"+":"")+Number(item.change).toFixed(2):"—")+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
- renderSide("specialGainersRows","specialGainersMeta",[...bull],"No gainers currently pass RSI.",bullTarget);renderSide("specialLosersRows","specialLosersMeta",[...bear],"No losers currently pass RSI.",bearTarget);
+ const modeLabel=mode==="ranking"?"Top "+specialMacdRankCount("specialMacdTopGainers")+" gainers / Worst "+specialMacdRankCount("specialMacdWorstLosers")+" losers":"24h threshold ±"+specialMacdMinGain()+"%";
+ const renderSide=(rowsId,metaId,rows,empty)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" selected · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(item.change>0?"+":"")+item.change.toFixed(2)+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
+ renderSide("specialGainersRows","specialGainersMeta",gainers,"No qualifying gainers.");renderSide("specialLosersRows","specialLosersMeta",losers,"No qualifying losers.");
  renderSpecialRsiRows("specialBullRsiRows","specialBullRsiMeta",[...bull],"bull");renderSpecialRsiRows("specialBearRsiRows","specialBearRsiMeta",[...bear],"bear");renderAlertHistory();renderSpecialCrossMonitor();
- const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); RSI candidates are evaluated in rank order.";
+ const status=$("specialMacdStatus");if(status)status.textContent=ranked.size+" ranked leaders/laggards · "+bull.size+" bullish RSI qualifiers · "+bear.size+" bearish RSI qualifiers ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); monitoring bullish crosses and bearish reversals independently.";
 }
 async function loadSpecialRsiHistory(symbol){
- if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;
- const pendingTimer=specialRsiRetryTimers.get(symbol);if(pendingTimer){clearTimeout(pendingTimer);specialRsiRetryTimers.delete(symbol);}
- specialRsiLoads.add(symbol);let loaded=false,errorMessage="";
- try{
-  const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));
-  if(!specialMacdEligibleTickers.has(symbol))return;
-  const clean=rows=>Array.isArray(rows)?rows.filter(row=>Array.isArray(row)&&Number.isFinite(Number(row[4]))&&Number(row[4])>0):[];
-  const oneClean=clean(one),fourClean=clean(four);
-  if(!Number.isFinite(specialRsiValue(oneClean))||!Number.isFinite(specialRsiValue(fourClean)))throw new Error("Insufficient valid 1H/4H candles to calculate RSI");
-  specialRsiRows.set(symbol,{"1h":oneClean,"4h":fourClean});specialRsiRetryAttempts.delete(symbol);loaded=true;
- }catch(e){
-  errorMessage=e&&e.message?e.message:String(e);
-  const status=$("specialMacdStatus");if(status)status.textContent="RSI history pending for "+symbol+": "+errorMessage+"; retry scheduled.";
- }finally{
-  specialRsiLoads.delete(symbol);
-  if(loaded)syncSpecialMacdCandidates();
-  else if(specialMacdEligibleTickers.has(symbol)&&!specialRsiRows.has(symbol)&&!specialRsiRetryTimers.has(symbol)){
-   const attempt=(specialRsiRetryAttempts.get(symbol)||0)+1;specialRsiRetryAttempts.set(symbol,attempt);
-   const delay=Math.min(60000,5000*Math.pow(2,Math.min(attempt-1,4)));
-   const timer=setTimeout(()=>{specialRsiRetryTimers.delete(symbol);if(specialMacdEligibleTickers.has(symbol)&&!specialRsiRows.has(symbol))loadSpecialRsiHistory(symbol);},delay);
-   specialRsiRetryTimers.set(symbol,timer);
-  }
- }
+ if(!specialMacdRankedCandidates.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);
+ try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdRankedCandidates.has(symbol))return;
+ const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});syncSpecialMacdCandidates();
+ }catch(e){const status=$("specialMacdStatus");if(status)status.textContent="RSI history loading failed for "+symbol+": "+e.message+"; it will retry on the next universe refresh.";}
+ finally{specialRsiLoads.delete(symbol);}
 }
 function updateSpecialRsiKline(symbol,k){
  if(!specialMacdRankedCandidates.has(symbol)||!k||!["1h","4h"].includes(k.i))return;
@@ -2424,13 +2387,11 @@ html,body{min-height:100%;}body{padding:8px!important}
  const autoButton=$('autoBtn');
  if(autoButton)autoButton.addEventListener('click',()=>write('Auto-scan button tap received by the page.'),true);
  window.addEventListener('error',event=>{
-   const location=event.filename?(event.filename.split('/').pop()+(event.lineno?':'+event.lineno:'')+(event.colno?':'+event.colno:'')):'unknown location';
-   const stack=event.error&&event.error.stack?' · '+String(event.error.stack).split('\\n').slice(0,5).join(' | '):'';
-   write('JAVASCRIPT ERROR: '+(event.message||'Unknown error')+' · '+location+stack);
+   write('JAVASCRIPT ERROR: '+(event.message||'Unknown error')+(event.filename?' · '+event.filename.split('/').pop():'')+(event.lineno?':'+event.lineno:''));
  });
  window.addEventListener('unhandledrejection',event=>{
-   const reason=event.reason,stack=reason&&reason.stack?' · '+String(reason.stack).split('\\n').slice(0,5).join(' | '):'';
-   write('UNHANDLED PROMISE REJECTION: '+(reason&&reason.message||String(reason))+stack);
+   const reason=event.reason;
+   write('UNHANDLED PROMISE REJECTION: '+(reason&&reason.message||String(reason)));
  });
  const status=$('status');
  if(status&&window.MutationObserver){
