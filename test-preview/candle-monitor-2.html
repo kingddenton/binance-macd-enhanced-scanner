@@ -1318,7 +1318,7 @@ function oiPctBadge(v,tf){if(!Number.isFinite(v))return "—";const threshold=Nu
 function oiDisplay(v){if(!Number.isFinite(v))return "—";if(v>=1e9)return "$"+(v/1e9).toFixed(2)+"B";if(v>=1e6)return "$"+(v/1e6).toFixed(2)+"M";if(v>=1e3)return "$"+(v/1e3).toFixed(2)+"K";return "$"+v.toFixed(2);}
 function recordRollingOi(symbol,value){if(!Number.isFinite(value)||value<=0)return;const now=Date.now(),history=rollingOiHistory.get(symbol)||[];history.push({t:now,v:value});rollingOiHistory.set(symbol,history.filter(x=>now-x.t<=20*60000));}
 function rollingOiChange(symbol,value,minutes){const history=rollingOiHistory.get(symbol)||[],now=Date.now(),target=now-minutes*60000,tolerance=Math.max(45000,minutes*60000*.2);let prior=null,diff=Infinity;for(const item of history){const d=Math.abs(item.t-target);if(item.t<=target&&d<diff){prior=item;diff=d;}}return prior&&diff<=tolerance&&prior.v>0?((value-prior.v)/prior.v)*100:NaN;}
-const oiAlignmentAlertHistory=[];const oiAlignmentAlertState=new Map();let oiAlignmentScanned=0,oiAlignmentDataErrors=0;
+const oiAlignmentAlertHistory=[];const oiAlignmentAlertState=new Map(),oiAlignmentSpecialState=new Map();let oiAlignmentScanned=0,oiAlignmentDataErrors=0;
 function oiAlignmentChanges(rows){
  if(!Array.isArray(rows))return null;
  const points=rows.map(x=>({t:Number(x.timestamp),v:Number(x.sumOpenInterestValue)})).filter(x=>Number.isFinite(x.t)&&Number.isFinite(x.v)&&x.v>0).sort((a,b)=>a.t-b.t);
@@ -1340,7 +1340,7 @@ function renderOiAlignmentAlert(){
   const items=oiAlignmentAlertHistory.filter(item=>item.direction===direction);
   const border=direction==="bull"?"#238b5a":"#9b3948";
   const header='<div style="display:grid;grid-template-columns:minmax(100px,1.15fr) repeat(3,minmax(58px,1fr));gap:5px;align-items:center;padding:8px 6px;margin-bottom:6px;border-bottom:2px solid '+border+';font-size:13px;font-weight:800;text-align:center"><span style="text-align:left">COIN</span><span>5M</span><span>15M</span><span>30M</span></div>';
-  const rows=items.map((item,index)=>'<div class="alert-entry '+(index===0?'newest-alert-entry':'')+'" style="display:grid;grid-template-columns:minmax(100px,1.15fr) repeat(3,minmax(58px,1fr));gap:5px;align-items:center;padding:10px 6px;margin:5px 0;border:1px solid '+border+';border-radius:7px;background:'+(direction==="bull"?"#0c2b21":"#30141d")+';font-size:14px"><b style="font-size:14px;overflow-wrap:anywhere">'+esc(item.symbol)+'</b><span style="text-align:center">'+pctBadge(item.oi5)+'</span><span style="text-align:center">'+pctBadge(item.oi15)+'</span><span style="text-align:center">'+pctBadge(item.oi30)+'</span></div>').join("");
+  const rows=items.map((item,index)=>'<div class="alert-entry '+(index===0?'newest-alert-entry':'')+'" style="display:grid;grid-template-columns:minmax(100px,1.15fr) repeat(3,minmax(58px,1fr));gap:5px;align-items:center;padding:10px 6px;margin:5px 0;border:1px solid '+(item.special?"#f5c542":border)+';border-radius:7px;background:'+(item.special?"rgba(245,197,66,.16)":direction==="bull"?"#0c2b21":"#30141d")+';font-size:14px"><b style="font-size:14px;overflow-wrap:anywhere">'+esc(item.symbol)+(item.special?'<span style="display:block;color:#ffd166;font-size:11px;font-weight:900;margin-top:3px">⭐ SPECIAL ALERT</span>':'')+'</b><span style="text-align:center">'+pctBadge(item.oi5)+'</span><span style="text-align:center">'+pctBadge(item.oi15)+'</span><span style="text-align:center">'+pctBadge(item.oi30)+'</span></div>').join("");
   feed.innerHTML=items.length?header+rows:'<div class="live-candle-empty">'+emptyText+'</div>';
  };
  renderSide(bullFeed,"bull","No bullish OI alignment alerts yet.");
@@ -1371,14 +1371,37 @@ function evaluateOiAlignmentAlert(symbol,oiRows,liveMacdHist){
  const result=oiAlignmentChanges(oiRows);if(!result||!Number.isFinite(liveMacdHist))return;
  oiAlignmentScanned++;
  const {changes,latest}=result,up=changes[5]>0&&changes[15]>0&&changes[30]>0&&liveMacdHist>0,down=changes[5]<0&&changes[15]<0&&changes[30]<0&&liveMacdHist<0,direction=up?"bull":down?"bear":"neutral";
- const previous=oiAlignmentAlertState.get(symbol)||"neutral";
- if(direction==="neutral"){oiAlignmentAlertState.set(symbol,"neutral");return;}
- if(previous===direction)return;
- oiAlignmentAlertState.set(symbol,direction);
- flashOiAlignmentHeading(direction);playOiAlignmentSound(direction);
- oiAlignmentAlertHistory.unshift({symbol,direction,oi5:changes[5],oi15:changes[15],oi30:changes[30],hist:liveMacdHist,at:Date.now(),oiTime:latest.t});
- let keptForDirection=0;for(let i=0;i<oiAlignmentAlertHistory.length;i++){if(oiAlignmentAlertHistory[i].direction===direction&&++keptForDirection>5)oiAlignmentAlertHistory.splice(i--,1);}
- renderOiAlignmentAlert();
+ const specialDirection=up&&changes[5]>1&&changes[15]>1&&changes[30]>1?"bull":down&&changes[5]<-1&&changes[15]<-1&&changes[30]<-1?"bear":"neutral";
+ const previous=oiAlignmentAlertState.get(symbol)||"neutral",previousSpecial=oiAlignmentSpecialState.get(symbol)||"neutral";
+ if(direction==="neutral")oiAlignmentAlertState.set(symbol,"neutral");
+ else if(previous!==direction){
+  oiAlignmentAlertState.set(symbol,direction);
+  flashOiAlignmentHeading(direction);playOiAlignmentSound(direction);
+  oiAlignmentAlertHistory.unshift({symbol,direction,oi5:changes[5],oi15:changes[15],oi30:changes[30],hist:liveMacdHist,at:Date.now(),oiTime:latest.t,special:specialDirection===direction});
+ }
+ if(specialDirection==="neutral")oiAlignmentSpecialState.set(symbol,"neutral");
+ else if(previousSpecial!==specialDirection){
+  oiAlignmentSpecialState.set(symbol,specialDirection);
+  if(previous===specialDirection){
+   oiAlignmentAlertHistory.unshift({symbol,direction:specialDirection,oi5:changes[5],oi15:changes[15],oi30:changes[30],hist:liveMacdHist,at:Date.now(),oiTime:latest.t,special:true});
+  }else if(oiAlignmentAlertHistory[0]?.symbol===symbol&&oiAlignmentAlertHistory[0]?.direction===specialDirection){
+   oiAlignmentAlertHistory[0].special=true;
+  }
+  flashOiAlignmentHeading(specialDirection);playOiAlignmentSpecialSound(specialDirection);
+ }
+ if(direction!=="neutral"||specialDirection!=="neutral"){
+  for(const side of ["bull","bear"]){let kept=0;for(let i=0;i<oiAlignmentAlertHistory.length;i++){if(oiAlignmentAlertHistory[i].direction===side&&++kept>5)oiAlignmentAlertHistory.splice(i--,1);}}
+  renderOiAlignmentAlert();
+ }
+}
+function playOiAlignmentSpecialSound(direction){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+  if(!alertAudioContext)alertAudioContext=new Ctx();
+  if(alertAudioContext.state==="suspended")alertAudioContext.resume();
+  const ctx=alertAudioContext,base=ctx.currentTime,notes=direction==="bull"?[1047,1319,1568,2093]:[1047,784,659,440];
+  notes.forEach((frequency,index)=>{const start=base+index*.16,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.3,start+.02);gain.gain.exponentialRampToValueAtTime(.0001,start+.27);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.29);});
+ }catch(e){const status=$("oiAlignmentAlertStatus");if(status)status.textContent="Special OI alert sound unavailable; visual alert remains active.";}
 }
 
 function cvdStats(rows,bars){const n=Math.max(1,Math.min(50,Number(bars)||5)),slice=rows.slice(-n);let delta=0,total=0;for(const row of slice){const q=Number(row[7]),buy=Number(row[10]);if(Number.isFinite(q)&&Number.isFinite(buy)){total+=q;delta+=2*buy-q;}}return {delta,total,pct:total>0?(delta/total)*100:null};}
