@@ -755,29 +755,45 @@ function syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear){
 }
 function syncSpecialMacdCandidates(){
  const eligible=[];for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol),volume=Number(t.quoteVolume);if(d&&Number.isFinite(volume)&&volume>=specialMacdMinVolume())eligible.push([symbol,{...d,quoteVolume:volume}]);}
- const mode=$("specialMacdUniverseMode")?.value||"threshold";let gainers=[],losers=[];
- if(mode==="ranking"){gainers=eligible.filter(([,v])=>v.change>0).sort((a,b)=>b[1].change-a[1].change).slice(0,specialMacdRankCount("specialMacdTopGainers"));losers=eligible.filter(([,v])=>v.change<0).sort((a,b)=>a[1].change-b[1].change).slice(0,specialMacdRankCount("specialMacdWorstLosers"));}
+ const mode=$("specialMacdUniverseMode")?.value||"threshold",bullTarget=specialMacdRankCount("specialMacdTopGainers"),bearTarget=specialMacdRankCount("specialMacdWorstLosers");
+ let gainers=[],losers=[];
+ if(mode==="ranking"){gainers=eligible.filter(([,v])=>v.change>0).sort((a,b)=>b[1].change-a[1].change);losers=eligible.filter(([,v])=>v.change<0).sort((a,b)=>a[1].change-b[1].change);}
  else{gainers=eligible.filter(([,v])=>v.change>=specialMacdMinGain()).sort((a,b)=>b[1].change-a[1].change);losers=eligible.filter(([,v])=>v.change<=-specialMacdMinGain()).sort((a,b)=>a[1].change-b[1].change);}
- const ranked=new Map([...gainers,...losers]),bull=new Map(gainers.filter(([symbol])=>specialRsiGatePass(symbol,"bull"))),bear=new Map(losers.filter(([symbol])=>specialRsiGatePass(symbol,"bear"))),next=new Map([...bull,...bear]);
- const rankedChanged=ranked.size!==specialMacdRankedCandidates.size||[...ranked.keys()].some(symbol=>!specialMacdRankedCandidates.has(symbol));
+ const evaluate=(side,items,target)=>{
+  const chosen=new Map(),evaluated=[],batch=[];
+  for(const entry of items){
+   if(chosen.size>=target)break;
+   const [symbol]=entry;evaluated.push(entry);
+   if(specialRsiRows.has(symbol)){if(specialRsiGatePass(symbol,side))chosen.set(symbol,entry);continue;}
+   batch.push(symbol);
+   if(batch.length>=3)break;
+  }
+  return {chosen,evaluated,batch};
+ };
+ const bullResult=evaluate("bull",gainers,bullTarget),bearResult=evaluate("bear",losers,bearTarget);
+ const bull=bullResult.chosen,bear=bearResult.chosen,next=new Map([...bull,...bear]);
+ const diagnosticGainers=new Map(bullResult.evaluated),diagnosticLosers=new Map(bearResult.evaluated);
+ const diagnosticRanked=new Map([...diagnosticGainers,...diagnosticLosers]);
+ specialMacdRankedCandidates=next;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
+ syncSpecialAlertDiagnostic(diagnosticRanked,diagnosticGainers,diagnosticLosers,bull,bear);
+ if(bullResult.batch.length||bearResult.batch.length){
+  for(const symbol of [...bullResult.batch,...bearResult.batch])if(!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
+ }
  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
- specialMacdRankedCandidates=ranked;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
- syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear);
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
- for(const symbol of ranked.keys())if(!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
- const modeLabel=mode==="ranking"?"Top "+specialMacdRankCount("specialMacdTopGainers")+" gainers / Worst "+specialMacdRankCount("specialMacdWorstLosers")+" losers":"24h threshold ±"+specialMacdMinGain()+"%";
- const renderSide=(rowsId,metaId,rows,empty)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" selected · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(item.change>0?"+":"")+item.change.toFixed(2)+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
- renderSide("specialGainersRows","specialGainersMeta",gainers,"No qualifying gainers.");renderSide("specialLosersRows","specialLosersMeta",losers,"No qualifying losers.");
+ const modeLabel=mode==="ranking"?"Top "+bullTarget+" RSI-qualified gainers / Worst "+bearTarget+" RSI-qualified losers":"24h threshold ±"+specialMacdMinGain()+"%";
+ const renderSide=(rowsId,metaId,rows,empty,target)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" RSI-qualified selected / "+target+" target · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(item.change>0?"+":"")+item.change.toFixed(2)+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
+ renderSide("specialGainersRows","specialGainersMeta",[...bull],"No gainers currently pass RSI.",bullTarget);renderSide("specialLosersRows","specialLosersMeta",[...bear],"No losers currently pass RSI.",bearTarget);
  renderSpecialRsiRows("specialBullRsiRows","specialBullRsiMeta",[...bull],"bull");renderSpecialRsiRows("specialBearRsiRows","specialBearRsiMeta",[...bear],"bear");renderAlertHistory();renderSpecialCrossMonitor();
- const status=$("specialMacdStatus");if(status)status.textContent=ranked.size+" ranked leaders/laggards · "+bull.size+" bullish RSI qualifiers · "+bear.size+" bearish RSI qualifiers ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); monitoring bullish crosses and bearish reversals independently.";
+ const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); RSI candidates are evaluated in rank order.";
 }
 async function loadSpecialRsiHistory(symbol){
- if(!specialMacdRankedCandidates.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);
- try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdRankedCandidates.has(symbol))return;
- const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});syncSpecialMacdCandidates();
+ if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);
+ try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdEligibleTickers.has(symbol))return;
+ const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});
  }catch(e){const status=$("specialMacdStatus");if(status)status.textContent="RSI history loading failed for "+symbol+": "+e.message+"; it will retry on the next universe refresh.";}
- finally{specialRsiLoads.delete(symbol);}
+ finally{specialRsiLoads.delete(symbol);syncSpecialMacdCandidates();}
 }
 function updateSpecialRsiKline(symbol,k){
  if(!specialMacdRankedCandidates.has(symbol)||!k||!["1h","4h"].includes(k.i))return;
