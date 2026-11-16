@@ -350,10 +350,6 @@ main{max-width:1800px;width:100%}
  <section class="special-universe-side special-universe-losers"><h3>🔴 02B · RSI QUALIFIERS — BEARISH REVERSAL ONLY</h3><div class="special-universe-meta" id="specialBearRsiMeta">Waiting for RSI data…</div><ol id="specialBearRsiRows"><li class="small">Waiting for RSI data…</li></ol></section>
 </div>
 
-  <section class="special-universe-side special-universe-losers"><h3>🔴 BEARISH REVERSAL — SELECTED LOSERS</h3><div style="overflow-x:auto"><table class="data-table" style="min-width:900px;width:100%"><thead><tr><th>Coin</th><th>RSI 1H / 4H</th><th>1m qualification / reason</th><th>3m qualification / reason</th><th>5m qualification / reason</th></tr></thead><tbody id="specialAlertDiagnosticBear"><tr><td colspan="5" class="small">Waiting for selected losers…</td></tr></tbody></table></div></section>
- </div>
-</section>
-  
 </div>
 <div class="panel" style="margin-top:12px;border-color:#276b55;background:#0d1c27">
  <div class="statusline"><div><b style="color:#43e3d0">MACD alert feeds</b><div class="small">Confirmed and directional MACD alerts.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggleConfirmedBullSound" class="secondary" type="button" style="width:auto">Confirmed bullish alert: OFF</button><button id="toggleConfirmedBearSound" class="secondary" type="button" style="width:auto">Confirmed bearish alert: OFF</button><button id="toggleCrossoverBullSound" class="secondary" type="button" style="width:auto">Bullish MACD crossover: OFF</button><button id="toggleCrossoverBearSound" class="secondary" type="button" style="width:auto">Bearish MACD crossover: OFF</button></div></div>
@@ -525,7 +521,7 @@ function specialMacdOiGatePasses(symbol,side){
 async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
  if(!confirmations||!confirmations.bull)return;
  if(!specialMacdBullCandidates.has(symbol))return;
- updateSpecialAlertDiagnostic("bull",symbol,tf,"EVENT DETECTED","Bullish MACD crossover detected; checking selected confirmations.");
+ 
  // Apply selected 15m bullish HTF confirmations before recording or displaying a special bullish cross.
  const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bull");
  if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected 15m bullish confirmation(s) did not pass.";return;}
@@ -536,7 +532,7 @@ async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePc
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;specialMacdBullAlertKeys.add(key);
  const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()){return;}if(!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange()){return;}
  const durations={"1m":60000,"3m":180000,"5m":300000},duration=durations[tf];if(!duration)return;
- const now=Date.now();updateSpecialAlertDiagnostic("bull",symbol,tf,"ALERTED","All checks passed; bullish crossover alert generated.");specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
+ const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
@@ -548,7 +544,7 @@ function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx
 async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
   if(!confirmations||!confirmations.bear)return;
   if(!specialMacdBearCandidates.has(symbol))return;
-  updateSpecialAlertDiagnostic("bear",symbol,tf,"EVENT DETECTED","Bearish MACD reversal detected; checking selected confirmations.");
+  
   // Reserve the event identity synchronously, before any asynchronous confirmation,
   // so overlapping WebSocket/fallback updates cannot log the same candle twice.
   const key=symbol+"|"+tf+"|"+candleTime;
@@ -565,7 +561,7 @@ async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
    if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
    const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()){return;}
    const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
-   updateSpecialAlertDiagnostic("bear",symbol,tf,"ALERTED","All checks passed; bearish reversal alert generated.");
+   
    specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
    specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
    specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
