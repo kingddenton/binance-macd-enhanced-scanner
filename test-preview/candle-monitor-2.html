@@ -488,6 +488,18 @@ function renderSpecialMacdBullHistory(){
  });
 }
 function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.2;}
+function specialMacdOiGatePasses(symbol,side){
+ const oi=specialCrossMonitorOi.get(symbol),changes=oi&&oi.changes,age=oi?Date.now()-(oi.updatedAt||0):Infinity;
+ const values=changes?["5m","15m","30m"].map(tf=>Number(changes[tf])):[NaN,NaN,NaN];
+ const ready=age<=60000&&values.every(Number.isFinite);
+ const pass=ready&&(side==="bull"?values.every(value=>value>=0):values.every(value=>value<0));
+ if(!pass){
+  if(!ready)loadSpecialCrossMonitorOi(symbol);
+  const status=$("specialMacdStatus");
+  if(status)status.textContent="BLOCKED "+(side==="bull"?"BULLISH CROSS":"BEARISH REVERSAL")+": "+symbol+" · final OI gate not passed ("+(ready?"5m / 15m / 30m OI direction mismatch":"OI readings missing, invalid, or older than 60 seconds")+").";
+ }
+ return pass;
+}
 async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
  if(!confirmations||!confirmations.bull)return;
  if(!specialMacdBullCandidates.has(symbol))return;
@@ -496,6 +508,7 @@ async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePc
  if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected 15m bullish confirmation(s) did not pass.";return;}
  const candidate=specialMacdCandidates.get(symbol);
  if(!candidate)return;
+ if(!specialMacdOiGatePasses(symbol,"bull"))return;
  if(specialMacdConfirmationEnabled("specialBull24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change>0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · 24h price change is not positive.";return;}
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;specialMacdBullAlertKeys.add(key);
  const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
@@ -517,6 +530,7 @@ async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected 15m bearish confirmation(s) did not pass.";return;}
  const candidate=specialMacdCandidates.get(symbol);
  if(!candidate)return;
+ if(!specialMacdOiGatePasses(symbol,"bear"))return;
  if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;specialMacdAlertKeys.add(key);
  const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
