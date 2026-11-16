@@ -774,12 +774,12 @@ function syncSpecialMacdCandidates(){
  const bull=bullResult.chosen,bear=bearResult.chosen,next=new Map([...bull,...bear]);
  const diagnosticGainers=new Map(bullResult.evaluated),diagnosticLosers=new Map(bearResult.evaluated);
  const diagnosticRanked=new Map([...diagnosticGainers,...diagnosticLosers]);
+ const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
  specialMacdRankedCandidates=next;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
  syncSpecialAlertDiagnostic(diagnosticRanked,diagnosticGainers,diagnosticLosers,bull,bear);
  if(bullResult.batch.length||bearResult.batch.length){
-  for(const symbol of [...bullResult.batch,...bearResult.batch])if(!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
+  for(const symbol of [...bullResult.batch,...bearResult.batch])if(specialRsiLoads.size<3&&!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
  }
- const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
  const modeLabel=mode==="ranking"?"Top "+bullTarget+" RSI-qualified gainers / Worst "+bearTarget+" RSI-qualified losers":"24h threshold ±"+specialMacdMinGain()+"%";
