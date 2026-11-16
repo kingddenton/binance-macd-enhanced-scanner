@@ -734,7 +734,7 @@ function syncSpecialMacdCandidates(){
  const rankedChanged=ranked.size!==specialMacdRankedCandidates.size||[...ranked.keys()].some(symbol=>!specialMacdRankedCandidates.has(symbol));
  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
  specialMacdRankedCandidates=ranked;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
- syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear);
+
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
  for(const symbol of ranked.keys())if(!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
