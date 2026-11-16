@@ -1167,6 +1167,7 @@ function earlyBullishSettings(){
 }
 async function buildEarlyBullishUniverse(eligibleTickers,baseSelected){
  setupEarlyBullishUniverseUI();
+ earlyBullishDiscoveryRows.clear();
  const settings=earlyBullishSettings(),eligible=eligibleTickers.slice(),rowsBySymbol=new Map(),candidates=[];
  let cursor=0,completed=0;
  const worker=async()=>{while(true){const index=cursor++;if(index>=eligible.length)return;const ticker=eligible[index];try{
