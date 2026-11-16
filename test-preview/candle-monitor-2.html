@@ -480,7 +480,7 @@ function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n
 function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
  if(!confirmations||!confirmations.bull)return;
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;
- const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||!(candidate.change>0)||(!rankingMode&&candidate.change<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;specialMacdBullAlertKeys.add(key);
+ const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;specialMacdBullAlertKeys.add(key);
  const durations={"1m":60000,"3m":180000,"5m":300000,"15m":900000},duration=durations[tf];if(!duration)return;
  const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
@@ -494,7 +494,7 @@ function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx
 function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  if(!confirmations||!confirmations.bear)return;
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;
- const candidate=specialMacdCandidates.get(symbol),rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if(!candidate||!(candidate.change<0)||(!rankingMode&&-candidate.change<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;specialMacdAlertKeys.add(key);
+ const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume())return;specialMacdAlertKeys.add(key);
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000,"15m":900000}[tf];if(!duration)return;
  specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000,"15m":900000}[item.tf]||0)).slice(0,5);
