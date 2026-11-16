@@ -1082,6 +1082,8 @@ async function universe(){
  const mode="symmetrical",period=null;
  const selectedTickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
  let selected=[...specialMacdCandidates.keys()].map(symbol=>selectedTickerBySymbol.get(symbol)).filter(Boolean);
+ // Preserve the established ranked universe; append only newly discovered early bullish candidates.
+ selected=await buildEarlyBullishUniverse(list.map(t=>t));
  // Threshold mode retains its existing threshold behavior and the scanner's coin-count cap.
  if($("specialMacdUniverseMode")?.value!=="ranking")selected=selected.slice(0,max);
  $("status").textContent="Symmetrical universe ready: "+selected.length+" coins (Top gainers + Worst losers).";
@@ -1137,6 +1139,59 @@ function renderTopMomentum(rows){
  body.innerHTML=eligible.length?eligible.map((x,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(x.symbol)+'</b></td><td>'+pctBadge(x.change)+'</td><td>'+x.rsi1.toFixed(1)+'</td><td>'+x.rsi3.toFixed(1)+'</td><td>'+x.rsi5.toFixed(1)+'</td></tr>').join(""):'<tr><td colspan="6" class="compact-empty">No qualifying coins in this scan.</td></tr>';
 }
 
+
+// CM2_EARLY_BULLISH_UNIVERSE_V1
+// RSI-first bullish discovery. Uses the shared Binance request queue and 3m candles only.
+let earlyBullishDiscoveryRows=new Map(),earlyBullishDiscoveryOnly=new Set(),earlyBullishCandidates=[];
+function setupEarlyBullishUniverseUI(){
+ const view=document.getElementById("candleMonitorView"),controls=document.getElementById("cm2Controls");
+ if(!view||!controls||document.getElementById("cm2EarlyBullishPanel"))return;
+ const control=document.createElement("div");control.className="cm2-control";
+ control.innerHTML='<label>Early bullish · 3m RSI minimum</label><input id="cm2EarlyRsiMin" type="number" min="0" max="100" step="0.5" value="60">';
+ controls.appendChild(control);
+ const control2=document.createElement("div");control2.className="cm2-control";
+ control2.innerHTML='<label>Early bullish · 3m RSI maximum</label><input id="cm2EarlyRsiMax" type="number" min="0" max="100" step="0.5" value="65">';
+ controls.appendChild(control2);
+ const control3=document.createElement("div");control3.className="cm2-control";
+ control3.innerHTML='<label>Early bullish · max positive MACD candles</label><input id="cm2EarlyMacdAge" type="number" min="1" max="20" step="1" value="5">';
+ controls.appendChild(control3);
+ const panel=document.createElement("section");panel.id="cm2EarlyBullishPanel";panel.className="panel";
+ panel.innerHTML='<h2 style="margin:0 0 7px;color:#70f0aa">Early bullish candidates · RSI first</h2><div class="small" id="cm2EarlyBullishMeta">Candidates will appear after a scan.</div><div class="tablewrap" style="margin-top:8px"><table class="compact-table" style="min-width:540px"><thead><tr><th>Coin</th><th>3m RSI</th><th>Positive MACD candles</th><th>24h change</th><th>24h volume</th></tr></thead><tbody id="cm2EarlyBullishRows"><tr><td colspan="5" class="compact-empty">No discovery scan yet.</td></tr></tbody></table></div>';
+ controls.insertAdjacentElement("afterend",panel);
+}
+function earlyBullishSettings(){
+ const read=(id,def,min,max)=>{const el=document.getElementById(id),v=Number(el&&el.value);return Number.isFinite(v)?Math.max(min,Math.min(max,v)):def;};
+ const min=read("cm2EarlyRsiMin",60,0,100),max=read("cm2EarlyRsiMax",65,0,100),age=Math.floor(read("cm2EarlyMacdAge",5,1,20));
+ if(min>max)throw new Error("Early bullish RSI minimum cannot exceed its maximum.");
+ return {min,max,age};
+}
+async function buildEarlyBullishUniverse(tickers){
+ setupEarlyBullishUniverseUI();
+ const settings=earlyBullishSettings(),eligible=tickers.slice(),rowsBySymbol=new Map(),candidates=[];
+ let cursor=0,completed=0;
+ const worker=async()=>{while(true){const index=cursor++;if(index>=eligible.length)return;const ticker=eligible[index];try{
+   const rows=await request("/fapi/v1/klines?symbol="+ticker.symbol+"&interval=3m&limit=100");
+   earlyBullishDiscoveryRows.set(ticker.symbol,rows);rowsBySymbol.set(ticker.symbol,rows);
+   const now=Date.now(),closed=rows.filter(row=>Number(row[6])<now);
+   if(closed.length>=30){const value=rsi(closed),m=macd(closed),hist=m.hist;let age=0;for(let i=hist.length-1;i>=0&&hist[i]>0;i--)age++;
+    if(Number.isFinite(value)&&value>=settings.min&&value<=settings.max&&age>=1&&age<=settings.age)candidates.push({symbol:ticker.symbol,rsi:value,age,change:Number(ticker.priceChangePercent),volume:Number(ticker.quoteVolume)});
+   }
+  }catch(e){/* A failed discovery request excludes only this symbol from this cycle. */}
+  completed++;
+ }};
+ await Promise.all(Array.from({length:6},worker));
+ earlyBullishCandidates=candidates.sort((a,b)=>a.age-b.age||b.volume-a.volume);
+ const existing=new Set(tickers.map(t=>t.symbol)),candidateSymbols=new Set(candidates.map(x=>x.symbol));
+ earlyBullishDiscoveryOnly=new Set([...candidateSymbols].filter(symbol=>!existing.has(symbol)));
+ const bySymbol=new Map(tickers.map(t=>[t.symbol,t]));
+ const extras=candidates.filter(x=>!existing.has(x.symbol)).map(x=>({symbol:x.symbol,lastPrice:"",priceChangePercent:x.change,quoteVolume:x.volume}));
+ const merged=tickers.concat(extras);
+ const body=document.getElementById("cm2EarlyBullishRows"),meta=document.getElementById("cm2EarlyBullishMeta");
+ if(meta)meta.textContent="Scanned "+completed+"/"+eligible.length+" liquid USDT perpetuals · RSI "+settings.min+"–"+settings.max+" · first "+settings.age+" positive closed 3m histogram candles · "+candidates.length+" candidates";
+ if(body)body.innerHTML=candidates.length?candidates.map(x=>'<tr><td><b>'+x.symbol+'</b></td><td>'+x.rsi.toFixed(1)+'</td><td>'+x.age+'/'+settings.age+'</td><td>'+(Number.isFinite(x.change)?(x.change>0?"+":"")+x.change.toFixed(2)+"%":"—")+'</td><td>'+Number(x.volume).toLocaleString(undefined,{maximumFractionDigits:0})+'</td></tr>').join(""):'<tr><td colspan="5" class="compact-empty">No coins currently meet all early-bullish conditions.</td></tr>';
+ return merged;
+}
+
 async function scan(){
  window.__cm2Diag?.("scan() entered.");
  if(busy){$("status").textContent="Previous scan is still running; this cycle will be skipped to avoid overlapping Binance requests.";return;}
@@ -1147,7 +1202,7 @@ async function scan(){
   const cvdTfs=new Set([...document.querySelectorAll("#cvdChecks input:checked")].map(x=>x.id.replace("cvdConfirm_",""))),cvdBars=Math.max(1,Math.min(50,Number($("cvdBars").value)||5)),cvdMin=Number($("cvdMin").value)||0,cvdMaxRaw=$("cvdMax").value.trim(),cvdMax=cvdMaxRaw===""?null:Number(cvdMaxRaw);const htfConfig={};for(const row of document.querySelectorAll("#htfChecks .htf-row")){const enabled=row.querySelector(".htf-enable");if(!enabled||!enabled.checked)continue;const conditions=[...row.querySelectorAll("[data-condition]:checked")].map(x=>x.dataset.condition);if(conditions.length)htfConfig[enabled.value]=conditions;}const deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),stFlipDisplay=$("stFlipEnabled").checked,minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols for bullish signals…";
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
-  const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key))candleCache.set(key,request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150"));return candleCache.get(key);};
+  const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key)){if(tf==="3m"&&earlyBullishDiscoveryRows.has(symbol))candleCache.set(key,Promise.resolve(earlyBullishDiscoveryRows.get(symbol)));else candleCache.set(key,request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150"));}return candleCache.get(key);};
   const getMacdAnalysis=async(symbol,tf)=>{const key=symbol+"|"+tf;if(!macdCache.has(key))macdCache.set(key,(async()=>{const rows=await getCandles(symbol,tf);return {rows,macd:macd(rows)};})());return macdCache.get(key);};
   let nextScanIndex=0,processedCount=0,markMapPromise=null,lastUiUpdate=0;
   const scanWorker=async()=>{while(true){const si=nextScanIndex++;if(si>=tickers.length)return;
@@ -1157,7 +1212,7 @@ async function scan(){
    try{const [a1,a3,a5]=await Promise.all(["1m","3m","5m"].map(tf=>getMacdAnalysis(t.symbol,tf)));oneMinuteCandleTime=Number(a1.rows.at(-1)?.[0]);advanceConfirmedAlerts(t.symbol,oneMinuteCandleTime);momentumData.push({symbol:t.symbol,change:Number(t.priceChangePercent),rsi1:rsi(a1.rows),rsi3:rsi(a3.rows),rsi5:rsi(a5.rows),age1:eventAge(a1.macd.hist,5,"bull"),age3:eventAge(a3.macd.hist,5,"bull"),age5:eventAge(a5.macd.hist,5,"bull")});const alignLimit=macdAlignmentLimit(),alignAges={bull:["1m","3m","5m"].map((tf,i)=>macdLineCrossAge([a1,a3,a5][i].macd,"bull",alignLimit)),bear:["1m","3m","5m"].map((tf,i)=>macdLineCrossAge([a1,a3,a5][i].macd,"bear",alignLimit))},alignTimes={bull:["1m","3m","5m"].map((tf,i)=>{const age=alignAges.bull[i],rows=[a1,a3,a5][i].rows;return age>=0?Number(rows[rows.length-1-age][0]):NaN;}),bear:["1m","3m","5m"].map((tf,i)=>{const age=alignAges.bear[i],rows=[a1,a3,a5][i].rows;return age>=0?Number(rows[rows.length-1-age][0]):NaN;})};recordMacdAlignment(t.symbol,Number(t.priceChangePercent),alignAges,alignTimes);}catch(e){}
    for(const tf of TFS){
     try{
-     diag.stages[tf].evaluated++;const analysis=await getMacdAnalysis(t.symbol,tf);updateHistogramMonitor(t.symbol,tf,analysis);const rows=analysis.rows,liveM=analysis.macd,liveI=liveM.hist.length-1,liveRow=rows[rows.length-1],hasFormingCandle=!!liveRow&&Number(liveRow[6])>Date.now(),firstFormingIndex=rows.findIndex(row=>Number(row[6])>Date.now()),closedCount=firstFormingIndex<0?rows.length:firstFormingIndex,i=closedCount-1,m={dif:liveM.dif.slice(0,closedCount),dea:liveM.dea.slice(0,closedCount),hist:liveM.hist.slice(0,closedCount)},rv=rsi(rows),cvd=cvdStats(rows,cvdBars),trace=coinRecord.timeframes[tf],age=eventAge(m.hist,window,"bull"),bearAge=eventAge(m.hist,window,"bear");if(i<1||liveI<1)throw new Error("Insufficient candles for MACD evaluation");/* One global mode controls general crossover alerts: closed candle confirmation or immediate forming-candle detection. */if($("alert"+tf).checked){if(macdDetectionMode()==="live"&&hasFormingCandle){if(liveM.hist[liveI]>0&&liveM.hist[liveI-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[liveI][0]),liveM.hist[liveI],"bull",cvdStats(rows.slice(0,liveI+1),cvdBars).pct,Number(t.priceChangePercent));if(liveM.hist[liveI]<0&&liveM.hist[liveI-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[liveI][0]),liveM.hist[liveI],"bear",cvdStats(rows.slice(0,liveI+1),cvdBars).pct,Number(t.priceChangePercent));}else if(macdDetectionMode()==="closed"){const replayFrom=Math.max(1,i-window+1);for(let crossIndex=replayFrom;crossIndex<=i;crossIndex++){const crossTime=Number(closedRows[crossIndex][0]),crossCvd=cvdStats(closedRows.slice(0,crossIndex+1),cvdBars).pct;if(m.hist[crossIndex]>0&&m.hist[crossIndex-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,crossTime,m.hist[crossIndex],"bull",crossCvd,Number(t.priceChangePercent));if(m.hist[crossIndex]<0&&m.hist[crossIndex-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,crossTime,m.hist[crossIndex],"bear",crossCvd,Number(t.priceChangePercent));}}}if(bearAge>=0){const prev=Number(rows[rows.length-2][4]),last=Number(rows[rows.length-1][4]),change=prev?((last-prev)/prev)*100:NaN;output.bear[tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age:bearAge,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi:NaN,priceChange:change,priceChange24h:Number(t.priceChangePercent),cvdPct:cvd.pct,cvdDelta:cvd.delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay:"—"});}trace.rsi=rv;trace.cvdDelta=cvd.delta;trace.cvdPct=cvd.pct;trace.cvdBars=cvdBars;trace.crossover=age>=0;trace.candle=age>=0?age+1:null;
+     diag.stages[tf].evaluated++;const analysis=await getMacdAnalysis(t.symbol,tf);updateHistogramMonitor(t.symbol,tf,analysis);const rows=analysis.rows,liveM=analysis.macd,liveI=liveM.hist.length-1,liveRow=rows[rows.length-1],hasFormingCandle=!!liveRow&&Number(liveRow[6])>Date.now(),firstFormingIndex=rows.findIndex(row=>Number(row[6])>Date.now()),closedCount=firstFormingIndex<0?rows.length:firstFormingIndex,i=closedCount-1,m={dif:liveM.dif.slice(0,closedCount),dea:liveM.dea.slice(0,closedCount),hist:liveM.hist.slice(0,closedCount)},rv=rsi(rows),cvd=cvdStats(rows,cvdBars),trace=coinRecord.timeframes[tf],age=eventAge(m.hist,window,"bull"),bearAge=eventAge(m.hist,window,"bear");if(i<1||liveI<1)throw new Error("Insufficient candles for MACD evaluation");/* One global mode controls general crossover alerts: closed candle confirmation or immediate forming-candle detection. */if($("alert"+tf).checked){if(macdDetectionMode()==="live"&&hasFormingCandle){if(liveM.hist[liveI]>0&&liveM.hist[liveI-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[liveI][0]),liveM.hist[liveI],"bull",cvdStats(rows.slice(0,liveI+1),cvdBars).pct,Number(t.priceChangePercent));if(liveM.hist[liveI]<0&&liveM.hist[liveI-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,Number(rows[liveI][0]),liveM.hist[liveI],"bear",cvdStats(rows.slice(0,liveI+1),cvdBars).pct,Number(t.priceChangePercent));}else if(macdDetectionMode()==="closed"){const replayFrom=Math.max(1,i-window+1);for(let crossIndex=replayFrom;crossIndex<=i;crossIndex++){const crossTime=Number(closedRows[crossIndex][0]),crossCvd=cvdStats(closedRows.slice(0,crossIndex+1),cvdBars).pct;if(m.hist[crossIndex]>0&&m.hist[crossIndex-1]<=0)fireFreshCrossoverAlert(t.symbol,tf,crossTime,m.hist[crossIndex],"bull",crossCvd,Number(t.priceChangePercent));if(m.hist[crossIndex]<0&&m.hist[crossIndex-1]>=0)fireFreshCrossoverAlert(t.symbol,tf,crossTime,m.hist[crossIndex],"bear",crossCvd,Number(t.priceChangePercent));}}}if(bearAge>=0&&!earlyBullishDiscoveryOnly.has(t.symbol)){const prev=Number(rows[rows.length-2][4]),last=Number(rows[rows.length-1][4]),change=prev?((last-prev)/prev)*100:NaN;output.bear[tf].push({symbol:t.symbol,price:Number(t.lastPrice).toPrecision(7),age:bearAge,window,macd:m.dif[i],dea:m.dea[i],rsi:rv,oi:NaN,priceChange:change,priceChange24h:Number(t.priceChangePercent),cvdPct:cvd.pct,cvdDelta:cvd.delta,fresh24hHigh:(fresh24hHighUntil.get(t.symbol)||0)>Date.now(),stDisplay:"—"});}trace.rsi=rv;trace.cvdDelta=cvd.delta;trace.cvdPct=cvd.pct;trace.cvdBars=cvdBars;trace.crossover=age>=0;trace.candle=age>=0?age+1:null;
      {
       const dir="bull";
       const reasons=[];const rsiMinRaw=$("rsiMin_"+tf).value.trim(),rsiMaxRaw=$("rsiMax_"+tf).value.trim(),rsiFilter=(rsiMinRaw===""?"":">="+rsiMinRaw)+(rsiMinRaw!==""&&rsiMaxRaw!==""?" and ":"")+(rsiMaxRaw===""?"":"<="+rsiMaxRaw);
@@ -2046,6 +2101,7 @@ html,body{min-height:100%;}body{padding:8px!important}
  if(reversalPanel)reversalPanel.remove();
  // The original Green Tracker page retains these alert features and their logic.
  // No scan is started automatically. The independent scanner starts only on user action.
+setupEarlyBullishUniverseUI();
 })();
 </script>
 
