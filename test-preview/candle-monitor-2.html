@@ -349,8 +349,15 @@ main{max-width:1800px;width:100%}
  <section class="special-universe-side special-universe-gainers"><h3>🟢 02A · RSI QUALIFIERS — BULLISH CROSS ONLY</h3><div class="special-universe-meta" id="specialBullRsiMeta">Waiting for RSI data…</div><ol id="specialBullRsiRows"><li class="small">Waiting for RSI data…</li></ol></section>
  <section class="special-universe-side special-universe-losers"><h3>🔴 02B · RSI QUALIFIERS — BEARISH REVERSAL ONLY</h3><div class="special-universe-meta" id="specialBearRsiMeta">Waiting for RSI data…</div><ol id="specialBearRsiRows"><li class="small">Waiting for RSI data…</li></ol></section>
 </div>
+<section class="panel" id="specialAlertQualificationPanel" style="margin-top:10px;padding:10px;border:1px solid #52677e;background:#101b29">
+ <div class="statusline"><div><b style="color:#d9eaff">SPECIAL ALERT QUALIFICATION DIAGNOSTIC</b><div class="small">Only coins selected in the active Leaders / Laggards universe are shown. Each coin is tracked separately for 1m, 3m and 5m.</div></div><span id="specialAlertDiagnosticMeta" class="small">Waiting for selected universe…</span></div>
+ <div class="small" style="margin:7px 0">A coin marked “WAITING” has not yet produced the relevant MACD event. Final 15m and OI gates are reported when an event reaches those checks; this diagnostic does not change alert rules.</div>
+ <div class="special-universe-diagnostic">
+  <section class="special-universe-side special-universe-gainers"><h3>🟢 BULLISH CROSS — SELECTED GAINERS</h3><div style="overflow-x:auto"><table class="data-table" style="min-width:760px;width:100%"><thead><tr><th>Coin</th><th>TF</th><th>RSI 1H / 4H</th><th>Qualification</th><th>Reason / latest check</th></tr></thead><tbody id="specialAlertDiagnosticBull"><tr><td colspan="5" class="small">Waiting for selected gainers…</td></tr></tbody></table></div></section>
+  <section class="special-universe-side special-universe-losers"><h3>🔴 BEARISH REVERSAL — SELECTED LOSERS</h3><div style="overflow-x:auto"><table class="data-table" style="min-width:760px;width:100%"><thead><tr><th>Coin</th><th>TF</th><th>RSI 1H / 4H</th><th>Qualification</th><th>Reason / latest check</th></tr></thead><tbody id="specialAlertDiagnosticBear"><tr><td colspan="5" class="small">Waiting for selected losers…</td></tr></tbody></table></div></section>
+ </div>
+</section>
   
-
 </div>
 <div class="panel" style="margin-top:12px;border-color:#276b55;background:#0d1c27">
  <div class="statusline"><div><b style="color:#43e3d0">MACD alert feeds</b><div class="small">Confirmed and directional MACD alerts.</div></div><div class="row" style="margin-top:0;flex-wrap:wrap"><button id="toggleConfirmedBullSound" class="secondary" type="button" style="width:auto">Confirmed bullish alert: OFF</button><button id="toggleConfirmedBearSound" class="secondary" type="button" style="width:auto">Confirmed bearish alert: OFF</button><button id="toggleCrossoverBullSound" class="secondary" type="button" style="width:auto">Bullish MACD crossover: OFF</button><button id="toggleCrossoverBearSound" class="secondary" type="button" style="width:auto">Bearish MACD crossover: OFF</button></div></div>
@@ -374,7 +381,7 @@ let hostIndex=0,lastRequest=0,activeRequests=0,pendingRequests=[],requestPumpTim
 const MAX_CONCURRENT_REQUESTS=10,MIN_REQUEST_START_GAP_MS=75; // Controlled throughput test: 10 in-flight max, ~13.3 request starts/sec.
 const inFlightRequests=new Map(),responseCache=new Map(); // Share in-flight requests and briefly reuse fresh market-data responses across monitors.
 const previous24hHigh=new Map(),fresh24hHighUntil=new Map(),universePeriodCache=new Map(),rollingOiHistory=new Map();
-const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
+const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialAlertDiagnostic=new Map();let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
 function playAlertTone(tier,direction,tf){
  const soundKey=(tier==="confirmed"?"confirmed":"crossover")+(direction==="bull"?"Bull":"Bear");const timeframeCheckbox=$("alert"+tf);if(!alertSoundEnabled[soundKey]||(timeframeCheckbox&&!timeframeCheckbox.checked))return;
  try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
@@ -522,17 +529,18 @@ function specialMacdOiGatePasses(symbol,side){
 async function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
  if(!confirmations||!confirmations.bull)return;
  if(!specialMacdBullCandidates.has(symbol))return;
+ updateSpecialAlertDiagnostic("bull",symbol,tf,"EVENT DETECTED","Bullish MACD crossover detected; checking selected confirmations.");
  // Apply selected 15m bullish HTF confirmations before recording or displaying a special bullish cross.
  const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bull");
- if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected 15m bullish confirmation(s) did not pass.";return;}
+ if(!htfPass){updateSpecialAlertDiagnostic("bull",symbol,tf,"DISQUALIFIED","Selected 15m bullish confirmation(s) did not pass.");const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · selected 15m bullish confirmation(s) did not pass.";return;}
  const candidate=specialMacdCandidates.get(symbol);
  if(!candidate)return;
- if(!specialMacdOiGatePasses(symbol,"bull"))return;
- if(specialMacdConfirmationEnabled("specialBull24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change>0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · 24h price change is not positive.";return;}
+ if(!specialMacdOiGatePasses(symbol,"bull")){const oi=specialCrossMonitorOi.get(symbol),v=oi?.changes||{};updateSpecialAlertDiagnostic("bull",symbol,tf,"DISQUALIFIED","OI gate failed / unavailable: 5m "+(Number.isFinite(Number(v["5m"]))?Number(v["5m"]).toFixed(2)+"%":"—")+", 15m "+(Number.isFinite(Number(v["15m"]))?Number(v["15m"]).toFixed(2)+"%":"—")+", 30m "+(Number.isFinite(Number(v["30m"]))?Number(v["30m"]).toFixed(2)+"%":"—")+".");return;}
+ if(specialMacdConfirmationEnabled("specialBull24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change>0)){updateSpecialAlertDiagnostic("bull",symbol,tf,"DISQUALIFIED","24h price direction check failed: "+candidate.change+"%.");const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · 24h price change is not positive.";return;}
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;specialMacdBullAlertKeys.add(key);
- const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;
+ const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()){updateSpecialAlertDiagnostic("bull",symbol,tf,"DISQUALIFIED","Universe threshold / 24h quote-volume check failed.");return;}if(!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange()){updateSpecialAlertDiagnostic("bull",symbol,tf,"DISQUALIFIED","Candle change "+(Number.isFinite(candleChangePct)?candleChangePct.toFixed(3)+"%":"unavailable")+" is below the minimum "+specialBullMinCandleChange()+"%.");return;}
  const durations={"1m":60000,"3m":180000,"5m":300000},duration=durations[tf];if(!duration)return;
- const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
+ const now=Date.now();updateSpecialAlertDiagnostic("bull",symbol,tf,"ALERTED","All checks passed; bullish crossover alert generated.");specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*durations[item.tf]).slice(0,5);
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
@@ -544,6 +552,7 @@ function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx
 async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
   if(!confirmations||!confirmations.bear)return;
   if(!specialMacdBearCandidates.has(symbol))return;
+  updateSpecialAlertDiagnostic("bear",symbol,tf,"EVENT DETECTED","Bearish MACD reversal detected; checking selected confirmations.");
   // Reserve the event identity synchronously, before any asynchronous confirmation,
   // so overlapping WebSocket/fallback updates cannot log the same candle twice.
   const key=symbol+"|"+tf+"|"+candleTime;
@@ -553,13 +562,14 @@ async function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
   try{
    // Apply the selected 15m bearish HTF confirmations to every special 1m/3m/5m bearish reversal.
    const htfPass=await cm2Passes15mAlertConfirmation(symbol,tf,"bear");
-   if(!htfPass){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected 15m bearish confirmation(s) did not pass.";return;}
+   if(!htfPass){updateSpecialAlertDiagnostic("bear",symbol,tf,"DISQUALIFIED","Selected 15m bearish confirmation(s) did not pass.");const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · selected 15m bearish confirmation(s) did not pass.";return;}
    const candidate=specialMacdCandidates.get(symbol);
    if(!candidate)return;
-   if(!specialMacdOiGatePasses(symbol,"bear"))return;
-   if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
-   const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume())return;
+   if(!specialMacdOiGatePasses(symbol,"bear")){const oi=specialCrossMonitorOi.get(symbol),v=oi?.changes||{};updateSpecialAlertDiagnostic("bear",symbol,tf,"DISQUALIFIED","OI gate failed / unavailable: 5m "+(Number.isFinite(Number(v["5m"]))?Number(v["5m"]).toFixed(2)+"%":"—")+", 15m "+(Number.isFinite(Number(v["15m"]))?Number(v["15m"]).toFixed(2)+"%":"—")+", 30m "+(Number.isFinite(Number(v["30m"]))?Number(v["30m"]).toFixed(2)+"%":"—")+".");return;}
+   if(specialMacdConfirmationEnabled("specialBear24hDirection")&&!(Number.isFinite(candidate.change)&&candidate.change<0)){updateSpecialAlertDiagnostic("bear",symbol,tf,"DISQUALIFIED","24h price direction check failed: "+candidate.change+"%.");const status=$("specialMacdStatus");if(status)status.textContent="BLOCKED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · 24h price change is not negative.";return;}
+   const rankingMode=$("specialMacdUniverseMode")?.value==="ranking";if((!rankingMode&&Math.abs(candidate.change)<specialMacdMinGain())||candidate.quoteVolume<specialMacdMinVolume()){updateSpecialAlertDiagnostic("bear",symbol,tf,"DISQUALIFIED","Universe threshold / 24h quote-volume check failed.");return;}
    const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000}[tf];if(!duration)return;
+   updateSpecialAlertDiagnostic("bear",symbol,tf,"ALERTED","All checks passed; bearish reversal alert generated.");
    specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now});
    specialMacdHistory=specialMacdHistory.filter(item=>now<item.candleTime+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000}[item.tf]||0)).slice(0,5);
    specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
@@ -723,6 +733,26 @@ function renderSpecialCrossMonitor(){
  body.innerHTML=section("🟢 OI POSITIVE — all 3 timeframes above 0%",positive,"#79e6ad")+section("🔴 OI NEGATIVE — all 3 timeframes below 0%",negative,"#ff9292")+section("🟡 MIXED / NEUTRAL — combination of positive, negative or zero",mixed,"#f4d27a");
  if(pending)body.innerHTML+='<tr><td colspan="10" class="small">OI data pending or unavailable for '+pending+' coin(s); they will be placed into a group when all three readings are available.</td></tr>';
 }
+function specialAlertDiagKey(side,symbol,tf){return side+"|"+symbol+"|"+tf;}
+function updateSpecialAlertDiagnostic(side,symbol,tf,status,reason){
+ if(!specialMacdRankedCandidates.has(symbol))return;
+ const key=specialAlertDiagKey(side,symbol,tf),prior=specialAlertDiagnostic.get(key)||{side,symbol,tf,status:"WAITING",reason:"Selected in universe; waiting for MACD event."};
+ specialAlertDiagnostic.set(key,{...prior,side,symbol,tf,status,reason,updatedAt:Date.now()});
+ renderSpecialAlertDiagnostic();
+}
+function renderSpecialAlertDiagnostic(){
+ const rowsFor=side=>[...specialAlertDiagnostic.values()].filter(x=>x.side===side).sort((a,b)=>a.symbol.localeCompare(b.symbol)||(["1m","3m","5m"].indexOf(a.tf)-["1m","3m","5m"].indexOf(b.tf)));
+ const render=(id,side)=>{const body=$(id);if(!body)return;const rows=rowsFor(side);body.innerHTML=rows.length?rows.map(x=>{const data=specialRsiRows.get(x.symbol)||{},r1=specialRsiValue(data["1h"]),r4=specialRsiValue(data["4h"]),rsi=(Number.isFinite(r1)?r1.toFixed(1):"—")+" / "+(Number.isFinite(r4)?r4.toFixed(1):"—");return '<tr><td><b>'+esc(x.symbol)+'</b></td><td>'+x.tf+'</td><td>'+rsi+'</td><td><b>'+esc(x.status)+'</b></td><td>'+esc(x.reason)+'</td></tr>';}).join(""):'<tr><td colspan="5" class="small">No coins currently selected on this side.</td></tr>';};
+ render("specialAlertDiagnosticBull","bull");render("specialAlertDiagnosticBear","bear");
+ const meta=$("specialAlertDiagnosticMeta");if(meta){const b=rowsFor("bull"),r=rowsFor("bear");meta.textContent=(new Set(b.map(x=>x.symbol)).size)+" selected gainers · "+(new Set(r.map(x=>x.symbol)).size)+" selected losers";}
+}
+function syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear){
+ const keep=new Set();const add=(side,items,candidates)=>{for(const [symbol,item] of items){const passed=candidates.has(symbol),rsiData=specialRsiRows.get(symbol)||{},checks=side==="bull"?[["1h","specialBullRsi1hEnabled","specialBullRsi1hThreshold",true],["4h","specialBullRsi4hEnabled","specialBullRsi4hThreshold",true]]:[["1h","specialBearRsi1hEnabled","specialBearRsi1hThreshold",false],["4h","specialBearRsi4hEnabled","specialBearRsi4hThreshold",false]];let reason="RSI passed; waiting for 1m / 3m / 5m MACD event.";let status="WAITING";if(!passed){const failed=checks.filter(([tf,en,th,above])=>specialRsiGateEnabled(en)).map(([tf,en,th,above])=>({tf,value:specialRsiValue(rsiData[tf]),threshold:Number($(th)?.value),above})).find(x=>!Number.isFinite(x.value)||!Number.isFinite(x.threshold)||(x.above?x.value<=x.threshold:x.value>=x.threshold));if(failed){status="DISQUALIFIED";reason=!Number.isFinite(failed.value)?"RSI "+failed.tf.toUpperCase()+" unavailable; RSI gate cannot pass yet.":"RSI "+failed.tf.toUpperCase()+" "+failed.value.toFixed(1)+(failed.above?" is not above ":" is not below ")+failed.threshold+"."; }else{status="DISQUALIFIED";reason="Side-specific RSI qualification failed.";}}
+ for(const tf of ["1m","3m","5m"]){const key=specialAlertDiagKey(side,symbol,tf);keep.add(key);const old=specialAlertDiagnostic.get(key);specialAlertDiagnostic.set(key,{side,symbol,tf,status:old&&old.status!=="WAITING"?old.status:status,reason:old&&old.status!=="WAITING"?old.reason:reason,updatedAt:Date.now(),change:item.change,quoteVolume:item.quoteVolume});}}};
+ add("bull",gainers,bull);add("bear",losers,bear);
+ for(const key of [...specialAlertDiagnostic.keys()])if(!keep.has(key))specialAlertDiagnostic.delete(key);
+ renderSpecialAlertDiagnostic();
+}
 function syncSpecialMacdCandidates(){
  const eligible=[];for(const [symbol,t] of specialMacdEligibleTickers){const d=getSpecialRollingMetric(symbol),volume=Number(t.quoteVolume);if(d&&Number.isFinite(volume)&&volume>=specialMacdMinVolume())eligible.push([symbol,{...d,quoteVolume:volume}]);}
  const mode=$("specialMacdUniverseMode")?.value||"threshold";let gainers=[],losers=[];
@@ -732,6 +762,7 @@ function syncSpecialMacdCandidates(){
  const rankedChanged=ranked.size!==specialMacdRankedCandidates.size||[...ranked.keys()].some(symbol=>!specialMacdRankedCandidates.has(symbol));
  const changed=next.size!==specialMacdCandidates.size||[...next.keys()].some(symbol=>!specialMacdCandidates.has(symbol));
  specialMacdRankedCandidates=ranked;specialMacdBullCandidates=bull;specialMacdBearCandidates=bear;specialMacdCandidates=next;
+ syncSpecialAlertDiagnostic(ranked,gainers,losers,bull,bear);
  if(changed){const old=specialMacdSockets;specialMacdSockets=[];for(const socket of old){try{socket.close();}catch(e){}}if(specialMacdReconnectTimer){clearTimeout(specialMacdReconnectTimer);specialMacdReconnectTimer=null;}if(next.size)ensureSpecialMacdSockets();}
  for(const symbol of ranked.keys())if(!specialRsiRows.has(symbol)&&!specialRsiLoads.has(symbol))loadSpecialRsiHistory(symbol);
  for(const symbol of next.keys())if(!specialMacdHistories.has(symbol))loadSpecialMacdHistory(symbol);
