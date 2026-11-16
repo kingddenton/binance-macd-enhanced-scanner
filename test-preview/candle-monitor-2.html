@@ -1352,7 +1352,7 @@ function evaluateOiAlignmentAlert(symbol,oiRows,liveMacdHist){
  if(previous===direction)return;
  oiAlignmentAlertState.set(symbol,direction);
  oiAlignmentAlertHistory.unshift({symbol,direction,oi5:changes[5],oi15:changes[15],oi30:changes[30],hist:liveMacdHist,at:Date.now(),oiTime:latest.t});
- if(oiAlignmentAlertHistory.length>30)oiAlignmentAlertHistory.length=30;
+ let keptForDirection=0;for(let i=0;i<oiAlignmentAlertHistory.length;i++){if(oiAlignmentAlertHistory[i].direction===direction&&++keptForDirection>5)oiAlignmentAlertHistory.splice(i--,1);}
  renderOiAlignmentAlert();
 }
 
