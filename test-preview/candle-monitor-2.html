@@ -695,11 +695,12 @@ function specialRsiValue(rows){
  return avgDown===0?(avgUp===0?50:100):100-(100/(1+avgUp/avgDown));
 }
 function specialRsiGateEnabled(id){return !!$(id)?.checked;}
-function specialRsiGatePass(symbol,side){
+function specialRsiGateStatus(symbol,side){
  const data=specialRsiRows.get(symbol)||{},checks=side==="bull"?[["1h","specialBullRsi1hEnabled","specialBullRsi1hThreshold",true],["4h","specialBullRsi4hEnabled","specialBullRsi4hThreshold",true]]:[["1h","specialBearRsi1hEnabled","specialBearRsi1hThreshold",false],["4h","specialBearRsi4hEnabled","specialBearRsi4hThreshold",false]];
- for(const [tf,enabledId,thresholdId,above] of checks){if(!specialRsiGateEnabled(enabledId))continue;const value=specialRsiValue(data[tf]),threshold=Number($(thresholdId)?.value);if(!Number.isFinite(value)||!Number.isFinite(threshold)||(above?value<=threshold:value>=threshold))return false;}
- return true;
+ for(const [tf,enabledId,thresholdId,above] of checks){if(!specialRsiGateEnabled(enabledId))continue;const value=specialRsiValue(data[tf]),threshold=Number($(thresholdId)?.value);if(!Number.isFinite(value)||!Number.isFinite(threshold))return "PENDING";if(above?value<=threshold:value>=threshold)return "FAIL";}
+ return "PASS";
 }
+function specialRsiGatePass(symbol,side){return specialRsiGateStatus(symbol,side)==="PASS";}
 function renderSpecialRsiRows(rowsId,metaId,rows,side){
  const body=$(rowsId),meta=$(metaId);if(meta)meta.textContent=rows.length+" RSI-qualified · live 1H / 4H RSI · "+(side==="bull"?"bullish cross only":"bearish reversal only");
  if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>{const data=specialRsiRows.get(symbol)||{},r1=specialRsiValue(data["1h"]),r4=specialRsiValue(data["4h"]);return '<li class="'+(side==="bull"?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>1H '+(Number.isFinite(r1)?r1.toFixed(1):"—")+' · 4H '+(Number.isFinite(r4)?r4.toFixed(1):"—")+' · '+(Number.isFinite(Number(item?.change))?(Number(item.change)>0?"+":"")+Number(item.change).toFixed(2):"—")+'%</span></li>';}).join(""):'<li class="small">No coins currently pass the enabled RSI checks.</li>';
@@ -764,9 +765,11 @@ function syncSpecialMacdCandidates(){
   for(const entry of items){
    if(chosen.size>=target)break;
    const [symbol]=entry;evaluated.push(entry);
-   if(specialRsiRows.has(symbol)){if(specialRsiGatePass(symbol,side))chosen.set(symbol,entry);continue;}
+   const gate=specialRsiGateStatus(symbol,side);
+   if(gate==="PASS"){chosen.set(symbol,entry);continue;}
+   if(gate==="FAIL")continue;
    batch.push(symbol);
-   if(batch.length>=3)break;
+   break;
   }
   return {chosen,evaluated,batch};
  };
