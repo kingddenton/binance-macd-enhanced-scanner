@@ -355,7 +355,7 @@ const hosts=["https://fapi.binance.com","https://fapi1.binance.com","https://fap
 
 let hostIndex=0,lastRequest=0,activeRequests=0,pendingRequests=[],requestPumpTimer=null,timer=null,busy=false,countdownTimer=null,nextAt=0,autoActive=false,exchangeInfoCache=null,exchangeInfoAt=0,exchangeInfoPromise=null;
 const MAX_CONCURRENT_REQUESTS=10,MIN_REQUEST_START_GAP_MS=75; // Controlled throughput test: 10 in-flight max, ~13.3 request starts/sec.
-const inFlightRequests=new Map(); // Share identical concurrent Binance GETs across monitors; no response caching.
+const inFlightRequests=new Map(),responseCache=new Map(); // Share in-flight requests and briefly reuse fresh market-data responses across monitors.
 const previous24hHigh=new Map(),fresh24hHighUntil=new Map(),universePeriodCache=new Map(),rollingOiHistory=new Map();
 const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
 function playAlertTone(tier,direction,tf){
@@ -616,7 +616,7 @@ async function processSpecialMacdKline(symbol,tf,k){
  try{await task;}catch(e){const status=$("specialMacdStatus");if(status)status.textContent="MACD candle recovery failed for "+symbol+" "+tf+": "+e.message+"; retrying on subsequent stream/fallback updates.";}
  finally{if(specialMacdQueues.get(key)===task)specialMacdQueues.delete(key);}
 }
-async function loadSpecialMacdHistory(symbol){if(!specialMacdCandidates.has(symbol)||specialMacdHistories.has(symbol)||specialMacdHistoryLoads.has(symbol))return;specialMacdHistoryLoads.add(symbol);try{const [one,three,five,fifteen]=await Promise.all(["1m","3m","5m","15m"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100")));if(!specialMacdCandidates.has(symbol))return;const closed=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[6])<=Date.now()):[];const histories={"1m":closed(one),"3m":closed(three),"5m":closed(five),"15m":closed(fifteen)};if(!Object.values(histories).every(rows=>rows.length>=35))throw new Error("Insufficient completed 1m/3m/5m/15m candle history");specialMacdHistories.set(symbol,histories);specialMacdStates.set(symbol,{"1m":macd(histories["1m"]).hist.at(-1),"3m":macd(histories["3m"]).hist.at(-1),"5m":macd(histories["5m"]).hist.at(-1),"15m":macd(histories["15m"]).hist.at(-1)});for(const tf of ["1m","3m","5m","15m"]){const key=symbol+"|"+tf,pending=specialMacdPending.get(key)||[];specialMacdPending.delete(key);for(const row of pending){
+async function loadSpecialMacdHistory(symbol){if(!specialMacdCandidates.has(symbol)||specialMacdHistories.has(symbol)||specialMacdHistoryLoads.has(symbol))return;specialMacdHistoryLoads.add(symbol);try{const [one,three,five,fifteen]=await Promise.all(["1m","3m","5m","15m"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdCandidates.has(symbol))return;const closed=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[6])<=Date.now()):[];const histories={"1m":closed(one),"3m":closed(three),"5m":closed(five),"15m":closed(fifteen)};if(!Object.values(histories).every(rows=>rows.length>=35))throw new Error("Insufficient completed 1m/3m/5m/15m candle history");specialMacdHistories.set(symbol,histories);specialMacdStates.set(symbol,{"1m":macd(histories["1m"]).hist.at(-1),"3m":macd(histories["3m"]).hist.at(-1),"5m":macd(histories["5m"]).hist.at(-1),"15m":macd(histories["15m"]).hist.at(-1)});for(const tf of ["1m","3m","5m","15m"]){const key=symbol+"|"+tf,pending=specialMacdPending.get(key)||[];specialMacdPending.delete(key);for(const row of pending){
  const currentRows=histories[tf],idx=currentRows.findIndex(item=>Number(item[0])===Number(row[0]));
  if(idx>0){
   const slice=currentRows.slice(0,idx+1),calc=macd(slice),prior=calc.hist[idx-1],current=calc.hist[idx],st=supertrendInfo(slice,10,3),confirm=specialMacdConfirmations(st,calc.dif[idx],calc.dea[idx]),open=Number(row[1]),close=Number(row[4]),pct=open>0?(close/open-1)*100:NaN;
@@ -691,7 +691,7 @@ function syncSpecialMacdCandidates(){
 }
 async function loadSpecialRsiHistory(symbol){
  if(!specialMacdRankedCandidates.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);
- try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=100")));if(!specialMacdRankedCandidates.has(symbol))return;
+ try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdRankedCandidates.has(symbol))return;
  const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});syncSpecialMacdCandidates();
  }catch(e){const status=$("specialMacdStatus");if(status)status.textContent="RSI history loading failed for "+symbol+": "+e.message+"; it will retry on the next universe refresh.";}
  finally{specialRsiLoads.delete(symbol);}
@@ -1096,6 +1096,17 @@ function pumpRequests(){
  pumpRequests();
 }
 function scheduleRequest(run){return new Promise((resolve,reject)=>{pendingRequests.push({run,resolve,reject,queuedAt:performance.now()});pumpRequests();});}
+function responseCacheTtl(url){
+ const path=url.split("?")[0],query=new URLSearchParams(url.split("?")[1]||"");
+ if(path.endsWith("/klines")){
+  const interval=query.get("interval");
+  return ({"1m":2500,"3m":5000,"5m":5000,"15m":10000,"1h":30000,"4h":60000})[interval]||0;
+ }
+ if(path.endsWith("/openInterestHist"))return 10000;
+ if(path.endsWith("/openInterest"))return 3000;
+ if(path.endsWith("/premiumIndex"))return 10000;
+ return 0;
+}
 function request(url,baseOverride=null){
  const run=async()=>{
   if(diag.cooldownUntil>Date.now())throw new Error("Binance cooldown active until "+new Date(diag.cooldownUntil).toLocaleTimeString()+" after HTTP "+diag.lastHttpStatus);
@@ -1117,7 +1128,10 @@ function request(url,baseOverride=null){
   throw last||new Error("Binance request failed");
  };
  const requestKey=(baseOverride||"auto")+"|"+url,existing=inFlightRequests.get(requestKey);if(existing){diag.requestDedupHits=(diag.requestDedupHits||0)+1;return existing;}
- const pending=scheduleRequest(run);inFlightRequests.set(requestKey,pending);
+ const now=Date.now(),cached=responseCache.get(requestKey);if(cached&&cached.expiresAt>now){diag.cacheHits++;return Promise.resolve(cached.value);}if(cached)responseCache.delete(requestKey);
+ const pending=scheduleRequest(run);inFlightRequests.set(requestKey,pending);diag.cacheMisses++;
+ const ttl=responseCacheTtl(url);
+ pending.then(value=>{if(ttl>0){const at=Date.now();for(const [key,item] of responseCache)if(item.expiresAt<=at)responseCache.delete(key);if(responseCache.size>=1200)responseCache.delete(responseCache.keys().next().value);responseCache.set(requestKey,{value,expiresAt:at+ttl});}},()=>{});
  const clearPending=()=>{if(inFlightRequests.get(requestKey)===pending)inFlightRequests.delete(requestKey);};pending.then(clearPending,clearPending);
  return pending;
 }
