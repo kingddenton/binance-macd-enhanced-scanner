@@ -789,11 +789,11 @@ function syncSpecialMacdCandidates(){
  const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); RSI candidates are evaluated in rank order.";
 }
 async function loadSpecialRsiHistory(symbol){
- if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);
+ if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);let loaded=false;
  try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdEligibleTickers.has(symbol))return;
- const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});
+ const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});loaded=true;
  }catch(e){const status=$("specialMacdStatus");if(status)status.textContent="RSI history loading failed for "+symbol+": "+e.message+"; it will retry on the next universe refresh.";}
- finally{specialRsiLoads.delete(symbol);syncSpecialMacdCandidates();}
+ finally{specialRsiLoads.delete(symbol);if(loaded)syncSpecialMacdCandidates();}
 }
 function updateSpecialRsiKline(symbol,k){
  if(!specialMacdRankedCandidates.has(symbol)||!k||!["1h","4h"].includes(k.i))return;
