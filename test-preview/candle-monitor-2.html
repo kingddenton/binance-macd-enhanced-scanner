@@ -1260,7 +1260,7 @@ async function scan(){
   let nextScanIndex=0,processedCount=0,markMapPromise=null,lastUiUpdate=0;
   const scanWorker=async()=>{while(true){const si=nextScanIndex++;if(si>=tickers.length)return;
    const t=tickers[si],coinRecord=diag.universe[si];
-   if(tickers.length>20){for(const tf of TFS){try{await getMacdAnalysis(t.symbol,tf);}catch(e){}}}else{await Promise.all(TFS.map(tf=>getMacdAnalysis(t.symbol,tf).catch(()=>null)));}
+   await Promise.all(TFS.map(tf=>getMacdAnalysis(t.symbol,tf).catch(()=>null)));
    let oneMinuteCandleTime=NaN;
    try{const [a1,a3,a5]=await Promise.all(["1m","3m","5m"].map(tf=>getMacdAnalysis(t.symbol,tf)));oneMinuteCandleTime=Number(a1.rows.at(-1)?.[0]);advanceConfirmedAlerts(t.symbol,oneMinuteCandleTime);momentumData.push({symbol:t.symbol,change:Number(t.priceChangePercent),rsi1:cachedIndicator(a1,"rsi14",rows=>rsi(rows,14)),rsi3:cachedIndicator(a3,"rsi14",rows=>rsi(rows,14)),rsi5:cachedIndicator(a5,"rsi14",rows=>rsi(rows,14)),age1:eventAge(a1.macd.hist,5,"bull"),age3:eventAge(a3.macd.hist,5,"bull"),age5:eventAge(a5.macd.hist,5,"bull")});}catch(e){}
    for(const tf of TFS){
