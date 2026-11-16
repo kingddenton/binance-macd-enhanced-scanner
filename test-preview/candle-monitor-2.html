@@ -789,7 +789,9 @@ function syncSpecialMacdCandidates(){
  const renderSide=(rowsId,metaId,rows,empty,target)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" RSI-qualified selected / "+target+" target · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(Number.isFinite(Number(item?.change))?(Number(item.change)>0?"+":"")+Number(item.change).toFixed(2):"—")+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
  renderSide("specialGainersRows","specialGainersMeta",[...bull],"No gainers currently pass RSI.",bullTarget);renderSide("specialLosersRows","specialLosersMeta",[...bear],"No losers currently pass RSI.",bearTarget);
  renderSpecialRsiRows("specialBullRsiRows","specialBullRsiMeta",[...bull],"bull");renderSpecialRsiRows("specialBearRsiRows","specialBearRsiMeta",[...bear],"bear");renderAlertHistory();renderSpecialCrossMonitor();
- const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 2async function loadSpecialRsiHistory(symbol){
+ const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); RSI candidates are evaluated in rank order.";
+}
+async function loadSpecialRsiHistory(symbol){
  if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;
  const pendingTimer=specialRsiRetryTimers.get(symbol);if(pendingTimer){clearTimeout(pendingTimer);specialRsiRetryTimers.delete(symbol);}
  specialRsiLoads.add(symbol);let loaded=false,errorMessage="";
