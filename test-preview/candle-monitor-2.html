@@ -1147,7 +1147,18 @@ function renderTopMomentum(rows){
 let earlyBullishDiscoveryRows=new Map(),earlyBullishDiscoveryOnly=new Set(),earlyBullishCandidates=[];
 function setupEarlyBullishUniverseUI(){
  const view=document.getElementById("candleMonitorView"),controls=document.getElementById("cm2Controls");
- if(!view||!controls||document.getElementById("cm2EarlyBullishPanel"))return;
+ if(!view||!controls)return;
+ // Rebuild the dedicated Universe selector at startup so it cannot appear blank
+ // if an older saved/browser state has cleared its native option list.
+ const universeSelect=document.getElementById("universe");
+ if(universeSelect){
+  const previous=universeSelect.value;
+  universeSelect.innerHTML='<option value="symmetrical">Ranked gainers + worst losers</option><option value="earlyBullish">Early bullish discovery only</option>';
+  universeSelect.value=previous==="earlyBullish"?"earlyBullish":"symmetrical";
+  universeSelect.setAttribute("aria-label","Select scanner universe");
+  universeSelect.disabled=false;
+ }
+ if(document.getElementById("cm2EarlyBullishPanel"))return;
  const control=document.createElement("div");control.className="cm2-control";
  control.innerHTML='<label>Early bullish · 3m RSI minimum</label><input id="cm2EarlyRsiMin" type="number" min="0" max="100" step="0.5" value="60">';
  controls.appendChild(control);
