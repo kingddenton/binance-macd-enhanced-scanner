@@ -381,7 +381,7 @@ let hostIndex=0,lastRequest=0,activeRequests=0,pendingRequests=[],requestPumpTim
 const MAX_CONCURRENT_REQUESTS=10,MIN_REQUEST_START_GAP_MS=75; // Controlled throughput test: 10 in-flight max, ~13.3 request starts/sec.
 const inFlightRequests=new Map(),responseCache=new Map(); // Share in-flight requests and briefly reuse fresh market-data responses across monitors.
 const previous24hHigh=new Map(),fresh24hHighUntil=new Map(),universePeriodCache=new Map(),rollingOiHistory=new Map();
-const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialAlertDiagnostic=new Map();let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
+const alertedCrossovers=new Set(),alertedQualified=new Set(),alertedEarlyMomentum=new Set();let earlyMomentumSound=false;const earlyMomentumHistory=[];const REVERSAL_TFS=["15m","30m","1h"],reversalStates=new Map(),reversalAlertHistory=Object.fromEntries(REVERSAL_TFS.map(tf=>[tf,[]])),reversalAlertKeys=new Set();let alertAudioContext=null;let twentyPctSoundEnabled=false,twentyPctSockets=[],twentyPctReconnectTimer=null,twentyPctWatchSymbols=new Set(),twentyPctReconnectAttempt=0,twentyPctLastMessageAt=0;const twentyPctOpenMap=new Map(),twentyPctLastPrices=new Map(),twentyPct15mData=new Map(),twentyPct24hChanges=new Map(),alerted20PctCandles=new Set(),twentyPctHistory=[];let specialMacdLatestHeadingTf=null,specialMacdHeadingBlinkTimer=null,specialMacdHeadingBlinkUntil=0,bullMacdLatestHeadingTf=null,bullMacdHeadingBlinkTimer=null,bullMacdHeadingBlinkUntil=0;let specialAlertDiagnostic=new Map();let specialMacdSoundEnabled=false,specialMacdBullHistory=[],specialMacdBullAlertKeys=new Set(),specialMacdSockets=[],specialMacdReconnectTimer=null,specialMacdCandidates=new Map(),specialMacdBullCandidates=new Map(),specialMacdBearCandidates=new Map(),specialMacdRankedCandidates=new Map(),specialRsiRows=new Map(),specialRsiLoads=new Set(),specialRsiRetryTimers=new Map(),specialRsiRetryAttempts=new Map(),specialMacdEligibleTickers=new Map(),specialMacdRollingRows=new Map(),specialMacdRollingLoads=new Set(),specialMacdHistories=new Map(),specialMacdHistoryLoads=new Set(),specialMacdStates=new Map(),specialMacdAlertKeys=new Set(),specialMacdHistory=[],specialMacdReconnectAttempt=0,specialMacdLastMessageAt=0,specialFallbackTimer=null,specialFallbackBusy=false,specialMacdQueues=new Map(),specialMacdPending=new Map(),specialMacdLiveStates=new Map(),specialCrossMonitorOi=new Map(),specialCrossMonitorOiLoads=new Set(),specialCrossMonitorMarkMap=null,specialCrossMonitorMarkMapAt=0,specialCrossMonitorMarkPromise=null;const alertSoundEnabled={confirmedBull:false,confirmedBear:false,crossoverBull:false,crossoverBear:false};let latestResultAlert=null;
 function playAlertTone(tier,direction,tf){
  const soundKey=(tier==="confirmed"?"confirmed":"crossover")+(direction==="bull"?"Bull":"Bear");const timeframeCheckbox=$("alert"+tf);if(!alertSoundEnabled[soundKey]||(timeframeCheckbox&&!timeframeCheckbox.checked))return;
  try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
@@ -789,14 +789,30 @@ function syncSpecialMacdCandidates(){
  const renderSide=(rowsId,metaId,rows,empty,target)=>{const body=$(rowsId),meta=$(metaId),isLeader=rowsId==="specialGainersRows";if(meta)meta.textContent=rows.length+" RSI-qualified selected / "+target+" target · ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h volume";if(body)body.innerHTML=rows.length?rows.map(([symbol,item])=>'<li class="'+(isLeader?"leader-coin-row":"lagger-coin-row")+'"><b>'+esc(symbol)+'</b> <span>'+(Number.isFinite(Number(item?.change))?(Number(item.change)>0?"+":"")+Number(item.change).toFixed(2):"—")+'%</span></li>').join(""):'<li class="small">'+empty+'</li>';};
  renderSide("specialGainersRows","specialGainersMeta",[...bull],"No gainers currently pass RSI.",bullTarget);renderSide("specialLosersRows","specialLosersMeta",[...bear],"No losers currently pass RSI.",bearTarget);
  renderSpecialRsiRows("specialBullRsiRows","specialBullRsiMeta",[...bull],"bull");renderSpecialRsiRows("specialBearRsiRows","specialBearRsiMeta",[...bear],"bear");renderAlertHistory();renderSpecialCrossMonitor();
- const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 24h quote volume); RSI candidates are evaluated in rank order.";
-}
-async function loadSpecialRsiHistory(symbol){
- if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;specialRsiLoads.add(symbol);let loaded=false;
- try{const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));if(!specialMacdEligibleTickers.has(symbol))return;
- const clean=rows=>Array.isArray(rows)?rows.filter(row=>Number(row[4])>0):[];specialRsiRows.set(symbol,{"1h":clean(one),"4h":clean(four)});loaded=true;
- }catch(e){const status=$("specialMacdStatus");if(status)status.textContent="RSI history loading failed for "+symbol+": "+e.message+"; it will retry on the next universe refresh.";}
- finally{specialRsiLoads.delete(symbol);if(loaded)syncSpecialMacdCandidates();}
+ const status=$("specialMacdStatus");if(status)status.textContent=bull.size+"/"+bullTarget+" bullish RSI-qualified candidates · "+bear.size+"/"+bearTarget+" bearish RSI-qualified candidates ("+modeLabel+", ≥"+specialMacdMinVolume().toLocaleString()+" USDT 2async function loadSpecialRsiHistory(symbol){
+ if(!specialMacdEligibleTickers.has(symbol)||specialRsiLoads.has(symbol))return;
+ const pendingTimer=specialRsiRetryTimers.get(symbol);if(pendingTimer){clearTimeout(pendingTimer);specialRsiRetryTimers.delete(symbol);}
+ specialRsiLoads.add(symbol);let loaded=false,errorMessage="";
+ try{
+  const [one,four]=await Promise.all(["1h","4h"].map(tf=>request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150")));
+  if(!specialMacdEligibleTickers.has(symbol))return;
+  const clean=rows=>Array.isArray(rows)?rows.filter(row=>Array.isArray(row)&&Number.isFinite(Number(row[4]))&&Number(row[4])>0):[];
+  const oneClean=clean(one),fourClean=clean(four);
+  if(!Number.isFinite(specialRsiValue(oneClean))||!Number.isFinite(specialRsiValue(fourClean)))throw new Error("Insufficient valid 1H/4H candles to calculate RSI");
+  specialRsiRows.set(symbol,{"1h":oneClean,"4h":fourClean});specialRsiRetryAttempts.delete(symbol);loaded=true;
+ }catch(e){
+  errorMessage=e&&e.message?e.message:String(e);
+  const status=$("specialMacdStatus");if(status)status.textContent="RSI history pending for "+symbol+": "+errorMessage+"; retry scheduled.";
+ }finally{
+  specialRsiLoads.delete(symbol);
+  if(loaded)syncSpecialMacdCandidates();
+  else if(specialMacdEligibleTickers.has(symbol)&&!specialRsiRows.has(symbol)&&!specialRsiRetryTimers.has(symbol)){
+   const attempt=(specialRsiRetryAttempts.get(symbol)||0)+1;specialRsiRetryAttempts.set(symbol,attempt);
+   const delay=Math.min(60000,5000*Math.pow(2,Math.min(attempt-1,4)));
+   const timer=setTimeout(()=>{specialRsiRetryTimers.delete(symbol);if(specialMacdEligibleTickers.has(symbol)&&!specialRsiRows.has(symbol))loadSpecialRsiHistory(symbol);},delay);
+   specialRsiRetryTimers.set(symbol,timer);
+  }
+ }
 }
 function updateSpecialRsiKline(symbol,k){
  if(!specialMacdRankedCandidates.has(symbol)||!k||!["1h","4h"].includes(k.i))return;
