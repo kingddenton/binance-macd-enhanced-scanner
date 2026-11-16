@@ -1083,7 +1083,7 @@ async function universe(){
  const selectedTickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
  let selected=[...specialMacdCandidates.keys()].map(symbol=>selectedTickerBySymbol.get(symbol)).filter(Boolean);
  // Preserve the established ranked universe; append only newly discovered early bullish candidates.
- selected=await buildEarlyBullishUniverse(list.map(t=>t));
+ selected=await buildEarlyBullishUniverse(list,selected);
  // Threshold mode retains its existing threshold behavior and the scanner's coin-count cap.
  if($("specialMacdUniverseMode")?.value!=="ranking")selected=selected.slice(0,max);
  $("status").textContent="Symmetrical universe ready: "+selected.length+" coins (Top gainers + Worst losers).";
@@ -1165,9 +1165,9 @@ function earlyBullishSettings(){
  if(min>max)throw new Error("Early bullish RSI minimum cannot exceed its maximum.");
  return {min,max,age};
 }
-async function buildEarlyBullishUniverse(tickers){
+async function buildEarlyBullishUniverse(eligibleTickers,baseSelected){
  setupEarlyBullishUniverseUI();
- const settings=earlyBullishSettings(),eligible=tickers.slice(),rowsBySymbol=new Map(),candidates=[];
+ const settings=earlyBullishSettings(),eligible=eligibleTickers.slice(),rowsBySymbol=new Map(),candidates=[];
  let cursor=0,completed=0;
  const worker=async()=>{while(true){const index=cursor++;if(index>=eligible.length)return;const ticker=eligible[index];try{
    const rows=await request("/fapi/v1/klines?symbol="+ticker.symbol+"&interval=3m&limit=100");
@@ -1181,11 +1181,11 @@ async function buildEarlyBullishUniverse(tickers){
  }};
  await Promise.all(Array.from({length:6},worker));
  earlyBullishCandidates=candidates.sort((a,b)=>a.age-b.age||b.volume-a.volume);
- const existing=new Set(tickers.map(t=>t.symbol)),candidateSymbols=new Set(candidates.map(x=>x.symbol));
+ const existing=new Set(baseSelected.map(t=>t.symbol)),candidateSymbols=new Set(candidates.map(x=>x.symbol));
  earlyBullishDiscoveryOnly=new Set([...candidateSymbols].filter(symbol=>!existing.has(symbol)));
- const bySymbol=new Map(tickers.map(t=>[t.symbol,t]));
+ const bySymbol=new Map(baseSelected.map(t=>[t.symbol,t]));
  const extras=candidates.filter(x=>!existing.has(x.symbol)).map(x=>({symbol:x.symbol,lastPrice:"",priceChangePercent:x.change,quoteVolume:x.volume}));
- const merged=tickers.concat(extras);
+ const merged=baseSelected.concat(extras);
  const body=document.getElementById("cm2EarlyBullishRows"),meta=document.getElementById("cm2EarlyBullishMeta");
  if(meta)meta.textContent="Scanned "+completed+"/"+eligible.length+" liquid USDT perpetuals · RSI "+settings.min+"–"+settings.max+" · first "+settings.age+" positive closed 3m histogram candles · "+candidates.length+" candidates";
  if(body)body.innerHTML=candidates.length?candidates.map(x=>'<tr><td><b>'+x.symbol+'</b></td><td>'+x.rsi.toFixed(1)+'</td><td>'+x.age+'/'+settings.age+'</td><td>'+(Number.isFinite(x.change)?(x.change>0?"+":"")+x.change.toFixed(2)+"%":"—")+'</td><td>'+Number(x.volume).toLocaleString(undefined,{maximumFractionDigits:0})+'</td></tr>').join(""):'<tr><td colspan="5" class="compact-empty">No coins currently meet all early-bullish conditions.</td></tr>';
