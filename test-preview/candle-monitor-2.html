@@ -487,11 +487,11 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,conf
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;specialMacdBullAlertKeys.add(key);
  const durations={"1m":60000,"3m":180000,"5m":300000,"15m":900000},duration=durations[tf];if(!duration)return;
- const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now,displayAt:tf==="5m"?now:candleTime});
+ const now=Date.now();specialMacdBullHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now,displayAt:now});
  specialMacdBullHistory=specialMacdBullHistory.filter(item=>now<(item.displayAt??item.candleTime)+specialMacdCandleLimit()*durations[item.tf]).slice(0,10);
  bullMacdLatestHeadingTf=tf;bullMacdHeadingBlinkUntil=now+5000;if(bullMacdHeadingBlinkTimer)clearTimeout(bullMacdHeadingBlinkTimer);
  bullMacdHeadingBlinkTimer=setTimeout(()=>{bullMacdHeadingBlinkUntil=0;bullMacdLatestHeadingTf=null;renderSpecialMacdBullHistory();},5000);
- scheduleSpecialMacdAlertRefresh(renderSpecialMacdBullHistory,tf==="5m"?now:candleTime,duration);renderSpecialMacdBullHistory();
+ scheduleSpecialMacdAlertRefresh(renderSpecialMacdBullHistory,now,duration);renderSpecialMacdBullHistory();
  const status=$("specialMacdStatus");if(status)status.textContent="CONFIRMED "+tf.toUpperCase()+" BULLISH CROSS: "+symbol+" · enabled confirmations: "+specialMacdConfirmationSummary("bull")+". Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
 }
@@ -501,12 +501,12 @@ function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume())return;specialMacdAlertKeys.add(key);
  const now=Date.now(),duration={"1m":60000,"3m":180000,"5m":300000,"15m":900000}[tf];if(!duration)return;
- specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now,displayAt:tf==="5m"?now:candleTime});
+ specialMacdHistory.unshift({symbol,tf,candleTime,hist,change:candidate.change,at:now,displayAt:now});
  specialMacdHistory=specialMacdHistory.filter(item=>now<(item.displayAt??item.candleTime)+specialMacdCandleLimit()*({"1m":60000,"3m":180000,"5m":300000,"15m":900000}[item.tf]||0)).slice(0,10);
  specialMacdLatestHeadingTf=tf;specialMacdHeadingBlinkUntil=now+5000;
  if(specialMacdHeadingBlinkTimer)clearTimeout(specialMacdHeadingBlinkTimer);
  specialMacdHeadingBlinkTimer=setTimeout(()=>{specialMacdHeadingBlinkUntil=0;specialMacdLatestHeadingTf=null;renderSpecialMacdHistory();},5000);
- scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,tf==="5m"?now:candleTime,duration);
+ scheduleSpecialMacdAlertRefresh(renderSpecialMacdHistory,now,duration);
  renderSpecialMacdHistory();
  $("specialMacdStatus").textContent="CONFIRMED "+tf.toUpperCase()+" BEARISH REVERSAL: "+symbol+" · enabled confirmations: "+specialMacdConfirmationSummary("bear")+". Alert remains for "+specialMacdCandleLimit()+" candles.";
  playSpecialMacdAlarm();
