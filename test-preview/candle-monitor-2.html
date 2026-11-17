@@ -284,6 +284,7 @@ main{max-width:1800px;width:100%}
   <div class="controls" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:8px;gap:8px"><div style="padding:8px;border:1px solid #236b4b;border-radius:8px"><b style="color:#4ade80">🟢 BULLISH ALIGNMENT</b><div id="macdAlignmentBull" class="live-candle-items"><div class="live-candle-empty">No bullish alignment alerts yet.</div></div></div><div style="padding:8px;border:1px solid #8b3945;border-radius:8px"><b style="color:#fb7185">🔴 BEARISH ALIGNMENT</b><div id="macdAlignmentBear" class="live-candle-items"><div class="live-candle-empty">No bearish alignment alerts yet.</div></div></div></div>
   <div id="macdAlignmentStatus" class="small" style="margin-top:7px">Alignment alert ready. Candle limit defaults to 5.</div>
  </div>
+ <div class="row" id="specialMacd1mControls" style="margin-top:10px;gap:16px;align-items:center"><b class="small">1m alert controls:</b><span class="check"><input type="checkbox" id="specialMacd1mBullEnabled" checked><label for="specialMacd1mBullEnabled">Enable 1m Bullish alerts</label></span><span class="check"><input type="checkbox" id="specialMacd1mBearEnabled" checked><label for="specialMacd1mBearEnabled">Enable 1m Bearish alerts</label></span></div>
  <div class="live-candle-scroll special-alert-scroll" style="overflow-x:auto;margin-top:10px"><div class="special-alert-layout" id="twentyPctFeed">
   <div class="special-direction-group special-bull-group"><div class="special-group-title">🟢 BULLISH CROSS</div><div class="special-group-columns">
    <section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_1m">1M</h3><div class="live-candle-items" data-special-bull-tf="1m">No bullish crosses yet.</div></section><section class="live-candle-column"><h3 class="bullish-heading" id="specialBullHeading_3m">3M</h3><div class="live-candle-items" data-special-bull-tf="3m">No bullish crosses yet.</div></section>
@@ -482,7 +483,14 @@ function renderSpecialMacdBullHistory(){
  });
 }
 function specialBullMinCandleChange(){const el=$("specialBullMinCandleChange"),n=Number(el&&el.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):0.2;}
+function specialMacd1mAlertEnabled(direction){if(direction==="bull")return $("specialMacd1mBullEnabled")?.checked!==false;return $("specialMacd1mBearEnabled")?.checked!==false;}
+function setupSpecialMacd1mAlertControls(){
+ const controls=[["specialMacd1mBullEnabled","bull"],["specialMacd1mBearEnabled","bear"]];
+ for(const [id,direction] of controls){const el=$(id);if(!el)continue;const key="candleMonitor2SpecialMacd1m"+direction+"Enabled",saved=localStorage.getItem(key);if(saved==="true"||saved==="false")el.checked=saved==="true";el.addEventListener("change",()=>{localStorage.setItem(key,String(el.checked));if(!el.checked){if(direction==="bull")specialMacdBullHistory=specialMacdBullHistory.filter(item=>item.tf!=="1m");else specialMacdHistory=specialMacdHistory.filter(item=>item.tf!=="1m");renderSpecialMacdHistory();renderSpecialMacdBullHistory();}});}
+}
+setupSpecialMacd1mAlertControls();
 function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,confirmations){
+ if(tf==="1m"&&!specialMacd1mAlertEnabled("bull"))return;
  if(!confirmations||!confirmations.bull)return;
  const key=symbol+"|"+tf+"|BULL|"+candleTime;if(specialMacdBullAlertKeys.has(key))return;
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume()||!Number.isFinite(candleChangePct)||candleChangePct<specialBullMinCandleChange())return;specialMacdBullAlertKeys.add(key);
@@ -497,6 +505,7 @@ function fireSpecialMacdBullAlert(symbol,tf,candleTime,hist,candleChangePct,conf
 }
 function playSpecialMacdAlarm(){if(!specialMacdSoundEnabled)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!alertAudioContext)alertAudioContext=new Ctx();if(alertAudioContext.state==="suspended")alertAudioContext.resume();const ctx=alertAudioContext,base=ctx.currentTime;[660,494,392,294].forEach((frequency,index)=>{const start=base+index*0.22,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="triangle";osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(0.0001,start);gain.gain.exponentialRampToValueAtTime(0.55,start+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,start+0.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+0.2);});}catch(e){$("specialMacdStatus").textContent="Could not play special alarm. Check device sound permissions.";}}
 function fireSpecialMacdAlert(symbol,tf,candleTime,hist,confirmations){
+ if(tf==="1m"&&!specialMacd1mAlertEnabled("bear"))return;
  if(!confirmations||!confirmations.bear)return;
  const key=symbol+"|"+tf+"|"+candleTime;if(specialMacdAlertKeys.has(key))return;
  const candidate=specialMacdCandidates.get(symbol);if(!candidate||candidate.quoteVolume<specialMacdMinVolume())return;specialMacdAlertKeys.add(key);
