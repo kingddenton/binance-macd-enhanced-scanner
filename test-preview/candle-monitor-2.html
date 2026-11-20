@@ -1018,7 +1018,10 @@ function pumpRequests(){
  pumpRequests();
 }
 function scheduleRequest(run){return new Promise((resolve,reject)=>{pendingRequests.push({run,resolve,reject,queuedAt:performance.now()});pumpRequests();});}
+const inFlightRestRequests=new Map();
 function request(url,baseOverride=null){
+ const requestKey=(baseOverride||"auto")+"|"+url;
+ if(inFlightRestRequests.has(requestKey))return inFlightRestRequests.get(requestKey);
  const run=async()=>{
   if(diag.cooldownUntil>Date.now())throw new Error("Binance cooldown active until "+new Date(diag.cooldownUntil).toLocaleTimeString()+" after HTTP "+diag.lastHttpStatus);
   let last;
@@ -1038,7 +1041,34 @@ function request(url,baseOverride=null){
   }
   throw last||new Error("Binance request failed");
  };
- return scheduleRequest(run);
+ const pending=scheduleRequest(run);
+ inFlightRestRequests.set(requestKey,pending);
+ pending.finally(()=>{if(inFlightRestRequests.get(requestKey)===pending)inFlightRestRequests.delete(requestKey);}).catch(()=>{});
+ return pending;
+}
+const sharedCandleCache=new Map(),sharedCandleLoads=new Map();
+async function getSharedCandles(symbol,tf,limit=150){
+ const key=symbol+"|"+tf;
+ if(sharedCandleLoads.has(key))return sharedCandleLoads.get(key);
+ const cached=sharedCandleCache.get(key);
+ const task=(async()=>{
+  let rows;
+  if(cached&&cached.length){
+   const lastOpen=Number(cached[cached.length-1][0]);
+   const updates=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&startTime="+lastOpen+"&limit="+limit);
+   if(!Array.isArray(updates))throw new Error("Invalid incremental candle response for "+key);
+   const merged=new Map(cached.map(row=>[Number(row[0]),row]));
+   for(const row of updates)merged.set(Number(row[0]),row);
+   rows=[...merged.values()].sort((a,b)=>Number(a[0])-Number(b[0])).slice(-limit);
+  }else{
+   rows=await request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit="+limit);
+   if(!Array.isArray(rows))throw new Error("Invalid initial candle response for "+key);
+  }
+  sharedCandleCache.set(key,rows);
+  return rows;
+ })();
+ sharedCandleLoads.set(key,task);
+ try{return await task;}finally{if(sharedCandleLoads.get(key)===task)sharedCandleLoads.delete(key);}
 }
 function ema(a,p){const k=2/(p+1),o=[];let v=a[0];o.push(v);for(let i=1;i<a.length;i++){v=a[i]*k+v*(1-k);o.push(v);}return o;}
 function macd(rows){diag.macdRuns++;const c=rows.map(x=>+x[4]),e12=ema(c,12),e26=ema(c,26),dif=c.map((_,i)=>e12[i]-e26[i]),dea=ema(dif,9),hist=dif.map((v,i)=>v-dea[i]);return {dif,dea,hist};}
@@ -1193,7 +1223,7 @@ async function buildEarlyBullishUniverse(eligibleTickers,baseSelected){
  const settings=earlyBullishSettings(),eligible=eligibleTickers.slice(),rowsBySymbol=new Map(),candidates=[];
  let cursor=0,completed=0;
  const worker=async()=>{while(true){const index=cursor++;if(index>=eligible.length)return;const ticker=eligible[index];try{
-   const rows=await request("/fapi/v1/klines?symbol="+ticker.symbol+"&interval=3m&limit=100");
+   const rows=await getSharedCandles(ticker.symbol,"3m",150);
    earlyBullishDiscoveryRows.set(ticker.symbol,rows);rowsBySymbol.set(ticker.symbol,rows);
    const now=Date.now(),closed=rows.filter(row=>Number(row[6])<now);
    if(closed.length>=30){const value=rsi(closed),m=macd(closed),hist=m.hist;let age=0;for(let i=hist.length-1;i>=0&&hist[i]>0;i--)age++;
@@ -1225,7 +1255,7 @@ async function scan(){
   const cvdTfs=new Set([...document.querySelectorAll("#cvdChecks input:checked")].map(x=>x.id.replace("cvdConfirm_",""))),cvdBars=Math.max(1,Math.min(50,Number($("cvdBars").value)||5)),cvdMin=Number($("cvdMin").value)||0,cvdMaxRaw=$("cvdMax").value.trim(),cvdMax=cvdMaxRaw===""?null:Number(cvdMaxRaw);const htfConfig={};for(const row of document.querySelectorAll("#htfChecks .htf-row")){const enabled=row.querySelector(".htf-enable");if(!enabled||!enabled.checked)continue;const conditions=[...row.querySelectorAll("[data-condition]:checked")].map(x=>x.dataset.condition);if(conditions.length)htfConfig[enabled.value]=conditions;}const deaTfs=new Set([...document.querySelectorAll("#deaChecks input:checked")].map(x=>x.value)),window=Math.max(1,Math.min(100,Number($("eventBars").value)||5)),stFlipDisplay=$("stFlipEnabled").checked,minOI=Math.max(0,Number($("minOI").value)||0);
   $("status").textContent="Scanning "+tickers.length+" symbols for bullish signals…";
   const oiCache=new Map(),confirmCache=new Map(),candleCache=new Map(),macdCache=new Map();let markMap=null;
-  const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key)){if(tf==="3m"&&earlyBullishDiscoveryRows.has(symbol))candleCache.set(key,Promise.resolve(earlyBullishDiscoveryRows.get(symbol)));else candleCache.set(key,request("/fapi/v1/klines?symbol="+symbol+"&interval="+tf+"&limit=150"));}return candleCache.get(key);};
+  const getCandles=(symbol,tf)=>{const key=symbol+"|"+tf;if(!candleCache.has(key)){if(tf==="3m"&&earlyBullishDiscoveryRows.has(symbol))candleCache.set(key,Promise.resolve(earlyBullishDiscoveryRows.get(symbol)));else candleCache.set(key,getSharedCandles(symbol,tf,150));}return candleCache.get(key);};
   const getMacdAnalysis=async(symbol,tf)=>{const key=symbol+"|"+tf;if(!macdCache.has(key))macdCache.set(key,(async()=>{const rows=await getCandles(symbol,tf);return {rows,macd:macd(rows)};})());return macdCache.get(key);};
   let nextScanIndex=0,processedCount=0,markMapPromise=null,lastUiUpdate=0;
   const scanWorker=async()=>{while(true){const si=nextScanIndex++;if(si>=tickers.length)return;
