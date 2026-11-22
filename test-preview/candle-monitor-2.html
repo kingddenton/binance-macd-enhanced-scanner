@@ -307,7 +307,8 @@ main{max-width:1800px;width:100%}
  </div></div></div>
  <div id="twentyPctStatus" class="small" style="margin-top:8px">Visual monitoring starts with each scan. Turn the sound ON to enable the loud alarm.</div>
   <div id="specialMacdStatus" class="small" style="margin-top:5px">Special reversal monitor is ready; qualifying coins are checked independently of Top N.</div>
-  <div id="specialMacdCandidatesList" class="special-universe-diagnostic" aria-live="polite">
+  <section id="selectedUniversePanel" class="special-universe-diagnostic" style="display:block;margin:10px 0;padding:12px;border:1px solid #3b6172;border-radius:12px;background:#091923"><h3 style="margin:0 0 6px;color:#8ed8ff">🎯 COINS CURRENTLY SELECTED FOR MONITORING</h3><div id="selectedUniverseMeta" class="special-universe-meta">Waiting for universe selection…</div><div id="selectedUniverseRows" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px"><span class="small">No coins selected yet.</span></div></section>
+<div id="specialMacdCandidatesList" class="special-universe-diagnostic" aria-live="polite">
 <section class="special-universe-side special-universe-gainers"><h3>🟢 01A · LEADERS — BULLISH WATCHLIST</h3><div class="special-universe-meta" id="specialGainersMeta">Waiting for market scan…</div><ol id="specialGainersRows"><li class="small">Waiting for market scan…</li></ol></section>
 <section class="special-universe-side special-universe-losers"><h3>🔴 01B · LAGGARDS — BEARISH WATCHLIST</h3><div class="special-universe-meta" id="specialLosersMeta">Waiting for market scan…</div><ol id="specialLosersRows"><li class="small">Waiting for market scan…</li></ol></section></div>
   
@@ -1142,6 +1143,9 @@ async function universe(){
   $("status").textContent=universeMode==="earlyBullish"?"Early Bullish Discovery universe ready: "+selected.length+" candidates.":"Ranked + Early Bullish universe ready: "+selected.length+" coins.";
  }
  // Keep every secondary live monitor and market-leader list inside the chosen scanner universe.
+ const selectedMeta=$("selectedUniverseMeta"),selectedRows=$("selectedUniverseRows");
+ if(selectedMeta)selectedMeta.textContent=universeMode==="rsi15m"?"15m RSI Universe · "+selected.length+" coins selected for monitoring":"Selected universe · "+selected.length+" coins";
+ if(selectedRows){selectedRows.replaceChildren();if(!selected.length){const empty=document.createElement("span");empty.className="small";empty.textContent="No coins currently qualify.";selectedRows.appendChild(empty);}else selected.forEach((ticker,index)=>{const chip=document.createElement("span");chip.textContent=(index+1)+". "+ticker.symbol;chip.style.cssText="display:inline-block;padding:6px 9px;border:1px solid #315568;border-radius:7px;background:#102735;color:#d9f1ff;font-weight:700;font-size:13px";selectedRows.appendChild(chip);});}
  set20PctWatchUniverse(selected);
  setSpecialMacdCandidates(selected);
  const auditSymbols=["SOXLUSDT","MVLLUSDT","COHRUSDT","KORUUSDT"],exchangeBySymbol=new Map(ex.symbols.map(x=>[x.symbol,x])),tickerBySymbol=new Map(all.map(x=>[x.symbol,x]));
