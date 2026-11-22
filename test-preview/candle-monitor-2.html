@@ -1148,6 +1148,24 @@ async function universe(){
  if(selectedRows){selectedRows.replaceChildren();if(!selected.length){const empty=document.createElement("span");empty.className="small";empty.textContent="No coins currently qualify.";selectedRows.appendChild(empty);}else selected.forEach((ticker,index)=>{const chip=document.createElement("span");chip.textContent=(index+1)+". "+ticker.symbol;chip.style.cssText="display:inline-block;padding:6px 9px;border:1px solid #315568;border-radius:7px;background:#102735;color:#d9f1ff;font-weight:700;font-size:13px";selectedRows.appendChild(chip);});}
  set20PctWatchUniverse(selected);
  setSpecialMacdCandidates(selected);
+ // In 15m RSI mode, repurpose the EXISTING Market Leaders & Laggards area
+ // as the visible roster of the exact selected monitoring universe.
+ const watchlist=$("specialMacdCandidatesList");
+ if(watchlist){
+  const gainSide=watchlist.querySelector(".special-universe-gainers");
+  const lossSide=watchlist.querySelector(".special-universe-losers");
+  const gainTitle=gainSide?.querySelector("h3");
+  const gainMeta=$("specialGainersMeta"),gainRows=$("specialGainersRows");
+  if(universeMode==="rsi15m"){
+   if(gainTitle)gainTitle.textContent="🎯 COINS SELECTED FOR 15m RSI MONITORING";
+   if(gainMeta)gainMeta.textContent=selected.length+" coins selected · exact active monitoring universe";
+   if(gainRows){gainRows.replaceChildren();if(!selected.length){const li=document.createElement("li");li.textContent="No coins currently qualify for the 15m RSI gate.";gainRows.appendChild(li);}else selected.forEach((ticker,index)=>{const li=document.createElement("li");li.textContent=(index+1)+". "+ticker.symbol;gainRows.appendChild(li);});}
+   if(lossSide)lossSide.hidden=true;
+  }else{
+   if(gainTitle)gainTitle.textContent="🟢 01A · LEADERS — BULLISH WATCHLIST";
+   if(lossSide)lossSide.hidden=false;
+  }
+ }
  const auditSymbols=["SOXLUSDT","MVLLUSDT","COHRUSDT","KORUUSDT"],exchangeBySymbol=new Map(ex.symbols.map(x=>[x.symbol,x])),tickerBySymbol=new Map(all.map(x=>[x.symbol,x]));
  const volumeRanked=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol).slice().sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));
  const auditSelected=new Set(selected.map(t=>t.symbol));
@@ -1976,8 +1994,6 @@ syncSpecialMacdUniverseControls();["specialMacdUniverseMode","specialMacdMinGain
    h.textContent='01  MARKET LEADERS & LAGGARDS';
    leaders.parentNode.insertBefore(h,leaders);
  }
- const selectedPanel=$('selectedUniversePanel');
- if(selectedPanel&&leaders&&leaders.parentNode)leaders.parentNode.insertBefore(selectedPanel,leaders);
  // 02 — Live forming-candle bullish and bearish alerts.
  const liveTitle=[...document.querySelectorAll('b')].find(el=>el.textContent.trim()==='🚨 LIVE BULLISH CANDLE MONITOR');
  if(liveTitle){liveTitle.textContent='02  🚨 LIVE BULLISH & BEARISH CANDLE ALERTS';}
