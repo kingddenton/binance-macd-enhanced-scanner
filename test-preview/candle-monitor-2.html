@@ -987,7 +987,7 @@ function renderUniverse(){
    const counts=[1,4,6,12].map(h=>diag.universe.filter(x=>(x.periods||[]).includes(h)).length),overlaps=diag.universe.filter(x=>(x.periods||[]).length>1).length;
    breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">1H top performers</div><div class="diagvalue">'+counts[0]+'</div></div><div class="diagitem"><div class="diaglabel">4H top performers</div><div class="diagvalue">'+counts[1]+'</div></div><div class="diagitem"><div class="diaglabel">6H top performers</div><div class="diagvalue">'+counts[2]+'</div></div><div class="diagitem"><div class="diaglabel">12H top performers</div><div class="diagvalue">'+counts[3]+'</div></div><div class="diagitem"><div class="diaglabel">Unique combined selection</div><div class="diagvalue">'+diag.universe.length+'</div></div><div class="diagitem"><div class="diaglabel">Coins ranked in 2+ periods</div><div class="diagvalue">'+overlaps+'</div></div>';
   }else{
-   const label=mode==="earlyBullish"?"Early Bullish Discovery only":mode==="symmetrical"?"Ranked gainers + worst losers":mode==="gainers24h1plus"?"All coins with 24H change ≥ +1%":mode==="gainers"?"24H gainers":mode==="gainersMultiPositive"?"Positive 24H + rolling 1H/4H/6H/12H":mode==="volume"?"24H quote-volume":mode==="all"?"All eligible (scan limit)":period+" gainers";
+   const label=mode==="rsi15m"?"15m RSI Universe":mode==="earlyBullish"?"Early Bullish Discovery only":mode==="symmetrical"?"Ranked gainers + worst losers":mode==="gainers24h1plus"?"All coins with 24H change ≥ +1%":mode==="gainers"?"24H gainers":mode==="gainersMultiPositive"?"Positive 24H + rolling 1H/4H/6H/12H":mode==="volume"?"24H quote-volume":mode==="all"?"All eligible (scan limit)":period+" gainers";
    breakdown.innerHTML='<div class="diagitem"><div class="diaglabel">Selection method</div><div class="diagvalue">'+label+'</div></div><div class="diagitem"><div class="diaglabel">Selected symbols</div><div class="diagvalue">'+diag.universe.length+'</div></div>';
   }
  }
@@ -1120,14 +1120,17 @@ async function universe(){
  setSpecialMacdCandidates(list);
  const mode="symmetrical",period=null,universeMode=$("universe")?.value||"symmetrical";
  const selectedTickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
- const rankedBase=universeMode==="earlyBullish"?[]:[...specialMacdCandidates.keys()].map(symbol=>selectedTickerBySymbol.get(symbol)).filter(Boolean);
- // Default mode preserves the ranked universe and appends discovery candidates.
- // Early Bullish Discovery mode scans only its own qualifying candidate list.
- let selected=await buildEarlyBullishUniverse(list,rankedBase);
- if(universeMode==="earlyBullish")selected=earlyBullishCandidates.map(x=>selectedTickerBySymbol.get(x.symbol)).filter(Boolean);
- // Keep the existing ranked/threshold selection cap; early discovery scans every qualifying candidate.
- if(universeMode!=="earlyBullish"&&$("specialMacdUniverseMode")?.value!=="ranking")selected=selected.slice(0,max);
- $("status").textContent=universeMode==="earlyBullish"?"Early Bullish Discovery universe ready: "+selected.length+" candidates.":"Ranked + Early Bullish universe ready: "+selected.length+" coins.";
+ let selected=[];
+ if(universeMode==="rsi15m"){
+  selected=await build15mRsiUniverse(list);
+ }else{
+  const rankedBase=universeMode==="earlyBullish"?[]:[...specialMacdCandidates.keys()].map(symbol=>selectedTickerBySymbol.get(symbol)).filter(Boolean);
+  // Preserve the existing ranked and Early Bullish universe behaviour.
+  selected=await buildEarlyBullishUniverse(list,rankedBase);
+  if(universeMode==="earlyBullish")selected=earlyBullishCandidates.map(x=>selectedTickerBySymbol.get(x.symbol)).filter(Boolean);
+  if($("specialMacdUniverseMode")?.value!=="ranking")selected=selected.slice(0,max);
+  $("status").textContent=universeMode==="earlyBullish"?"Early Bullish Discovery universe ready: "+selected.length+" candidates.":"Ranked + Early Bullish universe ready: "+selected.length+" coins.";
+ }
  const auditSymbols=["SOXLUSDT","MVLLUSDT","COHRUSDT","KORUUSDT"],exchangeBySymbol=new Map(ex.symbols.map(x=>[x.symbol,x])),tickerBySymbol=new Map(all.map(x=>[x.symbol,x]));
  const volumeRanked=all.filter(t=>eligible.has(t.symbol)&&Number(t.quoteVolume)>=minVol).slice().sort((a,b)=>Number(b.priceChangePercent)-Number(a.priceChangePercent));
  const auditSelected=new Set(selected.map(t=>t.symbol));
@@ -1192,8 +1195,8 @@ function setupEarlyBullishUniverseUI(){
  const universeSelect=document.getElementById("universe");
  if(universeSelect){
   const previous=universeSelect.value;
-  universeSelect.innerHTML='<option value="symmetrical">Ranked gainers + worst losers</option><option value="earlyBullish">Early bullish discovery only</option>';
-  universeSelect.value=previous==="earlyBullish"?"earlyBullish":"symmetrical";
+  universeSelect.innerHTML='<option value="symmetrical">Ranked gainers + worst losers</option><option value="earlyBullish">Early bullish discovery only</option><option value="rsi15m">15m RSI Universe</option>';
+  universeSelect.value=["earlyBullish","rsi15m"].includes(previous)?previous:"symmetrical";
   universeSelect.setAttribute("aria-label","Select scanner universe");
   universeSelect.disabled=false;
  }
@@ -1243,6 +1246,31 @@ async function buildEarlyBullishUniverse(eligibleTickers,baseSelected){
  if(meta)meta.textContent="Scanned "+completed+"/"+eligible.length+" liquid USDT perpetuals · RSI "+settings.min+"–"+settings.max+" · first "+settings.age+" positive closed 3m histogram candles · "+candidates.length+" candidates";
  if(body)body.innerHTML=candidates.length?candidates.map(x=>'<tr><td><b>'+x.symbol+'</b></td><td>'+x.rsi.toFixed(1)+'</td><td>'+x.age+'/'+settings.age+'</td><td>'+(Number.isFinite(x.change)?(x.change>0?"+":"")+x.change.toFixed(2)+"%":"—")+'</td><td>'+Number(x.volume).toLocaleString(undefined,{maximumFractionDigits:0})+'</td></tr>').join(""):'<tr><td colspan="5" class="compact-empty">No coins currently meet all early-bullish conditions.</td></tr>';
  return merged;
+}
+
+// CM2_15M_RSI_UNIVERSE_V1
+// Session-persistent universe: once admitted by the configured 15m RSI range,
+// a symbol remains a member while this page session is open.
+const fifteenMinuteRsiMembers=new Set();
+async function build15mRsiUniverse(eligibleTickers){
+ const minRaw=$("rsiMin_15m").value.trim(),maxRaw=$("rsiMax_15m").value.trim();
+ if(minRaw===""&&maxRaw==="")throw new Error("Set a 15m RSI minimum and/or maximum before selecting 15m RSI Universe.");
+ const min=minRaw===""?null:Number(minRaw),max=maxRaw===""?null:Number(maxRaw);
+ if((min!==null&&(!Number.isFinite(min)||min<0||min>100))||(max!==null&&(!Number.isFinite(max)||max<0||max>100))||(min!==null&&max!==null&&min>max))throw new Error("Check the 15m RSI minimum/maximum values.");
+ const bySymbol=new Map(eligibleTickers.map(t=>[t.symbol,t]));
+ const candidates=eligibleTickers.filter(t=>fifteenMinuteRsiMembers.has(t.symbol));
+ let cursor=0,checked=0,added=0;
+ const worker=async()=>{while(true){const index=cursor++;if(index>=eligibleTickers.length)return;const ticker=eligibleTickers[index];try{
+  const rows=await getSharedCandles(ticker.symbol,"15m",100),closed=rows.filter(row=>Number(row[6])<Date.now()),value=closed.length>=15?rsi(closed):NaN;
+  if(Number.isFinite(value)&& (min===null||value>=min)&&(max===null||value<=max)&&!fifteenMinuteRsiMembers.has(ticker.symbol)){fifteenMinuteRsiMembers.add(ticker.symbol);added++;}
+ }catch(e){}
+ checked++;
+ }};
+ await Promise.all(Array.from({length:6},worker));
+ const selected=[...fifteenMinuteRsiMembers].map(symbol=>bySymbol.get(symbol)).filter(Boolean);
+ const meta="15m RSI Universe · gate "+(min===null?"—":min)+" to "+(max===null?"—":max)+" · "+fifteenMinuteRsiMembers.size+" session members · "+added+" newly admitted · checked "+checked+"/"+eligibleTickers.length;
+ $("status").textContent=meta;
+ return selected;
 }
 
 async function scan(){
