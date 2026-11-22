@@ -1120,6 +1120,17 @@ async function universe(){
  setSpecialMacdCandidates(list);
  const mode="symmetrical",period=null,universeMode=$("universe")?.value||"symmetrical";
  const selectedTickerBySymbol=new Map(list.map(t=>[t.symbol,t]));
+ // Keep the 15m RSI universe exclusive: hide and clear the separate 3m Early Bullish discovery display.
+ const earlyPanel=document.getElementById("cm2EarlyBullishPanel");
+ const earlyControls=["cm2EarlyRsiMin","cm2EarlyRsiMax","cm2EarlyMacdAge"].map(id=>document.getElementById(id)?.closest(".cm2-control")).filter(Boolean);
+ if(universeMode==="rsi15m"){
+  earlyBullishCandidates=[];earlyBullishDiscoveryRows.clear();earlyBullishDiscoveryOnly.clear();
+  if(earlyPanel){earlyPanel.hidden=true;const body=document.getElementById("cm2EarlyBullishRows");if(body)body.innerHTML='<tr><td colspan="5" class="compact-empty">Hidden while 15m RSI Universe is selected.</td></tr>';const meta=document.getElementById("cm2EarlyBullishMeta");if(meta)meta.textContent="Early Bullish discovery is inactive in 15m RSI Universe mode."}
+  earlyControls.forEach(el=>el.hidden=true);
+ }else{
+  if(earlyPanel)earlyPanel.hidden=false;
+  earlyControls.forEach(el=>el.hidden=false);
+ }
  let selected=[];
  if(universeMode==="rsi15m"){
   selected=await build15mRsiUniverse(list);
